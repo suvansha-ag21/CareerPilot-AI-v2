@@ -1,0 +1,28 @@
+FROM node:22-alpine AS builder
+WORKDIR /app
+
+COPY package.json ./
+COPY shared/package.json ./shared/
+COPY frontend/package.json ./frontend/
+
+RUN npm install
+
+COPY shared ./shared
+COPY frontend ./frontend
+
+RUN npm run build:shared
+ARG NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+RUN npm --workspace=frontend run build
+
+FROM node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/shared/dist ./shared/dist
+COPY --from=builder /app/frontend/.next ./frontend/.next
+COPY --from=builder /app/frontend/package.json ./frontend/package.json
+
+EXPOSE 3000
+CMD ["npm", "--workspace=frontend", "run", "start"]

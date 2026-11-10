@@ -1,0 +1,89 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: careerpilot_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-careerpilot_dev_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-careerpilot_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-careerpilot_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - careerpilot_net
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: careerpilot_chromadb
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./database/chroma_data:/chroma/chroma
+    networks:
+      - careerpilot_net
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: careerpilot_ai_service
+    restart: unless-stopped
+    env_file:
+      - ./ai-service/.env
+    environment:
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: 8000
+    depends_on:
+      - chromadb
+    networks:
+      - careerpilot_net
+
+  backend-node:
+    build:
+      context: .
+      dockerfile: backend-node/Dockerfile
+    container_name: careerpilot_backend_node
+    restart: unless-stopped
+    env_file:
+      - ./backend-node/.env
+    environment:
+      AI_SERVICE_URL: http://ai-service:8000
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+    networks:
+      - careerpilot_net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: careerpilot_frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend-node
+    networks:
+      - careerpilot_net
+
+volumes:
+  postgres_data:
+
+networks:
+  careerpilot_net:
+    driver: bridge
