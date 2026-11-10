@@ -112,3 +112,29 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   return payload.data;
 }
+
+export async function apiFetchBlob(path: string, retryOn401 = true): Promise<Blob> {
+  const headers = new Headers();
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "GET",
+    headers,
+    credentials: "include",
+  });
+
+  if (response.status === 401 && retryOn401) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed?.accessToken) {
+      return apiFetchBlob(path, false);
+    }
+  }
+
+  if (!response.ok) {
+    throw new ApiClientError(response.status, "FILE_FETCH_FAILED", "Could not fetch file preview");
+  }
+
+  return response.blob();
+}

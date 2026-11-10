@@ -23,3 +23,12 @@ All protected endpoints require `Authorization: Bearer <accessToken>` and return
 
 ## 4. Dashboard Analytics (`/api/analytics`)
 - `GET /api/analytics/dashboard` *(Protected)* — Computes live PostgreSQL metrics (`readinessScore`, `latestResumeScore`, `latestJobMatchScore`, `totalMockInterviews`, `averageInterviewScore`, `skillsCount`, `roadmapProgressPct`, `applicationStats`, `profileCompletenessPct`, `recentActivities`, `upcomingInterviews`, and deterministic `recommendations`).
+
+## 5. AI Resume Analyzer (`/api/resumes`) — Phase 2
+- `POST /api/resumes/upload` *(Protected, Multipart `file`)* — Validates binary magic bytes (PDF `%PDF-` / DOCX `PK\x03\x04` + `word/`) up to 10 MB, saves via authenticated StorageProvider (`Cloudinary` or isolated disk), creates `Resume` record.
+- `POST /api/resumes/:id/analyze` *(Protected)* — Sends stored file to FastAPI `/internal/ai/resumes/parse-and-evaluate` (PyMuPDF/python-docx, spaCy NER, Scikit-learn TF-IDF, ChromaDB vector indexing, and structured LLM critique); stores `extractedText`, `parsedData`, `skills`, `estimatedScore`, `sectionScores`, and `feedback`.
+- `GET /api/resumes` & `GET /api/resumes/:id` *(Protected)* — Lists user's resumes and retrieves full report.
+- `GET /api/resumes/:id/file` *(Protected)* — Streams original PDF/DOCX binary securely for authenticated owner preview.
+- `PATCH /api/resumes/:id/primary` *(Protected)* — Marks resume as primary default.
+- `POST /api/resumes/:id/sync-skills` *(Protected)* — Upserts extracted skills into normalized `Skill` & `UserSkill` tables.
+- `DELETE /api/resumes/:id` *(Protected)* — Purges PostgreSQL record, stored file, and ChromaDB chunks (`/internal/ai/resumes/vectors/delete`).

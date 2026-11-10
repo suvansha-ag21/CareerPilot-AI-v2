@@ -21,7 +21,7 @@ export class AnalyticsService {
       prisma.education.count({ where: { userId } }),
       prisma.candidateProject.count({ where: { userId } }),
       prisma.resume.findMany({
-        where: { userId },
+        where: { userId, extractedText: { not: "" } },
         select: { id: true, title: true, estimatedScore: true, createdAt: true },
         orderBy: { createdAt: "desc" },
       }),
