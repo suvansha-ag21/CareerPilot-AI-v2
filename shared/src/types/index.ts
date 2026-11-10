@@ -1,26 +1,65 @@
-import { UserRole } from "../constants/enums";
+import { ProficiencyLevel, SkillCategory, SkillSource, UserRole } from "../constants/enums";
+import { CareerPreferences } from "../schemas/profile.schema";
 
-export interface UserProfileDTO {
+export interface EducationDTO {
   id: string;
-  userId: string;
-  fullName: string;
-  headline: string | null;
-  targetRole: string;
-  yearsExperience: number;
-  preferredStack: string[];
-  location: string | null;
-  githubUrl: string | null;
-  linkedinUrl: string | null;
-  avatarUrl: string | null;
-  updatedAt: string;
+  institution: string;
+  degree: string;
+  fieldOfStudy: string | null;
+  startYear: number | null;
+  endYear: number | null;
+  grade: string | null;
+}
+
+export interface WorkExperienceDTO {
+  id: string;
+  company: string;
+  roleTitle: string;
+  startDate: string | null;
+  endDate: string | null;
+  isCurrent: boolean;
+  description: string | null;
+  highlights: string[];
+}
+
+export interface ProjectDTO {
+  id: string;
+  title: string;
+  techStack: string[];
+  description: string;
+  repoUrl: string | null;
+  liveUrl: string | null;
+}
+
+export interface UserSkillDTO {
+  id: string;
+  skillId: string;
+  name: string;
+  category: SkillCategory;
+  proficiencyLevel: ProficiencyLevel;
+  source: SkillSource;
+  confidenceScore: number;
 }
 
 export interface AuthUserDTO {
   id: string;
+  name: string;
   email: string;
   role: UserRole;
+  profileImage: string | null;
+  headline: string | null;
+  targetRole: string;
+  yearsExperience: number;
+  location: string | null;
+  githubUrl: string | null;
+  linkedinUrl: string | null;
+  careerPreferences: CareerPreferences | null;
+  educations: EducationDTO[];
+  workExperiences: WorkExperienceDTO[];
+  projects: ProjectDTO[];
+  skills: UserSkillDTO[];
   createdAt: string;
-  profile: UserProfileDTO;
+  updatedAt: string;
 }
 
 export interface AuthResponseData {
@@ -28,26 +67,44 @@ export interface AuthResponseData {
   user: AuthUserDTO;
 }
 
-export interface DashboardOverviewDTO {
+export interface DashboardAnalyticsDTO {
   readinessScore: number | null;
-  averageAtsScore: number | null;
-  resumesCount: number;
-  matchesCount: number;
-  openSkillGapsCount: number;
-  completedInterviewsCount: number;
-  activeApplicationsCount: number;
+  latestResumeScore: number | null;
+  latestJobMatchScore: number | null;
+  totalMockInterviews: number;
+  averageInterviewScore: number | null;
+  skillsCount: number;
   roadmapProgressPct: number | null;
+  applicationStats: {
+    total: number;
+    active: number;
+    interviewsScheduled: number;
+    offersReceived: number;
+  };
   profileCompletenessPct: number;
   serviceHealth: {
     database: "healthy" | "degraded";
     aiService: "healthy" | "unavailable";
   };
-  recentActivity: Array<{
+  recentActivities: Array<{
     id: string;
     type: "PROFILE" | "RESUME" | "MATCH" | "INTERVIEW" | "APPLICATION" | "ROADMAP";
     title: string;
     subtitle: string;
     timestamp: string;
+  }>;
+  upcomingInterviews: Array<{
+    id: string;
+    company: string;
+    jobRole: string;
+    interviewDate: string;
+  }>;
+  recommendations: Array<{
+    title: string;
+    reason: string;
+    actionHref: string;
+    actionLabel: string;
+    priority: "HIGH" | "MEDIUM" | "LOW";
   }>;
 }
 

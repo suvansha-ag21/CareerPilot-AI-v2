@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         method: "POST",
       });
     } catch {
-      // Clear local session even if cookie expired
+      // Clear local session regardless
     } finally {
       setAccessToken(null);
       setUser(null);

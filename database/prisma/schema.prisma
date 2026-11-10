@@ -17,52 +17,53 @@ enum UserRole {
   ADMIN
 }
 
-enum SeniorityLevel {
-  INTERN
-  JUNIOR
-  MID
-  SENIOR
-  STAFF
-}
-
 enum SkillCategory {
   CORE_CS
   FRONTEND
   BACKEND
+  DATABASE
   AI_ML
-  SYSTEM_DESIGN
   DEVOPS
-  BEHAVIORAL
+  SOFT_SKILL
 }
 
-enum SkillPriority {
-  HIGH
-  MEDIUM
-  LOW
-}
-
-enum SkillStatus {
-  OPEN
-  IN_PROGRESS
-  MASTERED
+enum ProficiencyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
 }
 
 enum SkillSource {
-  JD_MATCH
+  PROFILE
+  RESUME_PARSED
   INTERVIEW_EVAL
-  SELF_REPORTED
+}
+
+enum ResumeFileType {
+  PDF
+  DOCX
+}
+
+enum InterviewCategory {
+  TECHNICAL
+  HR
+  DSA
+  JAVA
+  PYTHON
+  SQL
+  FULL_STACK
+  PROJECT_BASED
+}
+
+enum InterviewDifficulty {
+  EASY
+  MEDIUM
+  HARD
 }
 
 enum InterviewMode {
   TEXT
   VOICE
-}
-
-enum InterviewType {
-  TECHNICAL
-  SYSTEM_DESIGN
-  BEHAVIORAL
-  RESUME_DEEP_DIVE
 }
 
 enum InterviewStatus {
@@ -71,69 +72,61 @@ enum InterviewStatus {
   ABANDONED
 }
 
-enum MilestoneStatus {
-  NOT_STARTED
+enum TaskPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum TaskStatus {
+  PENDING
   IN_PROGRESS
   COMPLETED
 }
 
 enum ApplicationStatus {
-  SAVED
   APPLIED
-  OA
-  TECHNICAL_ROUND
-  FINAL_ROUND
-  OFFER
+  ASSESSMENT
+  INTERVIEW_SCHEDULED
+  SELECTED
   REJECTED
-}
-
-enum WorkMode {
-  REMOTE
-  HYBRID
-  ONSITE
+  OFFER_RECEIVED
 }
 
 // ============================================
-// IDENTITY & PROFILE
+// IDENTITY, PROFILE & NORMALIZED RECORDS
 // ============================================
 
 model User {
-  id           String   @id @default(uuid()) @db.Uuid
-  email        String   @unique
-  passwordHash String
-  role         UserRole @default(USER)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                String   @id @default(uuid()) @db.Uuid
+  name              String
+  email             String   @unique
+  passwordHash      String
+  role              UserRole @default(USER)
+  profileImage      String?
+  headline          String?
+  targetRole        String   @default("Full Stack Developer")
+  yearsExperience   Int      @default(0)
+  location          String?
+  githubUrl         String?
+  linkedinUrl       String?
+  careerPreferences Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  profile           UserProfile?
-  refreshTokens     RefreshToken[]
-  resumes           Resume[]
-  jobDescriptions   JobDescription[]
-  matchAnalyses     MatchAnalysis[]
-  skillGaps         SkillGap[]
-  interviewSessions InterviewSession[]
-  learningRoadmaps  LearningRoadmap[]
-  jobApplications   JobApplication[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  educations          Education[]
+  workExperiences     WorkExperience[]
+  projects            CandidateProject[]
+  skills              UserSkill[]
+  resumes             Resume[]
+  jobMatches          JobMatch[]
+  learningRoadmaps    LearningRoadmap[]
+  interviews          Interview[]
+  jobApplications     JobApplication[]
 
   @@index([email])
-}
-
-model UserProfile {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @unique @db.Uuid
-  fullName        String
-  headline        String?
-  targetRole      String   @default("Full Stack Software Engineer")
-  yearsExperience Int      @default(0)
-  preferredStack  String[] @default([])
-  location        String?
-  githubUrl       String?
-  linkedinUrl     String?
-  avatarUrl       String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model RefreshToken {
@@ -151,152 +144,144 @@ model RefreshToken {
   @@index([expiresAt])
 }
 
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model Education {
+  id           String  @id @default(uuid()) @db.Uuid
+  userId       String  @db.Uuid
+  institution  String
+  degree       String
+  fieldOfStudy String?
+  startYear    Int?
+  endYear      Int?
+  grade        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model WorkExperience {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  company     String
+  roleTitle   String
+  startDate   String?
+  endDate     String?
+  isCurrent   Boolean  @default(false)
+  description String?  @db.Text
+  highlights  String[] @default([])
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model CandidateProject {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  title       String
+  techStack   String[] @default([])
+  description String   @db.Text
+  repoUrl     String?
+  liveUrl     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
 // ============================================
-// RESUME ANALYZER & JD MATCHER
+// NORMALIZED SKILLS TAXONOMY
+// ============================================
+
+model Skill {
+  id             String        @id @default(uuid()) @db.Uuid
+  name           String
+  normalizedName String        @unique
+  category       SkillCategory @default(CORE_CS)
+
+  userSkills UserSkill[]
+
+  @@index([category])
+}
+
+model UserSkill {
+  id               String           @id @default(uuid()) @db.Uuid
+  userId           String           @db.Uuid
+  skillId          String           @db.Uuid
+  proficiencyLevel ProficiencyLevel @default(INTERMEDIATE)
+  source           SkillSource      @default(PROFILE)
+  confidenceScore  Int              @default(60)
+  updatedAt        DateTime         @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+  @@index([userId, proficiencyLevel])
+}
+
+// ============================================
+// AI RESUME ANALYZER & JOB MATCHER
 // ============================================
 
 model Resume {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @db.Uuid
-  title           String
-  fileUrl         String
-  fileHash        String
-  rawText         String   @db.Text
-  parsedSections  Json
-  extractedSkills String[] @default([])
-  atsScore        Float    @default(0)
-  formattingScore Float    @default(0)
-  aiCritique      Json
-  isPrimary       Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String         @id @default(uuid()) @db.Uuid
+  userId         String         @db.Uuid
+  title          String
+  fileUrl        String
+  fileType       ResumeFileType @default(PDF)
+  extractedText  String         @db.Text
+  parsedData     Json
+  skills         String[]       @default([])
+  estimatedScore Float          @default(0)
+  sectionScores  Json
+  feedback       Json
+  isPrimary      Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  matchAnalyses     MatchAnalysis[]
-  interviewSessions InterviewSession[]
-  jobApplications   JobApplication[]
-
-  @@index([userId, createdAt])
-}
-
-model JobDescription {
-  id                 String         @id @default(uuid()) @db.Uuid
-  userId             String         @db.Uuid
-  company            String?
-  roleTitle          String
-  sourceUrl          String?
-  rawText            String         @db.Text
-  parsedRequirements Json
-  seniorityLevel     SeniorityLevel @default(MID)
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
-
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  matchAnalyses     MatchAnalysis[]
-  interviewSessions InterviewSession[]
-  jobApplications   JobApplication[]
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobMatches JobMatch[]
+  interviews Interview[]
 
   @@index([userId, createdAt])
 }
 
-model MatchAnalysis {
+model JobMatch {
   id               String   @id @default(uuid()) @db.Uuid
   userId           String   @db.Uuid
   resumeId         String   @db.Uuid
-  jobDescriptionId String   @db.Uuid
-  overallScore     Float
+  targetRole       String
+  companyName      String?
+  jobDescription   String   @db.Text
+  matchScore       Float
   semanticScore    Float
-  keywordScore     Float
+  skillScore       Float
   experienceScore  Float
-  matchedSkills    Json
-  partialSkills    Json
-  missingSkills    Json
-  executiveSummary String   @db.Text
-  tailoredTips     Json
+  matchingSkills   String[] @default([])
+  partialSkills    String[] @default([])
+  missingSkills    String[] @default([])
+  relevantProjects Json
+  recommendations  Json
   createdAt        DateTime @default(now())
 
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  resume           Resume            @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-  jobDescription   JobDescription    @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
-  skillGaps        SkillGap[]
-  learningRoadmaps LearningRoadmap[]
-  jobApplications  JobApplication[]
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
-}
-
-model SkillGap {
-  id                String        @id @default(uuid()) @db.Uuid
-  userId            String        @db.Uuid
-  matchAnalysisId   String?       @db.Uuid
-  skillName         String
-  normalizedName    String
-  category          SkillCategory @default(CORE_CS)
-  priority          SkillPriority @default(MEDIUM)
-  status            SkillStatus   @default(OPEN)
-  currentConfidence Int           @default(0)
-  source            SkillSource   @default(JD_MATCH)
-  evidenceNote      String?       @db.Text
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  matchAnalysis MatchAnalysis? @relation(fields: [matchAnalysisId], references: [id], onDelete: SetNull)
-
-  @@unique([userId, normalizedName])
-  @@index([userId, status, priority])
-}
-
-// ============================================
-// AI MOCK & VOICE INTERVIEW SYSTEM
-// ============================================
-
-model InterviewSession {
-  id                 String          @id @default(uuid()) @db.Uuid
-  userId             String          @db.Uuid
-  resumeId           String?         @db.Uuid
-  jobDescriptionId   String?         @db.Uuid
-  targetRole         String
-  mode               InterviewMode   @default(TEXT)
-  interviewType      InterviewType   @default(TECHNICAL)
-  difficulty         SeniorityLevel  @default(MID)
-  status             InterviewStatus @default(IN_PROGRESS)
-  overallScore       Float?
-  technicalScore     Float?
-  communicationScore Float?
-  confidenceScore    Float?
-  weakSkillsDetected String[]        @default([])
-  summaryReport      Json?
-  startedAt          DateTime        @default(now())
-  completedAt        DateTime?
-
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  resume         Resume?         @relation(fields: [resumeId], references: [id], onDelete: SetNull)
-  jobDescription JobDescription? @relation(fields: [jobDescriptionId], references: [id], onDelete: SetNull)
-  turns          InterviewTurn[]
-
-  @@index([userId, startedAt])
-}
-
-model InterviewTurn {
-  id                  String         @id @default(uuid()) @db.Uuid
-  sessionId           String         @db.Uuid
-  turnIndex           Int
-  questionText        String         @db.Text
-  questionCategory    String
-  difficultyAtTurn    SeniorityLevel @default(MID)
-  candidateAnswerText String?        @db.Text
-  audioUrl            String?
-  speechMetrics       Json?
-  aiEvaluation        Json?
-  adaptiveRationale   String?        @db.Text
-  createdAt           DateTime       @default(now())
-  answeredAt          DateTime?
-
-  session InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  @@unique([sessionId, turnIndex])
-  @@index([sessionId, turnIndex])
 }
 
 // ============================================
@@ -304,54 +289,89 @@ model InterviewTurn {
 // ============================================
 
 model LearningRoadmap {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @db.Uuid
-  matchAnalysisId String?  @db.Uuid
-  title           String
-  targetRole      String
-  estimatedWeeks  Int      @default(4)
-  progressPct     Float    @default(0)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  targetRole     String
+  title          String
+  estimatedWeeks Int      @default(4)
+  progressPct    Float    @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  matchAnalysis MatchAnalysis? @relation(fields: [matchAnalysisId], references: [id], onDelete: SetNull)
-  phases        RoadmapPhase[]
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks RoadmapTask[]
 
   @@index([userId, isActive])
 }
 
-model RoadmapPhase {
-  id            String @id @default(uuid()) @db.Uuid
-  roadmapId     String @db.Uuid
-  phaseOrder    Int
-  title         String
-  objective     String @db.Text
-  durationWeeks Int    @default(1)
+model RoadmapTask {
+  id          String       @id @default(uuid()) @db.Uuid
+  roadmapId   String       @db.Uuid
+  weekNumber  Int          @default(1)
+  dayNumber   Int          @default(1)
+  title       String
+  description String       @db.Text
+  skillTag    String
+  priority    TaskPriority @default(MEDIUM)
+  resources   Json
+  status      TaskStatus   @default(PENDING)
+  dueDate     DateTime?
+  completedAt DateTime?
 
-  roadmap    LearningRoadmap    @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
-  milestones RoadmapMilestone[]
+  roadmap LearningRoadmap @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
 
-  @@index([roadmapId, phaseOrder])
+  @@index([roadmapId, weekNumber, status])
 }
 
-model RoadmapMilestone {
-  id             String          @id @default(uuid()) @db.Uuid
-  phaseId        String          @db.Uuid
-  milestoneOrder Int
-  title          String
-  description    String          @db.Text
-  skillTag       String
-  resources      Json
-  practicePrompt String?         @db.Text
-  status         MilestoneStatus @default(NOT_STARTED)
-  targetDate     DateTime?
-  completedAt    DateTime?
+// ============================================
+// AI MOCK & VOICE INTERVIEWS
+// ============================================
 
-  phase RoadmapPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+model Interview {
+  id                   String              @id @default(uuid()) @db.Uuid
+  userId               String              @db.Uuid
+  resumeId             String?             @db.Uuid
+  category             InterviewCategory   @default(TECHNICAL)
+  difficulty           InterviewDifficulty @default(MEDIUM)
+  mode                 InterviewMode       @default(TEXT)
+  durationMinutes      Int                 @default(20)
+  questionLimit        Int                 @default(5)
+  targetJobDescription String?             @db.Text
+  status               InterviewStatus     @default(IN_PROGRESS)
+  overallScore         Float?
+  feedbackSummary      Json?
+  createdAt            DateTime            @default(now())
+  completedAt          DateTime?
 
-  @@index([phaseId, milestoneOrder])
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resume    Resume?             @relation(fields: [resumeId], references: [id], onDelete: SetNull)
+  questions InterviewQuestion[]
+
+  @@index([userId, createdAt])
+}
+
+model InterviewQuestion {
+  id             String    @id @default(uuid()) @db.Uuid
+  interviewId    String    @db.Uuid
+  questionOrder  Int
+  question       String    @db.Text
+  topicTag       String
+  userAnswer     String?   @db.Text
+  audioUrl       String?
+  speechMetrics  Json?
+  modelAnswer    String    @db.Text
+  score          Float?
+  criteriaScores Json?
+  feedback       String?   @db.Text
+  isFollowUp     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  answeredAt     DateTime?
+
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  @@unique([interviewId, questionOrder])
+  @@index([interviewId, questionOrder])
 }
 
 // ============================================
@@ -359,43 +379,20 @@ model RoadmapMilestone {
 // ============================================
 
 model JobApplication {
-  id               String            @id @default(uuid()) @db.Uuid
-  userId           String            @db.Uuid
-  resumeId         String?           @db.Uuid
-  jobDescriptionId String?           @db.Uuid
-  matchAnalysisId  String?           @db.Uuid
-  company          String
-  roleTitle        String
-  location         String?
-  workMode         WorkMode          @default(HYBRID)
-  salaryRange      String?
-  status           ApplicationStatus @default(SAVED)
-  jobUrl           String?
-  appliedAt        DateTime?
-  nextFollowUpAt   DateTime?
-  notes            String?           @db.Text
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  id              String            @id @default(uuid()) @db.Uuid
+  userId          String            @db.Uuid
+  company         String
+  jobRole         String
+  jobDescription  String?           @db.Text
+  applicationDate DateTime          @default(now())
+  status          ApplicationStatus @default(APPLIED)
+  interviewDate   DateTime?
+  applicationUrl  String?
+  notes           String?           @db.Text
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
-  user           User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  resume         Resume?                    @relation(fields: [resumeId], references: [id], onDelete: SetNull)
-  jobDescription JobDescription?            @relation(fields: [jobDescriptionId], references: [id], onDelete: SetNull)
-  matchAnalysis  MatchAnalysis?             @relation(fields: [matchAnalysisId], references: [id], onDelete: SetNull)
-  statusHistory  ApplicationStatusHistory[]
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, status])
-  @@index([userId, updatedAt])
-}
-
-model ApplicationStatusHistory {
-  id            String             @id @default(uuid()) @db.Uuid
-  applicationId String             @db.Uuid
-  fromStatus    ApplicationStatus?
-  toStatus      ApplicationStatus
-  note          String?
-  changedAt     DateTime           @default(now())
-
-  application JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-
-  @@index([applicationId, changedAt])
+  @@index([userId, status, applicationDate])
 }

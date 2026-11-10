@@ -1,6 +1,6 @@
-import { ApiResponse, AuthResponseData } from "@careerpilot/shared";
+import { ApiResponse, AuthResponseData, AuthUserDTO } from "@careerpilot/shared";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 let accessToken: string | null = null;
 let inflightRefresh: Promise<string | null> | null = null;
@@ -57,14 +57,13 @@ export async function refreshAccessToken(): Promise<AuthResponseData | null> {
   const token = await inflightRefresh;
   if (!token) return null;
 
-  // Fetch user profile after silent refresh if needed by caller
-  const profileRes = await fetch(`${API_BASE_URL}/profile`, {
+  const profileRes = await fetch(`${API_BASE_URL}/auth/me`, {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
     credentials: "include",
   });
   if (!profileRes.ok) return null;
-  const profileJson = (await profileRes.json()) as ApiResponse<AuthResponseData["user"]>;
+  const profileJson = (await profileRes.json()) as ApiResponse<AuthUserDTO>;
   if (!profileJson.success) return null;
 
   return { accessToken: token, user: profileJson.data };

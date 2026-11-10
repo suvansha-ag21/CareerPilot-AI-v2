@@ -8,7 +8,7 @@ app = FastAPI(
     openapi_url="/internal/ai/openapi.json",
 )
 
-app.include_router(health_router, prefix="/internal/ai/v1")
+app.include_router(health_router, prefix="/internal/ai")
 
 
 @app.get("/")

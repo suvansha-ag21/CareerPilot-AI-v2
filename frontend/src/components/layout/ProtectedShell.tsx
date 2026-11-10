@@ -8,13 +8,16 @@ import { DarkSidebar } from "./DarkSidebar";
 import { WorkspaceHeader } from "./WorkspaceHeader";
 
 const ROUTE_TITLES: Record<string, string> = {
-  "/": "Overview Dashboard",
+  "/dashboard": "Career Overview",
   "/resume": "AI Resume Analyzer",
-  "/matcher": "Job Description Matcher & Skill Gaps",
+  "/matcher": "AI Job Description Matcher",
+  "/skills": "AI Skill Gap Analyzer",
   "/interview": "AI Mock & Voice Interview",
   "/roadmap": "Personalized Learning Roadmap",
-  "/tracker": "Job Application Tracker",
-  "/settings": "Profile & Target Career Settings",
+  "/applications": "Job Application Tracker",
+  "/analytics": "Career Analytics",
+  "/profile": "Candidate Profile",
+  "/settings": "Settings & Preferences",
 };
 
 export function ProtectedShell({ children }: { children: React.ReactNode }) {
@@ -34,7 +37,7 @@ export function ProtectedShell({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-7 w-7 text-[#6D5DFB] animate-spin" />
-          <p className="text-xs font-medium text-slate-500">Loading your CareerPilot workspace...</p>
+          <p className="text-xs font-medium text-[#64748B]">Loading CareerPilot AI workspace...</p>
         </div>
       </div>
     );

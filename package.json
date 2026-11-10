@@ -4,12 +4,12 @@
   "private": true,
   "workspaces": [
     "shared",
-    "backend-node",
+    "backend",
     "frontend"
   ],
   "scripts": {
     "build:shared": "npm --workspace=shared run build",
-    "dev:backend": "npm --workspace=backend-node run dev",
+    "dev:backend": "npm --workspace=backend run dev",
     "dev:frontend": "npm --workspace=frontend run dev"
   }
 }

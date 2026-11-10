@@ -46,14 +46,14 @@ services:
     networks:
       - careerpilot_net
 
-  backend-node:
+  backend:
     build:
       context: .
-      dockerfile: backend-node/Dockerfile
-    container_name: careerpilot_backend_node
+      dockerfile: backend/Dockerfile
+    container_name: careerpilot_backend
     restart: unless-stopped
     env_file:
-      - ./backend-node/.env
+      - ./backend/.env
     environment:
       AI_SERVICE_URL: http://ai-service:8000
     ports:
@@ -73,11 +73,11 @@ services:
     container_name: careerpilot_frontend
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:5000/api/v1
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api
     ports:
       - "3000:3000"
     depends_on:
-      - backend-node
+      - backend
     networks:
       - careerpilot_net
 

@@ -14,17 +14,17 @@ export default function RegisterPage() {
   const { user, register, isLoading } = useAuth();
   const router = useRouter();
 
-  const [fullName, setFullName] = useState("");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [targetRole, setTargetRole] = useState<string>(CAREER_ROLE_PRESETS[0]);
-  const [yearsExperience, setYearsExperience] = useState<number>(1);
+  const [yearsExperience, setYearsExperience] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.replace("/");
+      router.replace("/dashboard");
     }
   }, [isLoading, user, router]);
 
@@ -34,13 +34,13 @@ export default function RegisterPage() {
     setSubmitting(true);
     try {
       await register({
-        fullName,
+        name,
         email,
         password,
         targetRole,
         yearsExperience: Number(yearsExperience) || 0,
       });
-      router.replace("/");
+      router.replace("/dashboard");
     } catch (err) {
       if (err instanceof ApiClientError) {
         if (err.details && typeof err.details === "object") {
@@ -61,25 +61,24 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-[#F8FAFC]">
-      {/* Left Brand Column */}
       <div className="hidden lg:flex flex-col justify-between bg-[#111827] text-white p-12 border-r border-slate-800">
-        <div className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3 w-fit">
           <div className="h-9 w-9 rounded-lg bg-[#6D5DFB] flex items-center justify-center">
             <Compass className="h-5 w-5 text-white" />
           </div>
           <span className="text-lg font-semibold tracking-tight">CareerPilot AI</span>
-        </div>
+        </Link>
 
         <div className="max-w-md space-y-6">
           <h2 className="text-3xl font-semibold tracking-tight leading-tight">
-            Your personalized engineering interview operating system.
+            Start with a clean workspace personalized to your target role.
           </h2>
           <ul className="space-y-4 text-sm text-slate-300">
             {[
-              "Clean fresh workspace with zero dummy baseline scores",
-              "Deterministic ML + Vector RAG job description matching",
-              "Adaptive AI interviewer with spoken & written feedback",
-              "Persistent skill-gap tracking synced directly to your roadmap",
+              "Track education, experience, projects & skills relationally",
+              "Analyze PDF/DOCX resumes with structural & AI bullet audits",
+              "Run semantic Job Description matches with ChromaDB embeddings",
+              "Practice adaptive text & voice mock interviews",
             ].map((item) => (
               <li key={item} className="flex items-start gap-3">
                 <CheckCircle2 className="h-4 w-4 text-[#8B7CFF] mt-0.5 shrink-0" />
@@ -90,24 +89,23 @@ export default function RegisterPage() {
         </div>
 
         <p className="text-xs text-slate-500">
-          All profiles &amp; readiness analytics are stored securely in PostgreSQL.
+          Your data is strictly isolated to your authenticated user account.
         </p>
       </div>
 
-      {/* Right Registration Form */}
       <div className="flex items-center justify-center p-6 sm:p-12">
-        <div className="w-full max-w-md space-y-6 bg-white border border-slate-200/90 rounded-2xl p-8 shadow-card">
+        <div className="w-full max-w-md space-y-6 bg-white border border-[#E2E8F0] rounded-2xl p-8 shadow-card">
           <div>
             <h1 className="text-2xl font-semibold text-[#172033] tracking-tight">
               Create your account
             </h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Set your target career track to personalize CareerPilot AI.
+            <p className="text-sm text-[#64748B] mt-1">
+              Set your target role and experience level to get started.
             </p>
           </div>
 
           {error && (
-            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs font-medium text-rose-700">
+            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs font-medium text-[#EF4444]">
               {error}
             </div>
           )}
@@ -115,11 +113,11 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="Full name"
-              name="fullName"
+              name="name"
               required
               placeholder="Alex Rivera"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
             />
 
             <Input
@@ -138,7 +136,7 @@ export default function RegisterPage() {
               type="password"
               required
               placeholder="Min 8 chars, 1 uppercase & 1 number"
-              hint="Must contain at least 8 characters, one uppercase letter, and one digit."
+              hint="Include at least 8 characters, one uppercase letter, and one digit."
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -146,13 +144,13 @@ export default function RegisterPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-2 space-y-1.5">
                 <label htmlFor="targetRole" className="block text-xs font-medium text-[#172033]">
-                  Target Career Track
+                  Target Job Role
                 </label>
                 <select
                   id="targetRole"
                   value={targetRole}
                   onChange={(e) => setTargetRole(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6D5DFB]/20 focus:border-[#6D5DFB]"
+                  className="w-full h-10 px-3 rounded-lg border border-[#E2E8F0] bg-white text-sm text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6D5DFB]/20 focus:border-[#6D5DFB]"
                 >
                   {CAREER_ROLE_PRESETS.map((preset) => (
                     <option key={preset} value={preset}>
@@ -163,7 +161,7 @@ export default function RegisterPage() {
               </div>
 
               <Input
-                label="Experience (YOE)"
+                label="Experience (Yrs)"
                 name="yearsExperience"
                 type="number"
                 min={0}
@@ -179,7 +177,7 @@ export default function RegisterPage() {
             </Button>
           </form>
 
-          <p className="text-center text-xs text-slate-500 pt-2 border-t border-slate-100">
+          <p className="text-center text-xs text-[#64748B] pt-2 border-t border-slate-100">
             Already have an account?{" "}
             <Link href="/login" className="font-semibold text-[#6D5DFB] hover:text-[#5B4BE8]">
               Sign in

@@ -3,46 +3,48 @@ export enum UserRole {
   ADMIN = "ADMIN",
 }
 
-export enum SeniorityLevel {
-  INTERN = "INTERN",
-  JUNIOR = "JUNIOR",
-  MID = "MID",
-  SENIOR = "SENIOR",
-  STAFF = "STAFF",
-}
-
 export enum SkillCategory {
   CORE_CS = "CORE_CS",
   FRONTEND = "FRONTEND",
   BACKEND = "BACKEND",
+  DATABASE = "DATABASE",
   AI_ML = "AI_ML",
-  SYSTEM_DESIGN = "SYSTEM_DESIGN",
   DEVOPS = "DEVOPS",
-  BEHAVIORAL = "BEHAVIORAL",
+  SOFT_SKILL = "SOFT_SKILL",
 }
 
-export enum SkillPriority {
-  HIGH = "HIGH",
+export enum ProficiencyLevel {
+  BEGINNER = "BEGINNER",
+  INTERMEDIATE = "INTERMEDIATE",
+  ADVANCED = "ADVANCED",
+}
+
+export enum SkillSource {
+  PROFILE = "PROFILE",
+  RESUME_PARSED = "RESUME_PARSED",
+  INTERVIEW_EVAL = "INTERVIEW_EVAL",
+}
+
+export enum InterviewCategory {
+  TECHNICAL = "TECHNICAL",
+  HR = "HR",
+  DSA = "DSA",
+  JAVA = "JAVA",
+  PYTHON = "PYTHON",
+  SQL = "SQL",
+  FULL_STACK = "FULL_STACK",
+  PROJECT_BASED = "PROJECT_BASED",
+}
+
+export enum InterviewDifficulty {
+  EASY = "EASY",
   MEDIUM = "MEDIUM",
-  LOW = "LOW",
-}
-
-export enum SkillStatus {
-  OPEN = "OPEN",
-  IN_PROGRESS = "IN_PROGRESS",
-  MASTERED = "MASTERED",
+  HARD = "HARD",
 }
 
 export enum InterviewMode {
   TEXT = "TEXT",
   VOICE = "VOICE",
-}
-
-export enum InterviewType {
-  TECHNICAL = "TECHNICAL",
-  SYSTEM_DESIGN = "SYSTEM_DESIGN",
-  BEHAVIORAL = "BEHAVIORAL",
-  RESUME_DEEP_DIVE = "RESUME_DEEP_DIVE",
 }
 
 export enum InterviewStatus {
@@ -51,26 +53,25 @@ export enum InterviewStatus {
   ABANDONED = "ABANDONED",
 }
 
-export enum MilestoneStatus {
-  NOT_STARTED = "NOT_STARTED",
+export enum TaskPriority {
+  HIGH = "HIGH",
+  MEDIUM = "MEDIUM",
+  LOW = "LOW",
+}
+
+export enum TaskStatus {
+  PENDING = "PENDING",
   IN_PROGRESS = "IN_PROGRESS",
   COMPLETED = "COMPLETED",
 }
 
 export enum ApplicationStatus {
-  SAVED = "SAVED",
   APPLIED = "APPLIED",
-  OA = "OA",
-  TECHNICAL_ROUND = "TECHNICAL_ROUND",
-  FINAL_ROUND = "FINAL_ROUND",
-  OFFER = "OFFER",
+  ASSESSMENT = "ASSESSMENT",
+  INTERVIEW_SCHEDULED = "INTERVIEW_SCHEDULED",
+  SELECTED = "SELECTED",
   REJECTED = "REJECTED",
-}
-
-export enum WorkMode {
-  REMOTE = "REMOTE",
-  HYBRID = "HYBRID",
-  ONSITE = "ONSITE",
+  OFFER_RECEIVED = "OFFER_RECEIVED",
 }
 
 export const DESIGN_TOKENS = {
@@ -79,14 +80,20 @@ export const DESIGN_TOKENS = {
   background: "#F8FAFC",
   sidebar: "#111827",
   card: "#FFFFFF",
-  text: "#172033",
+  primaryText: "#172033",
+  secondaryText: "#64748B",
+  border: "#E2E8F0",
+  success: "#16A34A",
+  warning: "#F59E0B",
+  danger: "#EF4444",
 } as const;
 
 export const CAREER_ROLE_PRESETS = [
-  "Full Stack Software Engineer",
-  "Backend & Distributed Systems Engineer",
-  "Frontend Engineer (React / Next.js)",
-  "AI / Machine Learning Engineer",
-  "Data Scientist",
-  "Platform & DevOps Engineer",
+  "Full Stack Developer",
+  "Software Engineer Intern",
+  "Backend Software Engineer",
+  "Frontend Developer",
+  "Data Scientist & ML Engineer",
+  "Java Spring Boot Developer",
+  "Python Backend Developer",
 ] as const;
