@@ -536,7 +536,8 @@ export default function UserDashboardPage() {
                 </div>
               ) : (
                 <p className="text-xs text-[#64748B] py-2">
-                  No upcoming interviews scheduled yet. Company tracking arrives in Phase 7.
+                  No upcoming interviews scheduled yet. Add company interviews in Applications
+                  Tracker to track dates here.
                 </p>
               )}
             </CardContent>

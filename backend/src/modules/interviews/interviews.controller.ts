@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { StartInterviewSchema, SubmitInterviewAnswerSchema } from "@careerpilot/shared";
-import { UnauthorizedError } from "../../utils/errors";
+import { BadRequestError, UnauthorizedError } from "../../utils/errors";
 import { interviewsService } from "./interviews.service";
 
 export async function listInterviewsController(req: Request, res: Response): Promise<void> {
@@ -30,6 +30,49 @@ export async function submitInterviewAnswerController(req: Request, res: Respons
     String(req.params.id),
     parsed
   );
+  res.json({ success: true, data });
+}
+
+export async function transcribeAudioController(req: Request, res: Response): Promise<void> {
+  if (!req.user) throw new UnauthorizedError();
+  if (!req.file) {
+    throw new BadRequestError("Audio recording file is required");
+  }
+  const durationSeconds = Number(req.body?.durationSeconds || 0);
+  const data = await interviewsService.transcribeAudio({
+    userId: req.user.id,
+    interviewId: String(req.params.id),
+    durationSeconds: Number.isFinite(durationSeconds) ? durationSeconds : 0,
+    file: {
+      buffer: req.file.buffer,
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+    },
+  });
+  res.json({ success: true, data });
+}
+
+export async function submitVoiceAnswerController(req: Request, res: Response): Promise<void> {
+  if (!req.user) throw new UnauthorizedError();
+  if (!req.file) {
+    throw new BadRequestError("Audio recording file is required");
+  }
+  const questionId = String(req.body?.questionId || "").trim();
+  if (!questionId) {
+    throw new BadRequestError("questionId is required");
+  }
+  const durationSeconds = Number(req.body?.durationSeconds || 0);
+  const data = await interviewsService.submitVoiceAnswer({
+    userId: req.user.id,
+    interviewId: String(req.params.id),
+    questionId,
+    durationSeconds: Number.isFinite(durationSeconds) ? durationSeconds : 0,
+    file: {
+      buffer: req.file.buffer,
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+    },
+  });
   res.json({ success: true, data });
 }
 

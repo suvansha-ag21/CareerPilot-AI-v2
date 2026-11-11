@@ -1,4 +1,7 @@
-from typing import Dict, Optional
+import io
+import re
+import wave
+from typing import Dict, List, Optional
 from app.core.llm_provider import llm_client
 from app.rag.vector_store import vector_store
 from app.schemas.interview_schema import (
@@ -10,10 +13,12 @@ from app.schemas.interview_schema import (
     GeneratedQuestionLLM,
     InterviewSummaryLLM,
     NextQuestionPayload,
+    SpeechMetricsSchema,
     StartInterviewQuestionRequest,
     StartInterviewQuestionResponse,
     SummarizeInterviewRequest,
     SummarizeInterviewResponse,
+    TranscribeAudioResponse,
 )
 
 CATEGORY_TOPIC_FILTER: Dict[CategoryStr, Optional[str]] = {
@@ -242,3 +247,79 @@ async def summarize_interview(
         rag_topics_covered=rag_topics,
         next_recommendations=summary_llm.next_recommendations,
     )
+
+
+FILLER_PATTERNS = [
+    r"\bum\b",
+    r"\buh\b",
+    r"\berm\b",
+    r"\blike\b",
+    r"\byou know\b",
+    r"\bbasically\b",
+    r"\bactually\b",
+    r"\bkind of\b",
+    r"\bsort of\b",
+]
+
+
+def _extract_wav_duration_seconds(audio_bytes: bytes) -> Optional[float]:
+    try:
+        with wave.open(io.BytesIO(audio_bytes), "rb") as w:
+            rate = w.getframerate()
+            frames = w.getnframes()
+            if rate > 0 and frames > 0:
+                return round(frames / float(rate), 2)
+    except Exception:
+        return None
+    return None
+
+
+async def transcribe_and_compute_metrics(
+    audio_bytes: bytes,
+    mime_type: str,
+    filename: str,
+    reported_duration_seconds: float,
+) -> TranscribeAudioResponse:
+    transcript = await llm_client.transcribe_audio_bytes(
+        audio_bytes=audio_bytes, mime_type=mime_type, filename=filename
+    )
+
+    wav_dur = _extract_wav_duration_seconds(audio_bytes)
+    effective_duration = wav_dur if wav_dur and wav_dur > 0 else max(reported_duration_seconds, 1.0)
+    words = re.findall(r"[A-Za-z0-9']+", transcript)
+    word_count = len(words)
+    wpm = round((word_count / effective_duration) * 60.0, 1) if word_count > 0 else 0.0
+
+    lowered = transcript.lower()
+    detected_fillers: List[str] = []
+    filler_count = 0
+    for pat in FILLER_PATTERNS:
+        matches = re.findall(pat, lowered)
+        if matches:
+            filler_count += len(matches)
+            detected_fillers.append(matches[0])
+
+    if word_count == 0:
+        delivery_note = "No clear speech detected in recording. Please verify microphone input and speak close to the mic."
+    elif wpm < 95:
+        delivery_note = f"Measured {wpm} WPM (deliberate pace). Consider keeping phrasing slightly tighter to cover more technical depth."
+    elif wpm <= 160:
+        delivery_note = f"Strong conversational pace at {wpm} WPM."
+    else:
+        delivery_note = f"Rapid pace at {wpm} WPM. Pausing briefly between architectural points improves interviewer clarity."
+
+    if filler_count >= 3:
+        delivery_note += f" Detected {filler_count} filler words ({', '.join(detected_fillers[:3])})."
+
+    return TranscribeAudioResponse(
+        transcript=transcript,
+        speech_metrics=SpeechMetricsSchema(
+            durationSeconds=round(effective_duration, 1),
+            wordCount=word_count,
+            wordsPerMinute=wpm,
+            fillerWordCount=filler_count,
+            fillerWords=detected_fillers,
+            deliveryFeedback=delivery_note,
+        ),
+    )
+

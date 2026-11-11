@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   ArrowLeft,
@@ -16,8 +16,11 @@ import {
   Mic,
   Play,
   Sparkles,
+  Square,
   Target,
   Trash2,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -35,6 +38,7 @@ import {
   InterviewSessionDTO,
   InterviewStatus,
   ResumeDTO,
+  SpeechMetricsDTO,
 } from "@careerpilot/shared";
 import { ApiClientError } from "@/lib/api";
 import { interviewApi } from "@/services/interview.service";
@@ -76,6 +80,7 @@ export default function MockInterviewPage() {
   // New session configuration
   const [category, setCategory] = useState<InterviewCategory>(InterviewCategory.TECHNICAL);
   const [difficulty, setDifficulty] = useState<InterviewDifficulty>(InterviewDifficulty.MEDIUM);
+  const [mode, setMode] = useState<InterviewMode>(InterviewMode.TEXT);
   const [questionLimit, setQuestionLimit] = useState<number>(5);
   const [durationMinutes, setDurationMinutes] = useState<number>(20);
   const [resumeId, setResumeId] = useState<string>("");
@@ -84,10 +89,22 @@ export default function MockInterviewPage() {
   // Room & evaluation states
   const [starting, setStarting] = useState(false);
   const [answerText, setAnswerText] = useState("");
+  const [speechMetrics, setSpeechMetrics] = useState<SpeechMetricsDTO | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSec, setRecordingSec] = useState(0);
+  const [transcribing, setTranscribing] = useState(false);
+  const [speakingPrompt, setSpeakingPrompt] = useState(false);
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState<number>(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioChunksRef = useRef<BlobPart[]>([]);
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recordDurationRef = useRef<number>(0);
 
   const loadData = useCallback(async () => {
     try {
@@ -126,6 +143,17 @@ export default function MockInterviewPage() {
     return () => clearInterval(interval);
   }, [activeSession]);
 
+  // Stop speech/media cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
   async function handleStartSession(e: React.FormEvent) {
     e.preventDefault();
     setErrorMsg(null);
@@ -134,7 +162,7 @@ export default function MockInterviewPage() {
       const created = await interviewApi.start({
         category,
         difficulty,
-        mode: InterviewMode.TEXT,
+        mode,
         durationMinutes,
         questionLimit,
         resumeId: resumeId || undefined,
@@ -143,6 +171,8 @@ export default function MockInterviewPage() {
       setSessions((prev) => [created, ...prev]);
       setActiveSession(created);
       setAnswerText("");
+      setSpeechMetrics(null);
+      setRecordedBlob(null);
     } catch (err) {
       setErrorMsg(
         err instanceof ApiClientError
@@ -154,6 +184,140 @@ export default function MockInterviewPage() {
     }
   }
 
+  function handleSpeakQuestion(text: string) {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setErrorMsg("Browser Text-to-Speech is not supported in this browser.");
+      return;
+    }
+    if (speakingPrompt) {
+      window.speechSynthesis.cancel();
+      setSpeakingPrompt(false);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1.0;
+    utter.onend = () => setSpeakingPrompt(false);
+    utter.onerror = () => setSpeakingPrompt(false);
+    setSpeakingPrompt(true);
+    window.speechSynthesis.speak(utter);
+  }
+
+  async function handleToggleRecording() {
+    setErrorMsg(null);
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+      if (recordTimerRef.current) {
+        clearInterval(recordTimerRef.current);
+        recordTimerRef.current = null;
+      }
+      return;
+    }
+
+    if (
+      typeof navigator === "undefined" ||
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+      setErrorMsg("Microphone recording is unavailable in this browser. You can type your answer below.");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+        ? "audio/mp4"
+        : "";
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
+      audioChunksRef.current = [];
+      recordDurationRef.current = 0;
+      setRecordingSec(0);
+      setRecordedBlob(null);
+
+      recorder.ondataavailable = (ev) => {
+        if (ev.data.size > 0) {
+          audioChunksRef.current.push(ev.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(audioChunksRef.current, {
+          type: recorder.mimeType || "audio/webm",
+        });
+        setRecordedBlob(blob);
+        if (!activeSession || blob.size === 0) return;
+        setTranscribing(true);
+        try {
+          const stt = await interviewApi.transcribeAudio(
+            activeSession.id,
+            blob,
+            Math.max(1, recordDurationRef.current)
+          );
+          if (stt.transcript) {
+            setAnswerText((prev) => (prev.trim() ? `${prev.trim()} ${stt.transcript}` : stt.transcript));
+          }
+          setSpeechMetrics(stt.speechMetrics);
+        } catch (err) {
+          setErrorMsg(
+            err instanceof ApiClientError
+              ? err.message
+              : "Could not transcribe audio automatically; please type your answer."
+          );
+        } finally {
+          setTranscribing(false);
+        }
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start(500);
+      setIsRecording(true);
+      recordTimerRef.current = setInterval(() => {
+        recordDurationRef.current += 1;
+        setRecordingSec(recordDurationRef.current);
+      }, 1000);
+    } catch {
+      setErrorMsg(
+        "Microphone permission was denied or no audio device was detected. You may still type your response below."
+      );
+    }
+  }
+
+  async function handleSubmitVoiceDirectly() {
+    if (!activeSession || !recordedBlob) return;
+    const currentQuestion = activeSession.questions.find((q) => q.userAnswer === null);
+    if (!currentQuestion) return;
+
+    setErrorMsg(null);
+    setSubmitting(true);
+    try {
+      const updated = await interviewApi.submitVoiceAnswer(
+        activeSession.id,
+        currentQuestion.id,
+        recordedBlob,
+        Math.max(1, recordDurationRef.current)
+      );
+      setActiveSession(updated);
+      setSessions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+      setAnswerText("");
+      setSpeechMetrics(null);
+      setRecordedBlob(null);
+    } catch (err) {
+      setErrorMsg(
+        err instanceof ApiClientError ? err.message : "Failed to submit voice recording."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function handleSubmitAnswer(e?: React.FormEvent) {
     if (e) e.preventDefault();
     if (!activeSession) return;
@@ -161,7 +325,7 @@ export default function MockInterviewPage() {
     if (!currentQuestion) return;
 
     if (answerText.trim().length < 5) {
-      setErrorMsg("Please write a response (at least 5 characters) before submitting.");
+      setErrorMsg("Please write or record a response (at least 5 characters) before submitting.");
       return;
     }
 
@@ -171,10 +335,13 @@ export default function MockInterviewPage() {
       const updated = await interviewApi.submitAnswer(activeSession.id, {
         questionId: currentQuestion.id,
         answerText: answerText.trim(),
+        ...(speechMetrics ? { speechMetrics } : {}),
       });
       setActiveSession(updated);
       setSessions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
       setAnswerText("");
+      setSpeechMetrics(null);
+      setRecordedBlob(null);
     } catch (err) {
       setErrorMsg(
         err instanceof ApiClientError ? err.message : "Failed to evaluate interview response."
@@ -295,14 +462,34 @@ export default function MockInterviewPage() {
               title={`Prompt #${pendingQuestion.questionOrder}`}
               subtitle={`Topic: ${pendingQuestion.topicTag}`}
               action={
-                pendingQuestion.isFollowUp ? (
-                  <Badge tone="warning">
-                    <Sparkles className="h-3 w-3" />
-                    Adaptive Follow-Up Probe
-                  </Badge>
-                ) : (
-                  <Badge tone="brand">RAG Grounded</Badge>
-                )
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSpeakQuestion(pendingQuestion.question)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:border-[#6D5DFB]/40 text-[11px] font-medium text-[#172033] transition-colors"
+                    title="Speak question aloud using Text-to-Speech"
+                  >
+                    {speakingPrompt ? (
+                      <>
+                        <VolumeX className="h-3.5 w-3.5 text-rose-500" />
+                        Mute Voice
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="h-3.5 w-3.5 text-[#6D5DFB]" />
+                        Read Aloud
+                      </>
+                    )}
+                  </button>
+                  {pendingQuestion.isFollowUp ? (
+                    <Badge tone="warning">
+                      <Sparkles className="h-3 w-3" />
+                      Adaptive Follow-Up
+                    </Badge>
+                  ) : (
+                    <Badge tone="brand">RAG Grounded</Badge>
+                  )}
+                </div>
               }
             />
             <CardContent className="space-y-5">
@@ -312,13 +499,94 @@ export default function MockInterviewPage() {
                 </p>
               </div>
 
+              {activeSession.mode === InterviewMode.VOICE && (
+                <div className="p-4 rounded-xl border border-[#6D5DFB]/25 bg-[#EEF2FF]/45 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-semibold text-[#172033] flex items-center gap-1.5">
+                        <Mic className="h-3.5 w-3.5 text-[#6D5DFB]" />
+                        Explicit-Consent Voice Recorder &amp; Speech Analytics
+                      </p>
+                      <p className="text-[11px] text-[#64748B]">
+                        Click Record to speak your answer, then review transcript &amp; WPM or
+                        submit directly.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        variant={isRecording ? "danger" : "primary"}
+                        size="sm"
+                        onClick={() => void handleToggleRecording()}
+                        disabled={transcribing || submitting}
+                      >
+                        {isRecording ? (
+                          <>
+                            <Square className="h-3.5 w-3.5" />
+                            Stop ({formatCountdown(recordingSec)})
+                          </>
+                        ) : (
+                          <>
+                            <Mic className="h-3.5 w-3.5" />
+                            Start Recording
+                          </>
+                        )}
+                      </Button>
+
+                      {recordedBlob && !isRecording && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => void handleSubmitVoiceDirectly()}
+                          loading={submitting}
+                          disabled={transcribing}
+                        >
+                          Submit Audio Directly
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {transcribing && (
+                    <div className="flex items-center gap-2 text-xs text-[#6D5DFB] font-medium">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Transcribing audio &amp; computing WPM delivery metrics...
+                    </div>
+                  )}
+
+                  {speechMetrics && (
+                    <div className="p-3 rounded-lg bg-white border border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge tone="brand" className="tabular-nums">
+                          {speechMetrics.wordsPerMinute} WPM
+                        </Badge>
+                        <Badge tone="neutral" className="tabular-nums">
+                          {speechMetrics.durationSeconds}s · {speechMetrics.wordCount} words
+                        </Badge>
+                        <Badge
+                          tone={speechMetrics.fillerWordCount >= 3 ? "warning" : "success"}
+                          className="tabular-nums"
+                        >
+                          {speechMetrics.fillerWordCount} filler(s)
+                        </Badge>
+                      </div>
+                      <span className="text-[11px] text-[#64748B]">
+                        {speechMetrics.deliveryFeedback}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <form onSubmit={handleSubmitAnswer} className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label
                     htmlFor="interview-answer-editor"
                     className="text-xs font-semibold text-[#172033]"
                   >
-                    Your Answer (Text Mode)
+                    Your Answer ({activeSession.mode === InterviewMode.VOICE ? "Transcript / Text" : "Text Mode"})
                   </label>
                   <span className="text-[11px] text-[#64748B] tabular-nums">
                     {answerText.trim() ? answerText.trim().split(/\s+/).length : 0} words
@@ -387,11 +655,11 @@ export default function MockInterviewPage() {
               <CardContent className="p-4 space-y-2">
                 <p className="text-xs font-semibold text-[#172033] flex items-center gap-1.5">
                   <Mic className="h-3.5 w-3.5 text-[#6D5DFB]" />
-                  Voice Mode Roadmap Note
+                  Delivery Coaching Tips
                 </p>
                 <p className="text-[11px] text-[#64748B] leading-relaxed">
-                  Phase 5 uses Text Interview mode grounded in our 9-topic CS knowledge base. Mic
-                  recording, Whisper STT, and live speech WPM analytics unlock in Phase 6.
+                  Target 110–155 WPM with crisp structure (Core Definition → Trade-offs →
+                  Concrete Production Example) and minimal filler words.
                 </p>
               </CardContent>
             </Card>
@@ -638,6 +906,17 @@ export default function MockInterviewPage() {
                       {q.feedback}
                     </p>
                   )}
+
+                  {q.speechMetrics && (
+                    <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
+                      <Badge tone="brand">{q.speechMetrics.wordsPerMinute} WPM</Badge>
+                      <Badge tone="neutral">{q.speechMetrics.durationSeconds}s audio</Badge>
+                      <Badge tone={q.speechMetrics.fillerWordCount >= 3 ? "warning" : "success"}>
+                        {q.speechMetrics.fillerWordCount} filler(s)
+                      </Badge>
+                      <span className="text-[#64748B]">{q.speechMetrics.deliveryFeedback}</span>
+                    </div>
+                  )}
                 </div>
               ))}
           </CardContent>
@@ -768,9 +1047,49 @@ export default function MockInterviewPage() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-[#172033]">
+                  Interview Mode
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setMode(InterviewMode.TEXT)}
+                    className={`p-3 rounded-xl border text-left transition-all flex items-center gap-2.5 ${
+                      mode === InterviewMode.TEXT
+                        ? "bg-[#EEF2FF] border-[#6D5DFB] ring-1 ring-[#6D5DFB]"
+                        : "bg-white border-[#E2E8F0] hover:border-slate-300"
+                    }`}
+                  >
+                    <MessageSquare className="h-4 w-4 text-[#6D5DFB] shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-[#172033]">Text Interview</p>
+                      <p className="text-[10px] text-[#64748B]">Written structured responses</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode(InterviewMode.VOICE)}
+                    className={`p-3 rounded-xl border text-left transition-all flex items-center gap-2.5 ${
+                      mode === InterviewMode.VOICE
+                        ? "bg-[#EEF2FF] border-[#6D5DFB] ring-1 ring-[#6D5DFB]"
+                        : "bg-white border-[#E2E8F0] hover:border-slate-300"
+                    }`}
+                  >
+                    <Mic className="h-4 w-4 text-[#6D5DFB] shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-[#172033]">Voice Interview</p>
+                      <p className="text-[10px] text-[#64748B]">Mic STT + WPM + Spoken Prompts</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               <Button type="submit" variant="primary" size="lg" className="w-full" loading={starting}>
                 <Play className="h-4 w-4" />
-                {starting ? "Preparing Opening RAG Question..." : "Launch Text Mock Interview"}
+                {starting
+                  ? "Preparing Opening RAG Question..."
+                  : `Launch ${mode === InterviewMode.VOICE ? "Voice" : "Text"} Mock Interview`}
               </Button>
             </form>
           </CardContent>

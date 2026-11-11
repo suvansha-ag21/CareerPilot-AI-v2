@@ -127,3 +127,17 @@ class SummarizeInterviewResponse(BaseModel):
     rubric_averages: CriteriaScoresSchema
     rag_topics_covered: List[str]
     next_recommendations: List[str]
+
+
+class SpeechMetricsSchema(BaseModel):
+    durationSeconds: float
+    wordCount: int
+    wordsPerMinute: float
+    fillerWordCount: int
+    fillerWords: List[str] = Field(default_factory=list)
+    deliveryFeedback: str
+
+
+class TranscribeAudioResponse(BaseModel):
+    transcript: str
+    speech_metrics: SpeechMetricsSchema

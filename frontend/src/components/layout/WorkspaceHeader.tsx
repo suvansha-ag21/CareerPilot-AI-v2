@@ -13,6 +13,8 @@ const ROUTE_SUBTITLES: Record<string, string> = {
   "/skills": "Benchmark skills against role bars & prioritize learning",
   "/interview": "RAG-grounded adaptive mock interviews & 5-criterion feedback",
   "/roadmap": "Structured weekly study sprints generated from skill gaps",
+  "/applications": "Track applications, scheduled interviews & pipeline conversion",
+  "/analytics": "Longitudinal score trends, conversion funnels & topic hotspots",
   "/profile": "Education, work history, projects & canonical skill inventory",
   "/settings": "Account security & workspace preferences",
 };

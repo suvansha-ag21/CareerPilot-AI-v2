@@ -1,3 +1,4 @@
+import base64
 import json
 import re
 from typing import Type, TypeVar
@@ -135,6 +136,80 @@ class ModularLLMClient:
                 )
             data = resp.json()
             return str(data["choices"][0]["message"]["content"])
+
+    async def transcribe_audio_bytes(
+        self, audio_bytes: bytes, mime_type: str, filename: str
+    ) -> str:
+        provider = settings.LLM_PROVIDER.lower().strip()
+
+        if provider == "openai":
+            if not settings.OPENAI_API_KEY:
+                raise LLMProviderUnavailableError(
+                    "OPENAI_API_KEY is not configured in ai-service/.env for Whisper STT."
+                )
+            async with httpx.AsyncClient(timeout=45.0) as client:
+                resp = await client.post(
+                    "https://api.openai.com/v1/audio/transcriptions",
+                    headers={"Authorization": f"Bearer {settings.OPENAI_API_KEY}"},
+                    data={"model": "whisper-1"},
+                    files={"file": (filename, audio_bytes, mime_type)},
+                )
+                if resp.status_code != 200:
+                    raise LLMProviderUnavailableError(
+                        f"OpenAI Whisper returned HTTP {resp.status_code}: {resp.text[:200]}"
+                    )
+                return str(resp.json().get("text", "")).strip()
+
+        if provider == "gemini":
+            if not settings.GEMINI_API_KEY:
+                raise LLMProviderUnavailableError(
+                    "GEMINI_API_KEY is not configured in ai-service/.env for speech transcription."
+                )
+            b64_audio = base64.b64encode(audio_bytes).decode("ascii")
+            candidate_models = [settings.GEMINI_MODEL] + [
+                m.strip()
+                for m in settings.GEMINI_FALLBACK_MODELS.split(",")
+                if m.strip() and m.strip() != settings.GEMINI_MODEL
+            ]
+            errors: list[str] = []
+            async with httpx.AsyncClient(timeout=httpx.Timeout(35.0, connect=10.0)) as client:
+                for model in candidate_models:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={settings.GEMINI_API_KEY}"
+                    payload = {
+                        "contents": [
+                            {
+                                "parts": [
+                                    {
+                                        "text": (
+                                            "Transcribe all spoken words in this interview audio recording accurately verbatim. "
+                                            "Return ONLY the spoken transcript plain text without markdown or commentary. "
+                                            "If completely silent, return an empty string."
+                                        )
+                                    },
+                                    {"inlineData": {"mimeType": mime_type, "data": b64_audio}},
+                                ]
+                            }
+                        ],
+                        "generationConfig": {"temperature": 0.0},
+                    }
+                    try:
+                        resp = await client.post(url, json=payload)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            candidates = data.get("candidates", [])
+                            if candidates:
+                                parts = candidates[0].get("content", {}).get("parts", [])
+                                if parts and "text" in parts[0]:
+                                    return str(parts[0]["text"]).strip()
+                            return ""
+                        errors.append(f"{model}: HTTP {resp.status_code}")
+                    except httpx.HTTPError as exc:
+                        errors.append(f"{model}: {type(exc).__name__} {exc}")
+            raise LLMProviderUnavailableError(
+                f"Speech-to-text transcription unavailable: {'; '.join(errors)}"
+            )
+
+        raise LLMProviderUnavailableError(f"Unsupported LLM_PROVIDER '{settings.LLM_PROVIDER}' for audio STT.")
 
 
 llm_client = ModularLLMClient()

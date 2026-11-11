@@ -13,6 +13,15 @@ export interface InterviewCriteriaScoresDTO {
   practicalExamples: number;
 }
 
+export interface SpeechMetricsDTO {
+  durationSeconds: number;
+  wordCount: number;
+  wordsPerMinute: number;
+  fillerWordCount: number;
+  fillerWords: string[];
+  deliveryFeedback: string;
+}
+
 export interface InterviewQuestionDTO {
   id: string;
   interviewId: string;
@@ -20,6 +29,8 @@ export interface InterviewQuestionDTO {
   question: string;
   topicTag: string;
   userAnswer: string | null;
+  audioUrl: string | null;
+  speechMetrics: SpeechMetricsDTO | null;
   modelAnswer: string;
   score: number | null;
   criteriaScores: InterviewCriteriaScoresDTO | null;

@@ -78,3 +78,41 @@ export function validateJobDescriptionFile(
     mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   };
 }
+
+export const MAX_VOICE_AUDIO_BYTES = 15 * 1024 * 1024; // 15 MB
+
+const ALLOWED_AUDIO_MIME_MAP: Record<string, string> = {
+  ".webm": "audio/webm",
+  ".wav": "audio/wav",
+  ".mp3": "audio/mpeg",
+  ".m4a": "audio/mp4",
+  ".mp4": "audio/mp4",
+  ".ogg": "audio/ogg",
+};
+
+export function validateVoiceAudioFile(
+  buffer: Buffer,
+  originalName: string,
+  mimeType: string
+): { mime: string; ext: string } {
+  if (!buffer || buffer.length === 0) {
+    throw new BadRequestError("Recorded audio payload is empty");
+  }
+  if (buffer.length > MAX_VOICE_AUDIO_BYTES) {
+    throw new BadRequestError("Audio recording exceeds maximum 15 MB limit");
+  }
+
+  const ext = path.extname(originalName).toLowerCase();
+  const baseMime = mimeType.split(";")[0].trim().toLowerCase();
+
+  if (ext in ALLOWED_AUDIO_MIME_MAP) {
+    return { ext, mime: baseMime.startsWith("audio/") ? baseMime : ALLOWED_AUDIO_MIME_MAP[ext] };
+  }
+
+  if (baseMime.startsWith("audio/") || baseMime === "video/webm") {
+    const cleanMime = baseMime === "video/webm" ? "audio/webm" : baseMime;
+    return { ext: ".webm", mime: cleanMime };
+  }
+
+  throw new BadRequestError("Unsupported audio format. Expected WebM, WAV, MP3, MP4, or OGG.");
+}

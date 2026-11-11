@@ -5,6 +5,15 @@ import {
   InterviewMode,
 } from "../constants/enums";
 
+export const SpeechMetricsInputSchema = z.object({
+  durationSeconds: z.number().min(0),
+  wordCount: z.number().int().min(0),
+  wordsPerMinute: z.number().min(0),
+  fillerWordCount: z.number().int().min(0),
+  fillerWords: z.array(z.string()).default([]),
+  deliveryFeedback: z.string(),
+});
+
 export const StartInterviewSchema = z.object({
   category: z.nativeEnum(InterviewCategory).default(InterviewCategory.TECHNICAL),
   difficulty: z.nativeEnum(InterviewDifficulty).default(InterviewDifficulty.MEDIUM),
@@ -22,6 +31,7 @@ export const SubmitInterviewAnswerSchema = z.object({
     .trim()
     .min(5, "Please provide a meaningful answer (at least 5 characters)")
     .max(12000),
+  speechMetrics: SpeechMetricsInputSchema.optional(),
 });
 
 export type StartInterviewInput = z.infer<typeof StartInterviewSchema>;

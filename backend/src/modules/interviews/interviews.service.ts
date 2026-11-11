@@ -7,12 +7,15 @@ import {
   InterviewQuestionDTO,
   InterviewSessionDTO,
   InterviewStatus,
+  SpeechMetricsDTO,
   StartInterviewInput,
   SubmitInterviewAnswerInput,
 } from "@careerpilot/shared";
 import { Prisma } from "../../../../node_modules/.prisma/client";
 import { prisma } from "../../config/prisma";
 import { aiServiceClient } from "../../clients/aiService.client";
+import { deleteVoiceClip, saveVoiceClip } from "../../services/storage.service";
+import { validateVoiceAudioFile } from "../../utils/fileValidation";
 import { BadRequestError, NotFoundError } from "../../utils/errors";
 
 type InterviewWithQuestions = Prisma.InterviewGetPayload<{
@@ -29,6 +32,8 @@ function mapInterviewToDTO(row: InterviewWithQuestions): InterviewSessionDTO {
     question: q.question,
     topicTag: q.topicTag,
     userAnswer: q.userAnswer,
+    audioUrl: q.audioUrl,
+    speechMetrics: q.speechMetrics as unknown as SpeechMetricsDTO | null,
     modelAnswer: q.modelAnswer,
     score: q.score !== null ? Math.round(q.score * 10) / 10 : null,
     criteriaScores: q.criteriaScores as unknown as InterviewCriteriaScoresDTO | null,
@@ -221,7 +226,8 @@ export class InterviewsService {
   async submitAnswer(
     userId: string,
     interviewId: string,
-    input: SubmitInterviewAnswerInput
+    input: SubmitInterviewAnswerInput,
+    audioUrl?: string | null
   ): Promise<InterviewSessionDTO> {
     const [user, interview] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, select: { targetRole: true } }),
@@ -285,6 +291,12 @@ export class InterviewsService {
         where: { id: targetQ.id },
         data: {
           userAnswer: input.answerText,
+          ...(audioUrl ? { audioUrl } : {}),
+          ...(input.speechMetrics
+            ? {
+                speechMetrics: input.speechMetrics as unknown as Prisma.InputJsonValue,
+              }
+            : {}),
           score: evalRes.score,
           criteriaScores: evalRes.criteriaScores as unknown as Prisma.InputJsonValue,
           feedback: evalRes.feedback,
@@ -320,6 +332,92 @@ export class InterviewsService {
     return this.getInterviewById(userId, interview.id);
   }
 
+  async transcribeAudio(params: {
+    userId: string;
+    interviewId: string;
+    durationSeconds: number;
+    file: { buffer: Buffer; originalname: string; mimetype: string };
+  }) {
+    const owned = await prisma.interview.findFirst({
+      where: { id: params.interviewId, userId: params.userId },
+      select: { id: true, status: true },
+    });
+    if (!owned) {
+      throw new NotFoundError("Interview session not found");
+    }
+    if (owned.status !== "IN_PROGRESS") {
+      throw new BadRequestError("Interview session is already closed.");
+    }
+
+    const validated = validateVoiceAudioFile(
+      params.file.buffer,
+      params.file.originalname,
+      params.file.mimetype
+    );
+
+    return aiServiceClient.transcribeInterviewAudio({
+      audioBuffer: params.file.buffer,
+      filename: `voice${validated.ext}`,
+      mimeType: validated.mime,
+      durationSeconds: params.durationSeconds,
+    });
+  }
+
+  async submitVoiceAnswer(params: {
+    userId: string;
+    interviewId: string;
+    questionId: string;
+    durationSeconds: number;
+    file: { buffer: Buffer; originalname: string; mimetype: string };
+  }): Promise<InterviewSessionDTO> {
+    const validated = validateVoiceAudioFile(
+      params.file.buffer,
+      params.file.originalname,
+      params.file.mimetype
+    );
+
+    const owned = await prisma.interview.findFirst({
+      where: { id: params.interviewId, userId: params.userId },
+      select: { id: true, status: true },
+    });
+    if (!owned) {
+      throw new NotFoundError("Interview session not found");
+    }
+    if (owned.status !== "IN_PROGRESS") {
+      throw new BadRequestError("This interview session has already finished.");
+    }
+
+    const stt = await aiServiceClient.transcribeInterviewAudio({
+      audioBuffer: params.file.buffer,
+      filename: `voice${validated.ext}`,
+      mimeType: validated.mime,
+      durationSeconds: params.durationSeconds,
+    });
+
+    if (!stt.transcript || stt.transcript.trim().length < 5) {
+      throw new BadRequestError(
+        "No intelligible speech was transcribed from your recording. Please try speaking clearly near the mic."
+      );
+    }
+
+    const stored = await saveVoiceClip(
+      params.userId,
+      validated.ext,
+      params.file.buffer
+    );
+
+    return this.submitAnswer(
+      params.userId,
+      params.interviewId,
+      {
+        questionId: params.questionId,
+        answerText: stt.transcript.trim(),
+        speechMetrics: stt.speechMetrics,
+      },
+      stored.storageKey
+    );
+  }
+
   async completeInterview(userId: string, interviewId: string): Promise<InterviewSessionDTO> {
     const [user, interview] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, select: { targetRole: true } }),
@@ -342,11 +440,19 @@ export class InterviewsService {
   }
 
   async deleteInterview(userId: string, interviewId: string): Promise<{ deleted: boolean }> {
-    const res = await prisma.interview.deleteMany({
+    const existing = await prisma.interview.findFirst({
       where: { id: interviewId, userId },
+      include: { questions: { select: { audioUrl: true } } },
     });
-    if (res.count === 0) {
+    if (!existing) {
       throw new NotFoundError("Interview session not found");
+    }
+
+    await prisma.interview.delete({ where: { id: interviewId } });
+    for (const q of existing.questions) {
+      if (q.audioUrl) {
+        await deleteVoiceClip(q.audioUrl);
+      }
     }
     return { deleted: true };
   }

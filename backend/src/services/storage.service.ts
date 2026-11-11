@@ -165,3 +165,37 @@ export const storageProvider: StorageProvider =
   env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET
     ? new CloudinaryAuthenticatedStorageProvider()
     : new LocalDiskStorageProvider();
+
+const VOICE_DIR = path.resolve(process.cwd(), env.STORAGE_DIR, "voice_clips");
+
+export async function saveVoiceClip(
+  userId: string,
+  ext: string,
+  buffer: Buffer
+): Promise<StoredObjectRef> {
+  const safeExt = [".webm", ".wav", ".mp3", ".m4a", ".mp4", ".ogg"].includes(ext.toLowerCase())
+    ? ext.toLowerCase()
+    : ".webm";
+  const userDir = path.join(VOICE_DIR, userId);
+  await fs.mkdir(userDir, { recursive: true });
+
+  const objectName = `${crypto.randomUUID()}${safeExt}`;
+  const storageKey = path.posix.join("voice", userId, objectName);
+  await fs.writeFile(path.join(userDir, objectName), buffer);
+  return {
+    storageKey,
+    publicOrInternalUrl: storageKey,
+  };
+}
+
+export async function deleteVoiceClip(storageKey: string): Promise<void> {
+  if (!storageKey.startsWith("voice/")) return;
+  const rel = storageKey.replace(/^voice\//, "");
+  const resolved = path.resolve(VOICE_DIR, rel);
+  if (!resolved.startsWith(VOICE_DIR)) return;
+  try {
+    await fs.unlink(resolved);
+  } catch {
+    // ignore missing audio file
+  }
+}

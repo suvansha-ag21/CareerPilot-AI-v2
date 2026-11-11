@@ -12,6 +12,7 @@ import {
   ResumeSectionEvaluationDTO,
   SkillCategoryCoverageDTO,
   SkillRequirementBenchmarkDTO,
+  SpeechMetricsDTO,
   TaskPriority,
 } from "@careerpilot/shared";
 import { env } from "../config/env";
@@ -80,6 +81,11 @@ export interface AiEvaluateAnswerResponse {
 export interface AiSummarizeInterviewResponse {
   overallScore: number;
   feedbackSummary: InterviewFeedbackSummaryDTO;
+}
+
+export interface AiTranscribeAudioResponse {
+  transcript: string;
+  speechMetrics: SpeechMetricsDTO;
 }
 
 export interface AiGenerateRoadmapResponse {
@@ -611,6 +617,56 @@ class AiServiceClient {
         nextRecommendations: raw.next_recommendations,
       },
     };
+  }
+
+  async transcribeInterviewAudio(params: {
+    audioBuffer: Buffer;
+    filename: string;
+    mimeType: string;
+    durationSeconds: number;
+  }): Promise<AiTranscribeAudioResponse> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 90000);
+
+    try {
+      const form = new FormData();
+      const blob = new Blob([new Uint8Array(params.audioBuffer)], { type: params.mimeType });
+      form.append("audio", blob, params.filename);
+      form.append("mime_type", params.mimeType);
+      form.append("duration_seconds", String(params.durationSeconds));
+
+      const res = await fetch(`${this.baseUrl}/internal/ai/interviews/transcribe-audio`, {
+        method: "POST",
+        headers: {
+          "X-Internal-Service-Key": env.INTERNAL_SERVICE_KEY,
+        },
+        body: form,
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        await this.handleErrorResponse(res, "AI service failed during speech transcription");
+      }
+
+      const raw = (await res.json()) as {
+        transcript: string;
+        speech_metrics: SpeechMetricsDTO;
+      };
+
+      return {
+        transcript: raw.transcript,
+        speechMetrics: raw.speech_metrics,
+      };
+    } catch (err) {
+      if (err instanceof AppError) throw err;
+      throw new AppError(
+        503,
+        "AI_SERVICE_UNREACHABLE",
+        "Python AI microservice timed out during speech transcription."
+      );
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   async deleteResumeVectors(userId: string, resumeId: string): Promise<void> {

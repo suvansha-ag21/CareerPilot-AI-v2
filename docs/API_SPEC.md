@@ -51,9 +51,19 @@ All protected endpoints require `Authorization: Bearer <accessToken>` and return
 - `PATCH /api/roadmaps/:id/tasks/:taskId` *(Protected)* — Updates task status (`PENDING` | `IN_PROGRESS` | `COMPLETED`) or priority and automatically recalculates `progressPct`.
 - `DELETE /api/roadmaps/:id` *(Protected)* — Deletes a roadmap owned by the user and promotes the latest remaining plan if active.
 
-## 9. AI Mock Interview System (`/api/interviews`) — Phase 5
-- `GET /api/interviews` & `GET /api/interviews/:id` *(Protected)* — Lists user's interview sessions or retrieves full Q&A + rubric breakdown.
-- `POST /api/interviews/start` *(Protected)* — Creates an `Interview` session and generates Question 1 grounded in the 9-topic ChromaDB CS Knowledge Base (and optional Resume chunks) via FastAPI `/internal/ai/interviews/start-question`.
-- `POST /api/interviews/:id/answer` *(Protected)* — Submits candidate response, grades 5 rubric criteria (`technicalAccuracy`, `depthOfUnderstanding`, `completeness`, `clarityAndStructure`, `practicalExamples`), appends adaptive follow-up or next topic question, and auto-summarizes when `questionLimit` completes.
+## 9. AI Mock & Voice Interview System (`/api/interviews`) — Phases 5 & 6
+- `GET /api/interviews` & `GET /api/interviews/:id` *(Protected)* — Lists user's interview sessions or retrieves full Q&A + rubric breakdown + `speechMetrics`.
+- `POST /api/interviews/start` *(Protected)* — Creates an `Interview` session (`TEXT` or `VOICE` mode) and generates Question 1 grounded in the 9-topic ChromaDB CS Knowledge Base (and optional Resume chunks) via FastAPI `/internal/ai/interviews/start-question`.
+- `POST /api/interviews/:id/answer` *(Protected)* — Submits candidate response (plus optional `speechMetrics`), grades 5 rubric criteria (`technicalAccuracy`, `depthOfUnderstanding`, `completeness`, `clarityAndStructure`, `practicalExamples`), appends adaptive follow-up or next topic question, and auto-summarizes when `questionLimit` completes.
+- `POST /api/interviews/:id/transcribe` *(Protected, Multipart `audio`)* — Validates uploaded audio (`WebM`, `WAV`, `MP3`, `MP4`, `OGG` <= 15 MB) and returns verbatim STT transcript alongside WPM, word count, filler-word count, and pacing notes via FastAPI `/internal/ai/interviews/transcribe-audio`.
+- `POST /api/interviews/:id/answer-voice` *(Protected, Multipart `audio`)* — End-to-end voice answer endpoint: stores audio recording securely, runs STT + speech delivery metrics, grades response via RAG rubric, and advances session.
 - `POST /api/interviews/:id/complete` *(Protected)* — Completes an active session early and computes the post-interview report in PostgreSQL.
-- `DELETE /api/interviews/:id` *(Protected)* — Deletes an owned interview session.
+- `DELETE /api/interviews/:id` *(Protected)* — Deletes an owned interview session and removes recorded voice clips from disk.
+
+## 10. Job Application Tracker (`/api/applications`) — Phase 7
+- `GET /api/applications` & `GET /api/applications/:id` *(Protected)* — Lists filterable (`?status=...&search=...`) job applications owned by the user or fetches single record (`404` across users).
+- `POST /api/applications` & `PATCH /api/applications/:id` *(Protected)* — Creates or updates tracked job applications (`APPLIED`, `ASSESSMENT`, `INTERVIEW_SCHEDULED`, `SELECTED`, `OFFER_RECEIVED`, `REJECTED`), scheduled interview dates, URLs, and notes.
+- `DELETE /api/applications/:id` *(Protected)* — Deletes an application owned by the user.
+
+## 11. Detailed Career Analytics (`/api/analytics/detailed`) — Phase 7
+- `GET /api/analytics/detailed` *(Protected)* — Computes longitudinal PostgreSQL analytics: `interviewTrend`, `resumeTrend`, `jobMatchTrend`, `applicationFunnel`, `conversionMetrics` (interview rate & offer rate), `skillCategoryStats`, `recurringWeakTopics`, `missingSkillHotspots`, and `roadmapStats`.

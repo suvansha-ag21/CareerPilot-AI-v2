@@ -14,6 +14,7 @@ import matcherRoutes from "./modules/matcher/matcher.routes";
 import skillsRoutes from "./modules/skills/skills.routes";
 import roadmapRoutes from "./modules/roadmap/roadmap.routes";
 import interviewsRoutes from "./modules/interviews/interviews.routes";
+import applicationsRoutes from "./modules/applications/applications.routes";
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use("/api/job-matches", matcherRoutes);
 app.use("/api/skills", skillsRoutes);
 app.use("/api/roadmaps", roadmapRoutes);
 app.use("/api/interviews", interviewsRoutes);
+app.use("/api/applications", applicationsRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
 app.use((_req, res) => {

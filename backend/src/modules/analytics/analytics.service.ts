@@ -1,4 +1,11 @@
-import { DashboardAnalyticsDTO } from "@careerpilot/shared";
+import {
+  ApplicationStatus,
+  DashboardAnalyticsDTO,
+  DetailedAnalyticsDTO,
+  InterviewCategory,
+  InterviewFeedbackSummaryDTO,
+  InterviewMode,
+} from "@careerpilot/shared";
 import { prisma } from "../../config/prisma";
 import { aiServiceClient } from "../../clients/aiService.client";
 
@@ -241,6 +248,193 @@ export class AnalyticsService {
       recentActivities: recentActivities.slice(0, 6),
       upcomingInterviews,
       recommendations: recommendations.slice(0, 4),
+    };
+  }
+
+  async getDetailedAnalytics(userId: string): Promise<DetailedAnalyticsDTO> {
+    const [overview, interviews, resumes, matches, applications, userSkills, roadmaps] =
+      await Promise.all([
+        this.getDashboardAnalytics(userId),
+        prisma.interview.findMany({
+          where: { userId, status: "COMPLETED", overallScore: { not: null } },
+          orderBy: { completedAt: "asc" },
+          select: {
+            id: true,
+            category: true,
+            mode: true,
+            overallScore: true,
+            feedbackSummary: true,
+            completedAt: true,
+            createdAt: true,
+          },
+        }),
+        prisma.resume.findMany({
+          where: { userId, extractedText: { not: "" } },
+          orderBy: { createdAt: "asc" },
+          select: { id: true, title: true, estimatedScore: true, createdAt: true },
+        }),
+        prisma.jobMatch.findMany({
+          where: { userId },
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true,
+            targetRole: true,
+            companyName: true,
+            matchScore: true,
+            semanticScore: true,
+            skillScore: true,
+            missingSkills: true,
+            createdAt: true,
+          },
+        }),
+        prisma.jobApplication.findMany({
+          where: { userId },
+          select: { status: true },
+        }),
+        prisma.userSkill.findMany({
+          where: { userId },
+          include: { skill: true },
+        }),
+        prisma.learningRoadmap.findMany({
+          where: { userId },
+          include: { tasks: true },
+          orderBy: [{ isActive: "desc" }, { updatedAt: "desc" }],
+        }),
+      ]);
+
+    const statusCounts: Record<ApplicationStatus, number> = {
+      [ApplicationStatus.APPLIED]: 0,
+      [ApplicationStatus.ASSESSMENT]: 0,
+      [ApplicationStatus.INTERVIEW_SCHEDULED]: 0,
+      [ApplicationStatus.SELECTED]: 0,
+      [ApplicationStatus.OFFER_RECEIVED]: 0,
+      [ApplicationStatus.REJECTED]: 0,
+    };
+    for (const app of applications) {
+      const s = app.status as ApplicationStatus;
+      if (s in statusCounts) statusCounts[s] += 1;
+    }
+
+    const totalApps = applications.length;
+    const progressedToInterview =
+      statusCounts[ApplicationStatus.INTERVIEW_SCHEDULED] +
+      statusCounts[ApplicationStatus.SELECTED] +
+      statusCounts[ApplicationStatus.OFFER_RECEIVED];
+    const offersCount =
+      statusCounts[ApplicationStatus.SELECTED] + statusCounts[ApplicationStatus.OFFER_RECEIVED];
+
+    const FUNNEL_LABELS: Record<ApplicationStatus, string> = {
+      [ApplicationStatus.APPLIED]: "Applied",
+      [ApplicationStatus.ASSESSMENT]: "Assessment",
+      [ApplicationStatus.INTERVIEW_SCHEDULED]: "Interviewing",
+      [ApplicationStatus.SELECTED]: "Selected",
+      [ApplicationStatus.OFFER_RECEIVED]: "Offer Received",
+      [ApplicationStatus.REJECTED]: "Rejected",
+    };
+
+    const applicationFunnel = (Object.keys(FUNNEL_LABELS) as ApplicationStatus[]).map((st) => ({
+      status: st,
+      label: FUNNEL_LABELS[st],
+      count: statusCounts[st],
+    }));
+
+    // Group userSkills by category
+    const catAgg = new Map<string, { count: number; totalConf: number }>();
+    for (const us of userSkills) {
+      const cat = us.skill.category;
+      const entry = catAgg.get(cat) ?? { count: 0, totalConf: 0 };
+      entry.count += 1;
+      entry.totalConf += us.confidenceScore;
+      catAgg.set(cat, entry);
+    }
+
+    const CAT_LABELS: Record<string, string> = {
+      CORE_CS: "Core CS",
+      FRONTEND: "Frontend",
+      BACKEND: "Backend",
+      DATABASE: "Database",
+      AI_ML: "AI & ML",
+      DEVOPS: "DevOps",
+      SOFT_SKILL: "Soft Skills",
+    };
+
+    const skillCategoryStats = Array.from(catAgg.entries()).map(([category, v]) => ({
+      category,
+      label: CAT_LABELS[category] || category,
+      count: v.count,
+      avgConfidence: Math.round(v.totalConf / v.count),
+    }));
+
+    // Aggregate recurring weak topics across completed interviews
+    const weakFreq = new Map<string, number>();
+    for (const iv of interviews) {
+      const summary = iv.feedbackSummary as unknown as InterviewFeedbackSummaryDTO | null;
+      for (const topic of summary?.weakTopics ?? []) {
+        weakFreq.set(topic, (weakFreq.get(topic) ?? 0) + 1);
+      }
+    }
+    const recurringWeakTopics = Array.from(weakFreq.entries())
+      .map(([topic, count]) => ({ topic, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+
+    // Aggregate missing skill hotspots from JobMatch history
+    const missingFreq = new Map<string, number>();
+    for (const jm of matches) {
+      for (const ms of jm.missingSkills) {
+        missingFreq.set(ms, (missingFreq.get(ms) ?? 0) + 1);
+      }
+    }
+    const missingSkillHotspots = Array.from(missingFreq.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([skill]) => skill);
+
+    const activeRm = roadmaps.find((r) => r.isActive) || roadmaps[0] || null;
+    const activeTasks = activeRm?.tasks ?? [];
+
+    return {
+      overview,
+      interviewTrend: interviews.map((iv) => ({
+        id: iv.id,
+        date: (iv.completedAt ?? iv.createdAt).toLocaleDateString(),
+        category: iv.category as InterviewCategory,
+        mode: iv.mode as InterviewMode,
+        score: Math.round((iv.overallScore ?? 0) * 10) / 10,
+      })),
+      resumeTrend: resumes.map((r) => ({
+        id: r.id,
+        title: r.title,
+        date: r.createdAt.toLocaleDateString(),
+        score: Math.round(r.estimatedScore * 10) / 10,
+      })),
+      jobMatchTrend: matches.map((m) => ({
+        id: m.id,
+        role: m.targetRole,
+        company: m.companyName,
+        date: m.createdAt.toLocaleDateString(),
+        matchScore: Math.round(m.matchScore * 10) / 10,
+        semanticScore: Math.round(m.semanticScore * 10) / 10,
+        skillScore: Math.round(m.skillScore * 10) / 10,
+      })),
+      applicationFunnel,
+      conversionMetrics: {
+        totalApps,
+        interviewRatePct:
+          totalApps > 0 ? Math.round((progressedToInterview / totalApps) * 1000) / 10 : 0,
+        offerRatePct: totalApps > 0 ? Math.round((offersCount / totalApps) * 1000) / 10 : 0,
+      },
+      skillCategoryStats,
+      recurringWeakTopics,
+      missingSkillHotspots,
+      roadmapStats: {
+        totalRoadmaps: roadmaps.length,
+        activeTitle: activeRm?.title ?? null,
+        activeProgressPct: activeRm ? Math.round(activeRm.progressPct * 10) / 10 : null,
+        completedTasks: activeTasks.filter((t) => t.status === "COMPLETED").length,
+        inProgressTasks: activeTasks.filter((t) => t.status === "IN_PROGRESS").length,
+        pendingTasks: activeTasks.filter((t) => t.status === "PENDING").length,
+      },
     };
   }
 }

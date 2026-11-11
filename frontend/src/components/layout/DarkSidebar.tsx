@@ -32,7 +32,7 @@ const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
     title: "Workspace",
     items: [
       { label: "Overview", href: "/dashboard", icon: LayoutDashboard, status: "live" },
-      { label: "Analytics", href: "/analytics", icon: BarChart3, status: "soon" },
+      { label: "Analytics", href: "/analytics", icon: BarChart3, status: "live" },
     ],
   },
   {
@@ -48,7 +48,7 @@ const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
     title: "Execution",
     items: [
       { label: "Learning Roadmap", href: "/roadmap", icon: Map, status: "live" },
-      { label: "Applications", href: "/applications", icon: Briefcase, status: "soon" },
+      { label: "Applications", href: "/applications", icon: Briefcase, status: "live" },
     ],
   },
   {
