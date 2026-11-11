@@ -51,3 +51,30 @@ export function validateResumeBinary(
 
   throw new BadRequestError("Unsupported file format. Please upload a PDF or DOCX resume.");
 }
+
+export function validateJobDescriptionFile(
+  buffer: Buffer,
+  originalName: string,
+  mimeType: string
+): { ext: ".pdf" | ".docx" | ".txt"; mime: string } {
+  if (!buffer || buffer.length === 0) {
+    throw new BadRequestError("Uploaded job description file is empty");
+  }
+  if (buffer.length > 5 * 1024 * 1024) {
+    throw new BadRequestError("Job description file exceeds 5 MB limit");
+  }
+
+  const ext = path.extname(originalName).toLowerCase();
+  if (ext === ".txt" || mimeType === "text/plain") {
+    return { ext: ".txt", mime: "text/plain" };
+  }
+
+  const type = validateResumeBinary(buffer, originalName, mimeType);
+  if (type === "PDF") {
+    return { ext: ".pdf", mime: "application/pdf" };
+  }
+  return {
+    ext: ".docx",
+    mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  };
+}

@@ -10,6 +10,7 @@ import profileRoutes from "./modules/profile/profile.routes";
 import analyticsRoutes from "./modules/analytics/analytics.routes";
 import healthRoutes from "./modules/health/health.routes";
 import resumeRoutes from "./modules/resumes/resume.routes";
+import matcherRoutes from "./modules/matcher/matcher.routes";
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/resumes", resumeRoutes);
+app.use("/api/job-matches", matcherRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
 app.use((_req, res) => {

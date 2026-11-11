@@ -71,8 +71,9 @@ class ModularLLMClient:
             if m.strip() and m.strip() != settings.GEMINI_MODEL
         ]
 
-        last_err = "Unknown Gemini API error"
-        async with httpx.AsyncClient(timeout=25.0) as client:
+        errors: list[str] = []
+        timeout_cfg = httpx.Timeout(30.0, connect=10.0)
+        async with httpx.AsyncClient(timeout=timeout_cfg) as client:
             for model in candidate_models:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={settings.GEMINI_API_KEY}"
                 payload = {
@@ -91,12 +92,15 @@ class ModularLLMClient:
                             parts = candidates[0].get("content", {}).get("parts", [])
                             if parts and "text" in parts[0]:
                                 return str(parts[0]["text"])
-                    last_err = f"Model {model} returned HTTP {resp.status_code}: {resp.text[:200]}"
+                        errors.append(f"{model}: HTTP 200 without text candidate")
+                    else:
+                        errors.append(f"{model}: HTTP {resp.status_code} ({resp.text[:140]})")
                 except httpx.HTTPError as exc:
-                    last_err = f"Model {model} network error: {exc}"
+                    err_detail = str(exc) or repr(exc)
+                    errors.append(f"{model}: {type(exc).__name__} {err_detail}")
 
         raise LLMProviderUnavailableError(
-            f"All configured Gemini models failed or are experiencing temporary high load. Details: {last_err}"
+            f"All configured Gemini models failed or are experiencing temporary high load. Details: {'; '.join(errors)}"
         )
 
     async def _call_openai(

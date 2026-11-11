@@ -32,3 +32,8 @@ All protected endpoints require `Authorization: Bearer <accessToken>` and return
 - `PATCH /api/resumes/:id/primary` *(Protected)* — Marks resume as primary default.
 - `POST /api/resumes/:id/sync-skills` *(Protected)* — Upserts extracted skills into normalized `Skill` & `UserSkill` tables.
 - `DELETE /api/resumes/:id` *(Protected)* — Purges PostgreSQL record, stored file, and ChromaDB chunks (`/internal/ai/resumes/vectors/delete`).
+
+## 6. AI Job Description Matcher (`/api/job-matches`) — Phase 3
+- `POST /api/job-matches` *(Protected, JSON or Multipart `jdFile`)* — Compares selected analyzed resume against pasted JD text or uploaded `.pdf`/`.docx`/`.txt` JD document using ChromaDB Sentence-Transformer similarity, Scikit-learn TF-IDF keyword scoring, canonical + adjacent skill graph classification (`matchingSkills`, `partialSkills`, `missingSkills`), and structured LLM recommendations.
+- `GET /api/job-matches` & `GET /api/job-matches/:id` *(Protected)* — Lists user's compatibility reports and retrieves detailed match breakdown.
+- `DELETE /api/job-matches/:id` *(Protected)* — Removes saved `JobMatch` record owned by user.

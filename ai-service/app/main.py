@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.api.v1.health import router as health_router
 from app.api.v1.resumes import router as resumes_router
+from app.api.v1.matcher import router as matcher_router
 
 app = FastAPI(
     title="CareerPilot AI Microservice",
@@ -11,6 +12,7 @@ app = FastAPI(
 
 app.include_router(health_router, prefix="/internal/ai")
 app.include_router(resumes_router, prefix="/internal/ai")
+app.include_router(matcher_router, prefix="/internal/ai")
 
 
 @app.get("/")
