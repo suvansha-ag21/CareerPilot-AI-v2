@@ -61,7 +61,7 @@ export default function ApplicationsTrackerPage() {
       });
       setApps(list);
     } catch {
-      setErrorMsg("Unable to load job applications from PostgreSQL.");
+      setErrorMsg("Unable to load saved job applications.");
     } finally {
       setLoading(false);
     }

@@ -71,7 +71,7 @@ export default function UserDashboardPage() {
         const res = await apiRequest<DashboardAnalyticsDTO>("/analytics/dashboard");
         if (active) setData(res);
       } catch {
-        if (active) setError("Could not load dashboard analytics from API Gateway.");
+        if (active) setError("Unable to load dashboard analytics. Please try refreshing.");
       } finally {
         if (active) setLoading(false);
       }
@@ -144,8 +144,8 @@ export default function UserDashboardPage() {
                 <Badge tone={data.serviceHealth.aiService === "healthy" ? "success" : "warning"}>
                   <Cpu className="h-3 w-3" />
                   {data.serviceHealth.aiService === "healthy"
-                    ? "FastAPI AI Online"
-                    : "AI Service Standby"}
+                    ? "AI Coach Ready"
+                    : "AI Coach Standby"}
                 </Badge>
               )}
             </div>
@@ -154,8 +154,8 @@ export default function UserDashboardPage() {
               Welcome back, {firstName}
             </h2>
             <p className="text-sm text-[#64748B] leading-relaxed">
-              Every score below is computed dynamically from your PostgreSQL records—no hardcoded
-              placeholders or synthetic baselines.
+              Every score below reflects your real resumes, job matches, mock interviews, and weekly
+              study progress—no artificial scores or preset progress.
             </p>
 
             {/* Pipeline Readiness Strip */}
@@ -472,7 +472,7 @@ export default function UserDashboardPage() {
           <CardHeader
             icon={<Layers className="h-4 w-4" />}
             title="Recent Activity Feed"
-            subtitle="Verified PostgreSQL timeline of your evaluations & updates"
+            subtitle="Chronological history of your evaluations & updates"
           />
           <CardContent>
             {data?.recentActivities && data.recentActivities.length > 0 ? (
@@ -546,14 +546,14 @@ export default function UserDashboardPage() {
           <Card>
             <CardHeader
               icon={<Database className="h-4 w-4" />}
-              title="Service Telemetry"
-              subtitle="Backend & AI Infrastructure"
+              title="Workspace Status"
+              subtitle="Sync & AI Availability"
             />
             <CardContent className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]/60 space-y-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-[#172033]">
                   <Database className="h-3.5 w-3.5 text-[#6D5DFB]" />
-                  PostgreSQL
+                  Data Sync
                 </div>
                 <Badge tone={data?.serviceHealth.database === "healthy" ? "success" : "neutral"}>
                   {data?.serviceHealth.database === "healthy" ? "Connected" : "Checking"}
@@ -562,7 +562,7 @@ export default function UserDashboardPage() {
               <div className="p-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]/60 space-y-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-[#172033]">
                   <Cpu className="h-3.5 w-3.5 text-[#6D5DFB]" />
-                  FastAPI AI
+                  AI Engine
                 </div>
                 <Badge tone={data?.serviceHealth.aiService === "healthy" ? "success" : "warning"}>
                   {data?.serviceHealth.aiService === "healthy" ? "Online" : "Standby"}

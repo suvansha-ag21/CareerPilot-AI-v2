@@ -155,7 +155,7 @@ export default function ProfilePage() {
         }),
       });
       setUserDirect(updated);
-      setStatusMsg("Candidate profile, normalized skills, and portfolio saved to PostgreSQL.");
+      setStatusMsg("Candidate profile, verified skills, and portfolio updated successfully.");
     } catch (err) {
       if (err instanceof ApiClientError) {
         setErrorMsg(err.message);

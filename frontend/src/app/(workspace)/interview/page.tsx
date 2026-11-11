@@ -177,7 +177,7 @@ export default function MockInterviewPage() {
       setErrorMsg(
         err instanceof ApiClientError
           ? err.message
-          : "Unable to start interview session. Please verify FastAPI AI is running."
+          : "Unable to start interview session. Please try again in a moment."
       );
     } finally {
       setStarting(false);
@@ -628,7 +628,7 @@ export default function MockInterviewPage() {
               <CardHeader
                 icon={<Cpu className="h-4 w-4" />}
                 title="5-Criterion Grading Rubric"
-                subtitle="How ChromaDB RAG + Gemini scores this turn"
+                subtitle="How CareerPilot AI scores your response"
               />
               <CardContent className="space-y-2.5 text-xs">
                 {[
@@ -754,7 +754,7 @@ export default function MockInterviewPage() {
             <CardHeader
               icon={<Award className="h-4 w-4" />}
               title="Interview Performance Dossier"
-              subtitle={`Evaluated ${activeSession.answeredCount} question(s) using ChromaDB CS RAG`}
+              subtitle={`Evaluated ${activeSession.answeredCount} question(s) using role-calibrated CS benchmarks`}
             />
             <CardContent className="space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center gap-5">
@@ -941,7 +941,7 @@ export default function MockInterviewPage() {
           <CardHeader
             icon={<Sparkles className="h-4 w-4" />}
             title="Configure AI Mock Interview"
-            subtitle="Questions grounded in our 9-topic CS ChromaDB RAG index + optional resume context"
+            subtitle="Questions grounded in core computer science topics + optional resume & JD context"
           />
           <CardContent>
             <form onSubmit={handleStartSession} className="space-y-5">

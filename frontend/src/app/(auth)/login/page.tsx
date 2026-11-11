@@ -68,7 +68,7 @@ export default function LoginPage() {
 
         <div className="flex items-center gap-2 text-xs text-slate-500">
           <ShieldCheck className="h-4 w-4 text-[#16A34A]" />
-          <span>Rotated HttpOnly JWT Sessions &bull; PostgreSQL Isolation</span>
+          <span>Encrypted Sessions &bull; Private Workspace Isolation</span>
         </div>
       </div>
 

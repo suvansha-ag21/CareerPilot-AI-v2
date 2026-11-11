@@ -109,17 +109,17 @@ export default function ResumeAnalyzerPage() {
     }
 
     try {
-      setProcessingStep("Validating binary & uploading resume securely...");
+      setProcessingStep("Validating & uploading resume safely...");
       const uploaded = await resumeApi.upload(file);
       setResumes((prev) => [uploaded, ...prev]);
       setSelectedId(uploaded.id);
 
       setProcessingStep(
-        "Extracting text (PyMuPDF/spaCy), indexing ChromaDB vectors & running AI evaluation..."
+        "Parsing sections, extracting verified skills & generating ATS feedback..."
       );
       const analyzed = await resumeApi.analyze(uploaded.id);
       setResumes((prev) => prev.map((r) => (r.id === analyzed.id ? analyzed : r)));
-      setInfoMsg("Resume parsed, indexed, and evaluated successfully.");
+      setInfoMsg("Resume parsed and evaluated successfully.");
       setPreviewMode("report");
     } catch (err) {
       if (err instanceof ApiClientError) {
@@ -169,7 +169,7 @@ export default function ResumeAnalyzerPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm("Delete this resume from PostgreSQL, file storage, and ChromaDB?")) return;
+    if (!window.confirm("Delete this resume and its evaluation report permanently?")) return;
     try {
       await resumeApi.delete(id);
       const next = resumes.filter((r) => r.id !== id);
@@ -177,7 +177,7 @@ export default function ResumeAnalyzerPage() {
       if (selectedId === id) {
         setSelectedId(next[0]?.id || null);
       }
-      setInfoMsg("Resume and associated vectors deleted.");
+      setInfoMsg("Resume deleted.");
     } catch {
       setErrorMsg("Failed to delete resume.");
     }
@@ -603,8 +603,8 @@ export default function ResumeAnalyzerPage() {
               {previewMode === "parsed" && (
                 <Card>
                   <CardHeader
-                    title="Extracted Entities & Raw Text"
-                    subtitle="Structured output from PyMuPDF/python-docx & spaCy"
+                    title="Extracted Profile Entities & Text"
+                    subtitle="Structured summary detected from your uploaded document"
                   />
                   <CardContent className="space-y-5">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">

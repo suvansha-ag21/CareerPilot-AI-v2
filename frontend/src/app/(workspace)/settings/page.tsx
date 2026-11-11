@@ -56,7 +56,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ careerPreferences: prefs }),
       });
       setUserDirect(updated);
-      setStatusMsg("Career preferences updated in PostgreSQL.");
+      setStatusMsg("Career preferences saved successfully.");
     } catch (err) {
       if (err instanceof ApiClientError) {
         setErrorMsg(err.message);

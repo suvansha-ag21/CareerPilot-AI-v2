@@ -116,7 +116,7 @@ export default function LearningRoadmapPage() {
       setErrorMsg(
         err instanceof ApiClientError
           ? err.message
-          : "Roadmap generation failed. Please verify FastAPI AI service availability."
+          : "Roadmap generation failed. Please try again in a moment."
       );
     } finally {
       setGenerating(false);
@@ -203,8 +203,8 @@ export default function LearningRoadmapPage() {
                 Personalized Learning Roadmap
               </h2>
               <p className="text-xs text-[#64748B]">
-                Turn open skill gaps into week-by-week execution sprints persisted in PostgreSQL
-                that dynamically update your Dashboard Readiness.
+                Turn open skill gaps into week-by-week execution sprints that dynamically update
+                your Dashboard Readiness.
               </p>
             </div>
 

@@ -7,15 +7,15 @@ import { Menu, Target, ArrowUpRight, Sparkles } from "lucide-react";
 import { useAuth } from "@/store/auth-context";
 
 const ROUTE_SUBTITLES: Record<string, string> = {
-  "/dashboard": "Real-time readiness intelligence synced with PostgreSQL",
-  "/resume": "NLP extraction, ATS structural scoring & ChromaDB indexing",
-  "/matcher": "Hybrid vector + TF-IDF job compatibility evaluator",
+  "/dashboard": "Real-time career readiness & milestone tracking",
+  "/resume": "Resume evaluation, keyword audits & bullet rewrites",
+  "/matcher": "Compare resumes with target job descriptions",
   "/skills": "Benchmark skills against role bars & prioritize learning",
-  "/interview": "RAG-grounded adaptive mock interviews & 5-criterion feedback",
+  "/interview": "Adaptive mock & voice interviews with 5-criterion feedback",
   "/roadmap": "Structured weekly study sprints generated from skill gaps",
   "/applications": "Track applications, scheduled interviews & pipeline conversion",
-  "/analytics": "Longitudinal score trends, conversion funnels & topic hotspots",
-  "/profile": "Education, work history, projects & canonical skill inventory",
+  "/analytics": "Score progression, conversion funnels & focus topics",
+  "/profile": "Education, work history, projects & verified skills",
   "/settings": "Account security & workspace preferences",
 };
 

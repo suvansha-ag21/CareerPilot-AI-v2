@@ -217,7 +217,7 @@ export default function DeepAnalyticsPage() {
           <CardHeader
             icon={<BarChart3 className="h-4 w-4" />}
             title="Application Pipeline Funnel"
-            subtitle="Live breakdown across PostgreSQL job application stages"
+            subtitle="Live breakdown across your active job application stages"
           />
           <CardContent>
             {data.conversionMetrics.totalApps > 0 ? (

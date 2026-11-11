@@ -147,7 +147,7 @@ export default function SkillGapAnalyzerPage() {
       setErrorMsg(
         err instanceof ApiClientError
           ? err.message
-          : "Skill gap analysis failed. Please verify the FastAPI AI service is running."
+          : "Skill gap analysis failed. Please try again in a moment."
       );
     } finally {
       setAnalyzing(false);
@@ -166,7 +166,7 @@ export default function SkillGapAnalyzerPage() {
       const inv = await skillsApi.getInventory();
       setUserSkills(inv.userSkills);
       await refreshProfile();
-      setInfoMsg(`Saved ${name} (${proficiencyLevel.toLowerCase()}) to your PostgreSQL skill profile.`);
+      setInfoMsg(`Saved ${name} (${proficiencyLevel.toLowerCase()}) to your skill profile.`);
       if (report) {
         const refreshed = await skillsApi.analyzeGap({
           targetRole: targetRole.trim() || undefined,
@@ -249,7 +249,7 @@ export default function SkillGapAnalyzerPage() {
                 AI Skill Gap Analyzer &amp; Role Benchmark
               </h2>
               <p className="text-xs text-[#64748B]">
-                Compare your PostgreSQL skills, analyzed resume, and job description matches against
+                Compare your profile skills, analyzed resume, and job description matches against
                 role benchmarks to prioritize what to study next.
               </p>
             </div>
@@ -537,7 +537,7 @@ export default function SkillGapAnalyzerPage() {
             <CardHeader
               icon={<BookOpen className="h-4 w-4" />}
               title="Detailed Skill Benchmarks & Resources"
-              subtitle="Adjust proficiency directly to reflect new practice—scores re-sync to PostgreSQL"
+              subtitle="Adjust proficiency directly to reflect new practice—readiness updates automatically"
               action={
                 <div className="flex flex-wrap gap-1.5">
                   {(
@@ -653,7 +653,7 @@ export default function SkillGapAnalyzerPage() {
       <Card>
         <CardHeader
           icon={<Layers className="h-4 w-4" />}
-          title="Your PostgreSQL Skill Inventory"
+          title="Your Verified Skill Inventory"
           subtitle="Skills synced across Profile & Resume AI—add or calibrate any skill directly"
         />
         <CardContent className="space-y-4">

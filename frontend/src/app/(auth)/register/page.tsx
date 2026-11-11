@@ -75,9 +75,9 @@ export default function RegisterPage() {
           </h2>
           <ul className="space-y-4 text-sm text-slate-300">
             {[
-              "Track education, experience, projects & skills relationally",
-              "Analyze PDF/DOCX resumes with structural & AI bullet audits",
-              "Run semantic Job Description matches with ChromaDB embeddings",
+              "Organize education, experience, projects & verified skills",
+              "Analyze PDF & DOCX resumes with clear ATS & bullet rewrites",
+              "Measure role fit against real job descriptions in seconds",
               "Practice adaptive text & voice mock interviews",
             ].map((item) => (
               <li key={item} className="flex items-start gap-3">

@@ -143,8 +143,8 @@ export default function JobMatcherPage() {
   const breakdownChartData = selectedMatch
     ? [
         { metric: "Overall Match", score: selectedMatch.matchScore },
-        { metric: "Semantic Vector", score: selectedMatch.semanticScore },
-        { metric: "Skills + TF-IDF", score: selectedMatch.skillScore },
+        { metric: "Role Alignment", score: selectedMatch.semanticScore },
+        { metric: "Skills Coverage", score: selectedMatch.skillScore },
         { metric: "Experience Fit", score: selectedMatch.experienceScore },
       ]
     : [];
@@ -155,7 +155,7 @@ export default function JobMatcherPage() {
       <Card>
         <CardHeader
           title="Compare Resume Against a Job Description"
-          subtitle="Powered by Sentence-Transformer ChromaDB embeddings, Scikit-learn TF-IDF, canonical skill graph, and structured AI feedback."
+          subtitle="Evaluates semantic role fit, required & transferable skills coverage, and tailored resume improvements."
         />
         <CardContent>
           {loadingInit ? (
@@ -167,8 +167,8 @@ export default function JobMatcherPage() {
               <FileText className="h-7 w-7 text-[#6D5DFB] mx-auto" />
               <h3 className="text-sm font-semibold text-[#172033]">Analyzed resume required</h3>
               <p className="text-xs text-[#64748B] max-w-md mx-auto">
-                Upload and run AI analysis on at least one resume in Resume AI so its text and
-                ChromaDB embeddings can be matched against job descriptions.
+                Upload and run an analysis on at least one resume in Resume AI before comparing
+                against job descriptions.
               </p>
               <Link href="/resume">
                 <Button size="sm">
