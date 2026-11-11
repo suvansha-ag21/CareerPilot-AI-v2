@@ -50,3 +50,10 @@ All protected endpoints require `Authorization: Bearer <accessToken>` and return
 - `PATCH /api/roadmaps/:id/activate` *(Protected)* — Marks an existing roadmap active for Dashboard tracking.
 - `PATCH /api/roadmaps/:id/tasks/:taskId` *(Protected)* — Updates task status (`PENDING` | `IN_PROGRESS` | `COMPLETED`) or priority and automatically recalculates `progressPct`.
 - `DELETE /api/roadmaps/:id` *(Protected)* — Deletes a roadmap owned by the user and promotes the latest remaining plan if active.
+
+## 9. AI Mock Interview System (`/api/interviews`) — Phase 5
+- `GET /api/interviews` & `GET /api/interviews/:id` *(Protected)* — Lists user's interview sessions or retrieves full Q&A + rubric breakdown.
+- `POST /api/interviews/start` *(Protected)* — Creates an `Interview` session and generates Question 1 grounded in the 9-topic ChromaDB CS Knowledge Base (and optional Resume chunks) via FastAPI `/internal/ai/interviews/start-question`.
+- `POST /api/interviews/:id/answer` *(Protected)* — Submits candidate response, grades 5 rubric criteria (`technicalAccuracy`, `depthOfUnderstanding`, `completeness`, `clarityAndStructure`, `practicalExamples`), appends adaptive follow-up or next topic question, and auto-summarizes when `questionLimit` completes.
+- `POST /api/interviews/:id/complete` *(Protected)* — Completes an active session early and computes the post-interview report in PostgreSQL.
+- `DELETE /api/interviews/:id` *(Protected)* — Deletes an owned interview session.

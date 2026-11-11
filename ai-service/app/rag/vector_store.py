@@ -1,10 +1,11 @@
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 import chromadb
 from chromadb.config import Settings as ChromaSettings
 from sklearn.metrics.pairwise import cosine_similarity
 from app.core.config import settings
 from app.models.nlp_loader import get_embedding_model
+from app.rag.cs_knowledge_base import CS_KB_DOCUMENTS
 
 
 class ChromaVectorStore:
@@ -19,6 +20,11 @@ class ChromaVectorStore:
             name="resume_chunks",
             metadata={"hnsw:space": "cosine"},
         )
+        self._cs_kb_collection = self._client.get_or_create_collection(
+            name="cs_knowledge_base",
+            metadata={"hnsw:space": "cosine"},
+        )
+        self._kb_seeded = False
 
     def index_resume_chunks(
         self, user_id: str, resume_id: str, chunks: List[Dict[str, str]]
@@ -108,6 +114,84 @@ class ChromaVectorStore:
         self._resume_collection.delete(
             where={"$and": [{"user_id": user_id}, {"resume_id": resume_id}]}
         )
+
+    def ensure_cs_kb_indexed(self) -> int:
+        if self._kb_seeded:
+            return self._cs_kb_collection.count()
+
+        existing_count = self._cs_kb_collection.count()
+        if existing_count >= len(CS_KB_DOCUMENTS):
+            self._kb_seeded = True
+            return existing_count
+
+        embedder = get_embedding_model()
+        texts = [f"{doc['topic']} — {doc['subtopic']}: {doc['content']}" for doc in CS_KB_DOCUMENTS]
+        embeddings = embedder.encode(texts, normalize_embeddings=True).tolist()
+        ids = [doc["id"] for doc in CS_KB_DOCUMENTS]
+        metadatas = [
+            {"topic": doc["topic"], "subtopic": doc["subtopic"]} for doc in CS_KB_DOCUMENTS
+        ]
+        self._cs_kb_collection.upsert(
+            ids=ids,
+            documents=texts,
+            embeddings=embeddings,
+            metadatas=metadatas,
+        )
+        self._kb_seeded = True
+        return len(ids)
+
+    def retrieve_cs_context(
+        self, query_text: str, topic_filter: Optional[str] = None, top_k: int = 3
+    ) -> List[Dict[str, str]]:
+        self.ensure_cs_kb_indexed()
+        embedder = get_embedding_model()
+        q_emb = embedder.encode([query_text], normalize_embeddings=True).tolist()
+
+        kwargs: dict = {
+            "query_embeddings": q_emb,
+            "n_results": min(top_k, len(CS_KB_DOCUMENTS)),
+            "include": ["documents", "metadatas"],
+        }
+        if topic_filter:
+            kwargs["where"] = {"topic": topic_filter}
+
+        res = self._cs_kb_collection.query(**kwargs)
+        docs = (res.get("documents") or [[]])[0]
+        metas = (res.get("metadatas") or [[]])[0]
+
+        results: List[Dict[str, str]] = []
+        for idx, doc_text in enumerate(docs):
+            meta = metas[idx] if idx < len(metas) else {}
+            results.append(
+                {
+                    "topic": str(meta.get("topic", "CS")),
+                    "subtopic": str(meta.get("subtopic", "General")),
+                    "content": str(doc_text),
+                }
+            )
+        return results
+
+    def retrieve_resume_context(
+        self, user_id: str, resume_id: str, query_text: str, top_k: int = 3
+    ) -> List[str]:
+        existing = self._resume_collection.get(
+            where={"$and": [{"user_id": user_id}, {"resume_id": resume_id}]},
+            include=["documents"],
+        )
+        chunk_count = len(existing.get("ids") or [])
+        if chunk_count == 0:
+            return []
+
+        embedder = get_embedding_model()
+        q_emb = embedder.encode([query_text], normalize_embeddings=True).tolist()
+        res = self._resume_collection.query(
+            query_embeddings=q_emb,
+            n_results=min(top_k, chunk_count),
+            where={"$and": [{"user_id": user_id}, {"resume_id": resume_id}]},
+            include=["documents"],
+        )
+        docs = (res.get("documents") or [[]])[0]
+        return [str(d) for d in docs]
 
 
 vector_store = ChromaVectorStore()

@@ -1,5 +1,9 @@
 import {
   CurrentCandidateSkillDTO,
+  InterviewCategory,
+  InterviewCriteriaScoresDTO,
+  InterviewDifficulty,
+  InterviewFeedbackSummaryDTO,
   JobMatchRecommendationsDTO,
   LearningResourceDTO,
   ParsedResumeDataDTO,
@@ -53,6 +57,29 @@ export interface AiRoadmapTaskResponseItem {
   priority: TaskPriority;
   resources: LearningResourceDTO[];
   dueDateOffsetDays: number;
+}
+
+export interface AiInterviewQuestionGenerated {
+  question: string;
+  topicTag: string;
+  modelAnswer: string;
+}
+
+export interface AiEvaluateAnswerResponse {
+  score: number;
+  criteriaScores: InterviewCriteriaScoresDTO;
+  feedback: string;
+  nextQuestion: {
+    question: string;
+    topicTag: string;
+    modelAnswer: string;
+    isFollowUp: boolean;
+  } | null;
+}
+
+export interface AiSummarizeInterviewResponse {
+  overallScore: number;
+  feedbackSummary: InterviewFeedbackSummaryDTO;
 }
 
 export interface AiGenerateRoadmapResponse {
@@ -412,6 +439,177 @@ class AiServiceClient {
       title: raw.title,
       estimatedWeeks: raw.estimated_weeks,
       tasks: raw.tasks,
+    };
+  }
+
+  async startInterviewQuestion(params: {
+    userId: string;
+    category: InterviewCategory;
+    difficulty: InterviewDifficulty;
+    targetRole: string;
+    yearsExperience: number;
+    resumeId?: string | null;
+    resumeSummary?: string | null;
+    projectsSummary?: string | null;
+    skillsList: string[];
+    targetJobDescription?: string | null;
+  }): Promise<AiInterviewQuestionGenerated> {
+    const raw = await this.postJsonInternal<{
+      question: string;
+      topic_tag: string;
+      model_answer: string;
+    }>(
+      "/internal/ai/interviews/start-question",
+      {
+        user_id: params.userId,
+        category: params.category,
+        difficulty: params.difficulty,
+        target_role: params.targetRole,
+        years_experience: params.yearsExperience,
+        resume_id: params.resumeId ?? null,
+        resume_summary: params.resumeSummary ?? null,
+        projects_summary: params.projectsSummary ?? null,
+        skills_list: params.skillsList,
+        target_job_description: params.targetJobDescription ?? null,
+      },
+      "AI service failed while generating opening interview question",
+      "Python AI microservice timed out while preparing mock interview question."
+    );
+
+    return {
+      question: raw.question,
+      topicTag: raw.topic_tag,
+      modelAnswer: raw.model_answer,
+    };
+  }
+
+  async evaluateAnswerAndNext(params: {
+    userId: string;
+    category: InterviewCategory;
+    difficulty: InterviewDifficulty;
+    targetRole: string;
+    currentQuestion: string;
+    currentTopicTag: string;
+    currentModelAnswer: string;
+    currentIsFollowUp: boolean;
+    userAnswer: string;
+    remainingQuestions: number;
+    previousQa: Array<{
+      question: string;
+      topicTag: string;
+      userAnswer: string | null;
+      score: number | null;
+      isFollowUp: boolean;
+    }>;
+    resumeId?: string | null;
+    resumeSummary?: string | null;
+    targetJobDescription?: string | null;
+  }): Promise<AiEvaluateAnswerResponse> {
+    const raw = await this.postJsonInternal<{
+      score: number;
+      criteria_scores: InterviewCriteriaScoresDTO;
+      feedback: string;
+      next_question: {
+        question: string;
+        topic_tag: string;
+        model_answer: string;
+        is_follow_up: boolean;
+      } | null;
+    }>(
+      "/internal/ai/interviews/evaluate-and-next",
+      {
+        user_id: params.userId,
+        category: params.category,
+        difficulty: params.difficulty,
+        target_role: params.targetRole,
+        current_question: params.currentQuestion,
+        current_topic_tag: params.currentTopicTag,
+        current_model_answer: params.currentModelAnswer,
+        current_is_follow_up: params.currentIsFollowUp,
+        user_answer: params.userAnswer,
+        remaining_questions: params.remainingQuestions,
+        previous_qa: params.previousQa.map((q) => ({
+          question: q.question,
+          topic_tag: q.topicTag,
+          user_answer: q.userAnswer,
+          score: q.score,
+          is_follow_up: q.isFollowUp,
+        })),
+        resume_id: params.resumeId ?? null,
+        resume_summary: params.resumeSummary ?? null,
+        target_job_description: params.targetJobDescription ?? null,
+      },
+      "AI service failed while grading mock interview response",
+      "Python AI microservice timed out while evaluating your interview answer."
+    );
+
+    return {
+      score: raw.score,
+      criteriaScores: raw.criteria_scores,
+      feedback: raw.feedback,
+      nextQuestion: raw.next_question
+        ? {
+            question: raw.next_question.question,
+            topicTag: raw.next_question.topic_tag,
+            modelAnswer: raw.next_question.model_answer,
+            isFollowUp: raw.next_question.is_follow_up,
+          }
+        : null,
+    };
+  }
+
+  async summarizeInterview(params: {
+    category: InterviewCategory;
+    difficulty: InterviewDifficulty;
+    targetRole: string;
+    answeredQuestions: Array<{
+      question: string;
+      topicTag: string;
+      userAnswer: string;
+      score: number;
+      criteriaScores: InterviewCriteriaScoresDTO;
+      feedback: string;
+    }>;
+  }): Promise<AiSummarizeInterviewResponse> {
+    const raw = await this.postJsonInternal<{
+      overall_score: number;
+      executive_summary: string;
+      strengths: string[];
+      areas_to_improve: string[];
+      weak_topics: string[];
+      rubric_averages: InterviewCriteriaScoresDTO;
+      rag_topics_covered: string[];
+      next_recommendations: string[];
+    }>(
+      "/internal/ai/interviews/summarize",
+      {
+        category: params.category,
+        difficulty: params.difficulty,
+        target_role: params.targetRole,
+        answered_questions: params.answeredQuestions.map((q) => ({
+          question: q.question,
+          topic_tag: q.topicTag,
+          user_answer: q.userAnswer,
+          score: q.score,
+          criteria_scores: q.criteriaScores,
+          feedback: q.feedback,
+        })),
+      },
+      "AI service failed while generating interview summary report",
+      "Python AI microservice timed out while compiling final interview report."
+    );
+
+    return {
+      overallScore: raw.overall_score,
+      feedbackSummary: {
+        executiveSummary: raw.executive_summary,
+        strengths: raw.strengths,
+        areasToImprove: raw.areas_to_improve,
+        weakTopics: raw.weak_topics,
+        rubricAverages: raw.rubric_averages,
+        ragTopicsCovered: raw.rag_topics_covered,
+        nextRecommendations: raw.next_recommendations,
+      },
     };
   }
 

@@ -11,6 +11,7 @@ const ROUTE_SUBTITLES: Record<string, string> = {
   "/resume": "NLP extraction, ATS structural scoring & ChromaDB indexing",
   "/matcher": "Hybrid vector + TF-IDF job compatibility evaluator",
   "/skills": "Benchmark skills against role bars & prioritize learning",
+  "/interview": "RAG-grounded adaptive mock interviews & 5-criterion feedback",
   "/roadmap": "Structured weekly study sprints generated from skill gaps",
   "/profile": "Education, work history, projects & canonical skill inventory",
   "/settings": "Account security & workspace preferences",

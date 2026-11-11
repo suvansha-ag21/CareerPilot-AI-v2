@@ -41,7 +41,7 @@ const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
       { label: "Resume AI", href: "/resume", icon: FileSearch, status: "live" },
       { label: "Job Matcher", href: "/matcher", icon: GitCompare, status: "live" },
       { label: "Skill Gap Analyzer", href: "/skills", icon: Sparkles, status: "live" },
-      { label: "Mock Interview", href: "/interview", icon: Mic, status: "soon" },
+      { label: "Mock Interview", href: "/interview", icon: Mic, status: "live" },
     ],
   },
   {
