@@ -56,6 +56,9 @@ export interface ResumeBulletSuggestionDTO {
 
 export interface ResumeFeedbackReportDTO {
   scoringMethodologyNote: string;
+  analysisType?: string;
+  targetRoleUsed?: string;
+  experienceLevelUsed?: string;
   strengths: string[];
   weaknesses: string[];
   missingKeywords: string[];

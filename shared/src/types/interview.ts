@@ -55,6 +55,8 @@ export interface InterviewSessionDTO {
   userId: string;
   resumeId: string | null;
   category: InterviewCategory;
+  targetRole: string | null;
+  subcategories: string[];
   difficulty: InterviewDifficulty;
   mode: InterviewMode;
   durationMinutes: number;

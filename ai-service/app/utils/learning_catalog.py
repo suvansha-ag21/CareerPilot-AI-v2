@@ -216,6 +216,78 @@ ROLE_SKILL_BLUEPRINTS: Dict[str, List[SkillSpecTuple]] = {
         ("Docker", "NICE_TO_HAVE", "BEGINNER"),
         ("Git", "IMPORTANT", "INTERMEDIATE"),
     ],
+    "AI/ML Engineer": [
+        ("Python", "CRITICAL", "ADVANCED"),
+        ("Machine Learning", "CRITICAL", "INTERMEDIATE"),
+        ("Scikit-learn", "CRITICAL", "INTERMEDIATE"),
+        ("PyTorch", "CRITICAL", "INTERMEDIATE"),
+        ("NLP", "IMPORTANT", "INTERMEDIATE"),
+        ("LangChain", "IMPORTANT", "BEGINNER"),
+        ("Vector Databases", "IMPORTANT", "BEGINNER"),
+        ("FastAPI", "IMPORTANT", "BEGINNER"),
+        ("Docker", "NICE_TO_HAVE", "BEGINNER"),
+        ("Git", "CRITICAL", "INTERMEDIATE"),
+    ],
+    "Data Scientist": [
+        ("Python", "CRITICAL", "ADVANCED"),
+        ("SQL", "CRITICAL", "INTERMEDIATE"),
+        ("Pandas", "CRITICAL", "INTERMEDIATE"),
+        ("NumPy", "CRITICAL", "INTERMEDIATE"),
+        ("Machine Learning", "CRITICAL", "INTERMEDIATE"),
+        ("Scikit-learn", "CRITICAL", "INTERMEDIATE"),
+        ("NLP", "NICE_TO_HAVE", "BEGINNER"),
+        ("Git", "IMPORTANT", "INTERMEDIATE"),
+    ],
+    "Data Analyst": [
+        ("SQL", "CRITICAL", "ADVANCED"),
+        ("PostgreSQL", "IMPORTANT", "INTERMEDIATE"),
+        ("Python", "CRITICAL", "INTERMEDIATE"),
+        ("Pandas", "CRITICAL", "INTERMEDIATE"),
+        ("NumPy", "IMPORTANT", "BEGINNER"),
+        ("Git", "IMPORTANT", "BEGINNER"),
+    ],
+    "Software Engineer (SDE)": [
+        ("Data Structures & Algorithms", "CRITICAL", "ADVANCED"),
+        ("OOP", "CRITICAL", "INTERMEDIATE"),
+        ("DBMS", "CRITICAL", "INTERMEDIATE"),
+        ("Operating Systems", "IMPORTANT", "INTERMEDIATE"),
+        ("System Design", "IMPORTANT", "BEGINNER"),
+        ("Java", "IMPORTANT", "INTERMEDIATE"),
+        ("Python", "IMPORTANT", "INTERMEDIATE"),
+        ("SQL", "CRITICAL", "INTERMEDIATE"),
+        ("REST APIs", "IMPORTANT", "INTERMEDIATE"),
+        ("Git", "CRITICAL", "INTERMEDIATE"),
+    ],
+    "DevOps Engineer": [
+        ("Linux", "CRITICAL", "ADVANCED"),
+        ("Docker", "CRITICAL", "ADVANCED"),
+        ("Kubernetes", "CRITICAL", "INTERMEDIATE"),
+        ("CI/CD", "CRITICAL", "INTERMEDIATE"),
+        ("AWS", "CRITICAL", "INTERMEDIATE"),
+        ("Computer Networks", "IMPORTANT", "INTERMEDIATE"),
+        ("Python", "IMPORTANT", "BEGINNER"),
+        ("Git", "CRITICAL", "INTERMEDIATE"),
+    ],
+    "Cybersecurity Engineer": [
+        ("Linux", "CRITICAL", "ADVANCED"),
+        ("Computer Networks", "CRITICAL", "ADVANCED"),
+        ("Operating Systems", "CRITICAL", "INTERMEDIATE"),
+        ("Python", "IMPORTANT", "INTERMEDIATE"),
+        ("SQL", "IMPORTANT", "INTERMEDIATE"),
+        ("Docker", "NICE_TO_HAVE", "BEGINNER"),
+        ("Git", "IMPORTANT", "BEGINNER"),
+    ],
+    "Backend Developer": [
+        ("Node.js", "CRITICAL", "INTERMEDIATE"),
+        ("Python", "IMPORTANT", "INTERMEDIATE"),
+        ("PostgreSQL", "CRITICAL", "INTERMEDIATE"),
+        ("SQL", "CRITICAL", "INTERMEDIATE"),
+        ("Redis", "IMPORTANT", "BEGINNER"),
+        ("REST APIs", "CRITICAL", "INTERMEDIATE"),
+        ("System Design", "IMPORTANT", "BEGINNER"),
+        ("Docker", "IMPORTANT", "BEGINNER"),
+        ("Git", "CRITICAL", "INTERMEDIATE"),
+    ],
     "Java Spring Boot Developer": [
         ("Java", "CRITICAL", "ADVANCED"),
         ("Spring Boot", "CRITICAL", "INTERMEDIATE"),
@@ -273,8 +345,18 @@ def get_role_blueprint(target_role: str) -> List[SkillSpecTuple]:
     if target_role in ROLE_SKILL_BLUEPRINTS:
         return list(ROLE_SKILL_BLUEPRINTS[target_role])
     lower = target_role.lower()
+    if "analyst" in lower:
+        return list(ROLE_SKILL_BLUEPRINTS["Data Analyst"])
+    if "devops" in lower or "cloud" in lower or "sre" in lower:
+        return list(ROLE_SKILL_BLUEPRINTS["DevOps Engineer"])
+    if "cyber" in lower or "security" in lower:
+        return list(ROLE_SKILL_BLUEPRINTS["Cybersecurity Engineer"])
+    if "scientist" in lower:
+        return list(ROLE_SKILL_BLUEPRINTS["Data Scientist"])
     if "data" in lower or "ml" in lower or "ai" in lower:
-        return list(ROLE_SKILL_BLUEPRINTS["Data Scientist & ML Engineer"])
+        return list(ROLE_SKILL_BLUEPRINTS["AI/ML Engineer"])
+    if "sde" in lower or "software engineer" in lower:
+        return list(ROLE_SKILL_BLUEPRINTS["Software Engineer (SDE)"])
     if "java" in lower or "spring" in lower:
         return list(ROLE_SKILL_BLUEPRINTS["Java Spring Boot Developer"])
     if "python" in lower or "fastapi" in lower or "django" in lower:
@@ -282,7 +364,7 @@ def get_role_blueprint(target_role: str) -> List[SkillSpecTuple]:
     if "frontend" in lower or "react" in lower or "ui" in lower:
         return list(ROLE_SKILL_BLUEPRINTS["Frontend Developer"])
     if "backend" in lower or "api" in lower:
-        return list(ROLE_SKILL_BLUEPRINTS["Backend Software Engineer"])
+        return list(ROLE_SKILL_BLUEPRINTS["Backend Developer"])
     if "intern" in lower or "fresher" in lower or "graduate" in lower:
         return list(ROLE_SKILL_BLUEPRINTS["Software Engineer Intern"])
     return list(ROLE_SKILL_BLUEPRINTS["Full Stack Developer"])

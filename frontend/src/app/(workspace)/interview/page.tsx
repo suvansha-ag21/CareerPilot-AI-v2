@@ -32,6 +32,7 @@ import {
   Tooltip,
 } from "recharts";
 import {
+  CAREER_ROLE_PRESETS,
   InterviewCategory,
   InterviewDifficulty,
   InterviewMode,
@@ -39,7 +40,9 @@ import {
   InterviewStatus,
   ResumeDTO,
   SpeechMetricsDTO,
+  TECHNICAL_SUBCATEGORY_OPTIONS,
 } from "@careerpilot/shared";
+import { useAuth } from "@/store/auth-context";
 import { ApiClientError } from "@/lib/api";
 import { interviewApi } from "@/services/interview.service";
 import { resumeApi } from "@/services/resume.service";
@@ -54,14 +57,12 @@ const CATEGORY_OPTIONS: Array<{
   label: string;
   desc: string;
 }> = [
-  { value: InterviewCategory.TECHNICAL, label: "General Technical", desc: "Blended CS & Systems" },
-  { value: InterviewCategory.DSA, label: "DSA & Complexity", desc: "Trees, Graphs, DP & Hashing" },
-  { value: InterviewCategory.FULL_STACK, label: "Full Stack", desc: "Auth, Caching & Web APIs" },
-  { value: InterviewCategory.PYTHON, label: "Python & FastAPI", desc: "GIL, Async & Internals" },
-  { value: InterviewCategory.JAVA, label: "Java & Spring", desc: "JVM, HashMap & Threads" },
-  { value: InterviewCategory.SQL, label: "SQL & Databases", desc: "Joins, Indexes & MVCC" },
-  { value: InterviewCategory.PROJECT_BASED, label: "Project Deep-Dive", desc: "Grounded in Your Resume" },
-  { value: InterviewCategory.HR, label: "HR & Behavioral", desc: "STAR Ownership & Culture" },
+  { value: InterviewCategory.TECHNICAL, label: "Technical Interview", desc: "Core CS & Stack Topics" },
+  { value: InterviewCategory.HR, label: "HR Interview", desc: "Motivation & Culture Fit" },
+  { value: InterviewCategory.DSA, label: "DSA Interview", desc: "Trees, Graphs, DP & Hashing" },
+  { value: InterviewCategory.PROJECT_BASED, label: "Project-Based Interview", desc: "Grounded in Your Resume" },
+  { value: InterviewCategory.BEHAVIORAL, label: "Behavioral Interview", desc: "STAR Leadership & Conflict" },
+  { value: InterviewCategory.MIXED, label: "Mixed Interview", desc: "Technical + Behavioral Blend" },
 ];
 
 function formatCountdown(remainingSeconds: number): string {
@@ -72,6 +73,7 @@ function formatCountdown(remainingSeconds: number): string {
 }
 
 export default function MockInterviewPage() {
+  const { user } = useAuth();
   const [sessions, setSessions] = useState<InterviewSessionDTO[]>([]);
   const [resumes, setResumes] = useState<ResumeDTO[]>([]);
   const [activeSession, setActiveSession] = useState<InterviewSessionDTO | null>(null);
@@ -79,10 +81,15 @@ export default function MockInterviewPage() {
 
   // New session configuration
   const [category, setCategory] = useState<InterviewCategory>(InterviewCategory.TECHNICAL);
+  const [targetRole, setTargetRole] = useState<string>(
+    user?.targetRole || CAREER_ROLE_PRESETS[0]
+  );
+  const [customTargetRole, setCustomTargetRole] = useState<string>("");
+  const [subcategories, setSubcategories] = useState<string[]>(["DSA", "OOP", "System Design"]);
   const [difficulty, setDifficulty] = useState<InterviewDifficulty>(InterviewDifficulty.MEDIUM);
   const [mode, setMode] = useState<InterviewMode>(InterviewMode.TEXT);
   const [questionLimit, setQuestionLimit] = useState<number>(5);
-  const [durationMinutes, setDurationMinutes] = useState<number>(20);
+  const [durationMinutes, setDurationMinutes] = useState<number>(30);
   const [resumeId, setResumeId] = useState<string>("");
   const [targetJobDescription, setTargetJobDescription] = useState<string>("");
 
@@ -125,6 +132,12 @@ export default function MockInterviewPage() {
     void loadData();
   }, [loadData]);
 
+  useEffect(() => {
+    if (user?.targetRole && user.targetRole !== "Other") {
+      setTargetRole(user.targetRole);
+    }
+  }, [user?.targetRole]);
+
   // Live timer countdown when an IN_PROGRESS interview is open
   useEffect(() => {
     if (!activeSession || activeSession.status !== InterviewStatus.IN_PROGRESS) {
@@ -154,13 +167,28 @@ export default function MockInterviewPage() {
     };
   }, []);
 
+  const supportsSubcategories =
+    category === InterviewCategory.TECHNICAL || category === InterviewCategory.MIXED;
+
+  function toggleSubcategory(topic: string) {
+    setSubcategories((prev) =>
+      prev.includes(topic) ? prev.filter((item) => item !== topic) : [...prev, topic]
+    );
+  }
+
   async function handleStartSession(e: React.FormEvent) {
     e.preventDefault();
     setErrorMsg(null);
     setStarting(true);
+    const resolvedTargetRole =
+      targetRole === "Other"
+        ? customTargetRole.trim() || undefined
+        : targetRole.trim() || undefined;
     try {
       const created = await interviewApi.start({
         category,
+        targetRole: resolvedTargetRole,
+        subcategories: supportsSubcategories ? subcategories : [],
         difficulty,
         mode,
         durationMinutes,
@@ -409,7 +437,15 @@ export default function MockInterviewPage() {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge tone="brand">{activeSession.category.replace(/_/g, " ")}</Badge>
+                  {activeSession.targetRole && (
+                    <Badge tone="neutral">{activeSession.targetRole}</Badge>
+                  )}
                   <Badge tone="neutral">{activeSession.difficulty}</Badge>
+                  {activeSession.subcategories?.slice(0, 3).map((sub) => (
+                    <Badge key={sub} tone="neutral">
+                      {sub}
+                    </Badge>
+                  ))}
                   <span className="text-xs font-semibold text-[#172033] tabular-nums">
                     Question {answeredQuestions.length + 1} of {activeSession.questionLimit}
                   </span>
@@ -741,9 +777,17 @@ export default function MockInterviewPage() {
             <ArrowLeft className="h-4 w-4" />
             All Sessions &amp; Setup
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge tone="brand">{activeSession.category.replace(/_/g, " ")}</Badge>
+            {activeSession.targetRole && (
+              <Badge tone="neutral">{activeSession.targetRole}</Badge>
+            )}
             <Badge tone="neutral">{activeSession.difficulty}</Badge>
+            {activeSession.subcategories?.map((sub) => (
+              <Badge key={sub} tone="neutral">
+                {sub}
+              </Badge>
+            ))}
             <Badge tone="success">Completed Report</Badge>
           </div>
         </div>
@@ -949,7 +993,7 @@ export default function MockInterviewPage() {
                 <label className="block text-xs font-semibold text-[#172033]">
                   Interview Category
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                   {CATEGORY_OPTIONS.map((opt) => {
                     const active = category === opt.value;
                     return (
@@ -971,6 +1015,70 @@ export default function MockInterviewPage() {
                 </div>
               </div>
 
+              {supportsSubcategories && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="block text-xs font-semibold text-[#172033]">
+                      Technical Focus Subcategories
+                    </label>
+                    <span className="text-[11px] text-[#64748B]">
+                      {subcategories.length} selected
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {TECHNICAL_SUBCATEGORY_OPTIONS.map((topic) => {
+                      const active = subcategories.includes(topic);
+                      return (
+                        <button
+                          key={topic}
+                          type="button"
+                          onClick={() => toggleSubcategory(topic)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                            active
+                              ? "bg-[#6D5DFB] text-white border-[#6D5DFB]"
+                              : "bg-white text-[#172033] border-slate-200 hover:border-[#6D5DFB]/40"
+                          }`}
+                        >
+                          {topic}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-[#172033]">Target Role</label>
+                <select
+                  value={targetRole}
+                  onChange={(e) => setTargetRole(e.target.value)}
+                  className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-[#172033]"
+                >
+                  {Array.from(
+                    new Set([
+                      ...CAREER_ROLE_PRESETS,
+                      ...(user?.targetRole && user.targetRole !== "Other"
+                        ? [user.targetRole]
+                        : []),
+                      "Other",
+                    ])
+                  ).map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
+                {targetRole === "Other" && (
+                  <input
+                    type="text"
+                    value={customTargetRole}
+                    onChange={(e) => setCustomTargetRole(e.target.value)}
+                    placeholder="Enter target role (e.g. Cloud Architect)"
+                    className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs text-[#172033]"
+                  />
+                )}
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <label className="block text-xs font-medium text-[#172033]">Difficulty</label>
@@ -986,13 +1094,15 @@ export default function MockInterviewPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-medium text-[#172033]">Questions</label>
+                  <label className="block text-xs font-medium text-[#172033]">
+                    Number of Questions
+                  </label>
                   <select
                     value={questionLimit}
                     onChange={(e) => setQuestionLimit(Number(e.target.value))}
                     className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-[#172033]"
                   >
-                    {[3, 5, 7, 10].map((n) => (
+                    {[5, 10, 15, 20].map((n) => (
                       <option key={n} value={n}>
                         {n} Questions
                       </option>
@@ -1007,9 +1117,9 @@ export default function MockInterviewPage() {
                     onChange={(e) => setDurationMinutes(Number(e.target.value))}
                     className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-[#172033]"
                   >
-                    {[10, 20, 30, 45].map((m) => (
+                    {[15, 30, 45, 60].map((m) => (
                       <option key={m} value={m}>
-                        {m} Minutes
+                        {m} minutes
                       </option>
                     ))}
                   </select>
@@ -1079,7 +1189,9 @@ export default function MockInterviewPage() {
                     <Mic className="h-4 w-4 text-[#6D5DFB] shrink-0" />
                     <div>
                       <p className="text-xs font-semibold text-[#172033]">Voice Interview</p>
-                      <p className="text-[10px] text-[#64748B]">Mic STT + WPM + Spoken Prompts</p>
+                      <p className="text-[10px] text-[#64748B]">
+                        Voice capture, speaking pace &amp; audio prompts
+                      </p>
                     </div>
                   </button>
                 </div>
@@ -1088,7 +1200,7 @@ export default function MockInterviewPage() {
               <Button type="submit" variant="primary" size="lg" className="w-full" loading={starting}>
                 <Play className="h-4 w-4" />
                 {starting
-                  ? "Preparing Opening RAG Question..."
+                  ? "Preparing Opening Question..."
                   : `Launch ${mode === InterviewMode.VOICE ? "Voice" : "Text"} Mock Interview`}
               </Button>
             </form>
@@ -1123,6 +1235,9 @@ export default function MockInterviewPage() {
                       <span className="text-xs font-semibold text-[#172033]">
                         {s.category.replace(/_/g, " ")}
                       </span>
+                      {s.targetRole && (
+                        <Badge tone="neutral">{s.targetRole}</Badge>
+                      )}
                       <Badge
                         tone={
                           s.status === InterviewStatus.COMPLETED
@@ -1138,7 +1253,11 @@ export default function MockInterviewPage() {
                       </Badge>
                     </div>
                     <p className="text-[11px] text-[#64748B] tabular-nums">
-                      {s.difficulty} · {s.answeredCount}/{s.questionLimit} answered ·{" "}
+                      {s.difficulty} · {s.answeredCount}/{s.questionLimit} answered
+                      {s.subcategories && s.subcategories.length > 0
+                        ? ` · ${s.subcategories.slice(0, 3).join(", ")}`
+                        : ""}
+                      {" · "}
                       {new Date(s.createdAt).toLocaleDateString()}
                     </p>
                   </button>

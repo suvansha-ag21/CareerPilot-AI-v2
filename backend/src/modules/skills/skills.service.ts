@@ -195,6 +195,7 @@ export class SkillsService {
 
     const aiReport = await aiServiceClient.analyzeSkillGap({
       targetRole: effectiveRole,
+      learningPreference: input.learningPreference,
       currentSkills: inventory.userSkills,
       resumeSkills: resume?.skills ?? [],
       resumeSummary: resume?.extractedText ? resume.extractedText.slice(0, 1500) : null,

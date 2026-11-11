@@ -53,6 +53,8 @@ enum InterviewCategory {
   SQL
   FULL_STACK
   PROJECT_BASED
+  BEHAVIORAL
+  MIXED
 }
 
 enum InterviewDifficulty {
@@ -87,10 +89,20 @@ enum TaskStatus {
 enum ApplicationStatus {
   APPLIED
   ASSESSMENT
+  SHORTLISTED
   INTERVIEW_SCHEDULED
   SELECTED
   REJECTED
   OFFER_RECEIVED
+}
+
+enum JobType {
+  INTERNSHIP
+  FULL_TIME
+  PART_TIME
+  REMOTE
+  ON_SITE
+  HYBRID
 }
 
 // ============================================
@@ -333,6 +345,8 @@ model Interview {
   userId               String              @db.Uuid
   resumeId             String?             @db.Uuid
   category             InterviewCategory   @default(TECHNICAL)
+  targetRole           String?
+  subcategories        String[]            @default([])
   difficulty           InterviewDifficulty @default(MEDIUM)
   mode                 InterviewMode       @default(TEXT)
   durationMinutes      Int                 @default(20)
@@ -383,6 +397,7 @@ model JobApplication {
   userId          String            @db.Uuid
   company         String
   jobRole         String
+  jobType         JobType           @default(FULL_TIME)
   jobDescription  String?           @db.Text
   applicationDate DateTime          @default(now())
   status          ApplicationStatus @default(APPLIED)

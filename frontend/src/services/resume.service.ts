@@ -1,4 +1,4 @@
-import { ResumeDTO } from "@careerpilot/shared";
+import { AnalyzeResumeOptionsInput, ResumeDTO } from "@careerpilot/shared";
 import { apiFetchBlob, apiRequest } from "@/lib/api";
 
 export const resumeApi = {
@@ -18,9 +18,10 @@ export const resumeApi = {
     });
   },
 
-  analyze: (id: string) =>
+  analyze: (id: string, options?: AnalyzeResumeOptionsInput) =>
     apiRequest<ResumeDTO>(`/resumes/${id}/analyze`, {
       method: "POST",
+      body: options ? JSON.stringify(options) : JSON.stringify({}),
     }),
 
   setPrimary: (id: string) =>

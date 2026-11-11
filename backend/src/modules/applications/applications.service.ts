@@ -2,6 +2,7 @@ import {
   ApplicationStatus,
   CreateJobApplicationInput,
   JobApplicationDTO,
+  JobType,
   UpdateJobApplicationInput,
 } from "@careerpilot/shared";
 import { JobApplication } from "../../../../node_modules/.prisma/client";
@@ -14,6 +15,7 @@ function mapApplicationToDTO(row: JobApplication): JobApplicationDTO {
     userId: row.userId,
     company: row.company,
     jobRole: row.jobRole,
+    jobType: row.jobType as JobType,
     jobDescription: row.jobDescription,
     applicationDate: row.applicationDate.toISOString(),
     status: row.status as ApplicationStatus,
@@ -88,6 +90,7 @@ export class ApplicationsService {
         userId,
         company: input.company,
         jobRole: input.jobRole,
+        jobType: input.jobType ?? "FULL_TIME",
         jobDescription: input.jobDescription || null,
         applicationDate: appDate,
         status: input.status,
@@ -120,6 +123,7 @@ export class ApplicationsService {
       data: {
         ...(input.company !== undefined ? { company: input.company } : {}),
         ...(input.jobRole !== undefined ? { jobRole: input.jobRole } : {}),
+        ...(input.jobType !== undefined ? { jobType: input.jobType } : {}),
         ...(input.jobDescription !== undefined
           ? { jobDescription: input.jobDescription }
           : {}),

@@ -9,6 +9,7 @@ import { WorkspaceHeader } from "./WorkspaceHeader";
 
 const ROUTE_TITLES: Record<string, string> = {
   "/dashboard": "Career Overview",
+  "/onboarding": "Personalized Career Setup",
   "/resume": "AI Resume Analyzer",
   "/matcher": "AI Job Description Matcher",
   "/skills": "AI Skill Gap Analyzer",

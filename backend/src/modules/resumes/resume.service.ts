@@ -1,5 +1,6 @@
 import path from "path";
 import {
+  AnalyzeResumeOptionsInput,
   ParsedResumeDataDTO,
   ResumeDTO,
   ResumeFeedbackReportDTO,
@@ -121,7 +122,11 @@ export class ResumeService {
     return mapResumeDto(created);
   }
 
-  async analyzeResume(userId: string, resumeId: string): Promise<ResumeDTO> {
+  async analyzeResume(
+    userId: string,
+    resumeId: string,
+    options?: AnalyzeResumeOptionsInput
+  ): Promise<ResumeDTO> {
     const existing = await prisma.resume.findFirst({
       where: { id: resumeId, userId },
     });
@@ -131,8 +136,9 @@ export class ResumeService {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { targetRole: true },
+      select: { targetRole: true, careerPreferences: true },
     });
+    const prefs = (user?.careerPreferences as Record<string, unknown> | null) ?? {};
 
     const buffer = await storageProvider.readResumeBuffer(existing.fileUrl);
     const ext = existing.fileType === "DOCX" ? ".docx" : ".pdf";
@@ -140,7 +146,11 @@ export class ResumeService {
     const aiResult = await aiServiceClient.parseAndEvaluateResume({
       userId,
       resumeId,
-      targetRole: user?.targetRole || "Full Stack Developer",
+      targetRole: options?.targetRole || user?.targetRole || "Full Stack Developer",
+      experienceLevel:
+        options?.experienceLevel ||
+        (typeof prefs.experienceLevel === "string" ? prefs.experienceLevel : "Fresher"),
+      analysisType: options?.analysisType || "COMPLETE_ANALYSIS",
       filename: `${existing.title}${ext}`,
       fileType: existing.fileType,
       fileBuffer: buffer,

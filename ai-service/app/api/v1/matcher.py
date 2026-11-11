@@ -35,6 +35,8 @@ async def evaluate_match_multipart(
     job_description: Optional[str] = Form(None),
     target_role: Optional[str] = Form(None),
     company_name: Optional[str] = Form(None),
+    experience_level: Optional[str] = Form(None),
+    job_type: Optional[str] = Form(None),
     jd_file: Optional[UploadFile] = File(None),
 ) -> JobMatchEvaluateResponse:
     import json
@@ -53,4 +55,6 @@ async def evaluate_match_multipart(
         jd_text=resolved_jd,
         target_role_override=target_role,
         company_override=company_name,
+        experience_level=experience_level,
+        job_type=job_type,
     )

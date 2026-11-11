@@ -33,6 +33,8 @@ class JobMatchRecommendationsPayload(BaseModel):
     summary: str
     methodologyNote: str
     experienceAssessment: str
+    experienceLevelUsed: Optional[str] = None
+    jobTypeUsed: Optional[str] = None
     requiredSkillsFound: List[str] = Field(default_factory=list)
     preferredSkillsFound: List[str] = Field(default_factory=list)
     items: List[MatchRecommendationItem] = Field(default_factory=list)

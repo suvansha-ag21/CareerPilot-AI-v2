@@ -49,6 +49,11 @@ export const CareerPreferencesSchema = z.object({
   preferredLocations: z.array(z.string().trim().max(60)).max(8).optional().default([]),
   weeklyStudyHours: z.number().int().min(1).max(80).optional().default(10),
   openToInternships: z.boolean().optional().default(true),
+  userPersona: z.string().trim().max(60).optional(),
+  educationLevel: z.string().trim().max(100).optional(),
+  experienceLevel: z.string().trim().max(40).optional(),
+  careerGoals: z.array(z.string().trim().max(80)).max(10).optional().default([]),
+  onboardingCompleted: z.boolean().optional().default(false),
 });
 
 export const UpdateProfileSchema = z.object({

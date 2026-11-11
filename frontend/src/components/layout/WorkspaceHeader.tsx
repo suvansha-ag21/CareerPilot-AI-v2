@@ -8,6 +8,7 @@ import { useAuth } from "@/store/auth-context";
 
 const ROUTE_SUBTITLES: Record<string, string> = {
   "/dashboard": "Real-time career readiness & milestone tracking",
+  "/onboarding": "3-step onboarding to personalize your dashboard, interviews & roadmap",
   "/resume": "Resume evaluation, keyword audits & bullet rewrites",
   "/matcher": "Compare resumes with target job descriptions",
   "/skills": "Benchmark skills against role bars & prioritize learning",

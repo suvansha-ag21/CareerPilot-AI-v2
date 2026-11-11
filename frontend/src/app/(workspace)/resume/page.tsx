@@ -16,7 +16,12 @@ import {
   UploadCloud,
   Wrench,
 } from "lucide-react";
-import { ResumeDTO } from "@careerpilot/shared";
+import {
+  CAREER_ROLE_PRESETS,
+  EXPERIENCE_LEVEL_OPTIONS,
+  ResumeAnalysisType,
+  ResumeDTO,
+} from "@careerpilot/shared";
 import { ApiClientError } from "@/lib/api";
 import { useAuth } from "@/store/auth-context";
 import { resumeApi } from "@/services/resume.service";
@@ -33,6 +38,16 @@ export default function ResumeAnalyzerPage() {
   const [loadingList, setLoadingList] = useState(true);
 
   const [dragging, setDragging] = useState(false);
+  const [selectedRoleOption, setSelectedRoleOption] = useState<string>(
+    user?.targetRole || CAREER_ROLE_PRESETS[0]
+  );
+  const [customRole, setCustomRole] = useState("");
+  const [experienceLevel, setExperienceLevel] = useState<string>(
+    user?.careerPreferences?.experienceLevel || EXPERIENCE_LEVEL_OPTIONS[1]
+  );
+  const [analysisType, setAnalysisType] = useState<ResumeAnalysisType>(
+    ResumeAnalysisType.COMPLETE_ANALYSIS
+  );
   const [processingStep, setProcessingStep] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
@@ -42,6 +57,25 @@ export default function ResumeAnalyzerPage() {
   const [loadingPreview, setLoadingPreview] = useState(false);
 
   const selectedResume = resumes.find((r) => r.id === selectedId) || resumes[0] || null;
+  const effectiveTargetRole =
+    selectedRoleOption === "Other"
+      ? customRole.trim() || user?.targetRole || "Full Stack Developer"
+      : selectedRoleOption;
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.targetRole) {
+      if ((CAREER_ROLE_PRESETS as readonly string[]).includes(user.targetRole)) {
+        setSelectedRoleOption(user.targetRole);
+      } else {
+        setSelectedRoleOption("Other");
+        setCustomRole(user.targetRole);
+      }
+    }
+    if (user.careerPreferences?.experienceLevel) {
+      setExperienceLevel(user.careerPreferences.experienceLevel);
+    }
+  }, [user]);
 
   const loadResumes = useCallback(async () => {
     try {
@@ -117,7 +151,11 @@ export default function ResumeAnalyzerPage() {
       setProcessingStep(
         "Parsing sections, extracting verified skills & generating ATS feedback..."
       );
-      const analyzed = await resumeApi.analyze(uploaded.id);
+      const analyzed = await resumeApi.analyze(uploaded.id, {
+        targetRole: effectiveTargetRole,
+        experienceLevel,
+        analysisType,
+      });
       setResumes((prev) => prev.map((r) => (r.id === analyzed.id ? analyzed : r)));
       setInfoMsg("Resume parsed and evaluated successfully.");
       setPreviewMode("report");
@@ -137,7 +175,11 @@ export default function ResumeAnalyzerPage() {
     setInfoMsg(null);
     try {
       setProcessingStep("Running fresh AI analysis against your target role...");
-      const updated = await resumeApi.analyze(id);
+      const updated = await resumeApi.analyze(id, {
+        targetRole: effectiveTargetRole,
+        experienceLevel,
+        analysisType,
+      });
       setResumes((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
       setInfoMsg("Resume evaluation refreshed.");
     } catch (err) {
@@ -191,9 +233,64 @@ export default function ResumeAnalyzerPage() {
 
   return (
     <div className="space-y-6">
-      {/* Top Drag-and-Drop Uploader Card */}
+      {/* Top Configurator & Drag-and-Drop Uploader Card */}
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-6 space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-[#172033]">Target Role</label>
+              <select
+                value={selectedRoleOption}
+                onChange={(e) => setSelectedRoleOption(e.target.value)}
+                className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-[#172033]"
+              >
+                {[...CAREER_ROLE_PRESETS, "Other"].map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+              {selectedRoleOption === "Other" && (
+                <input
+                  type="text"
+                  value={customRole}
+                  onChange={(e) => setCustomRole(e.target.value)}
+                  placeholder="Custom role..."
+                  className="mt-1.5 w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs text-[#172033]"
+                />
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-[#172033]">Experience Level</label>
+              <select
+                value={experienceLevel}
+                onChange={(e) => setExperienceLevel(e.target.value)}
+                className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-[#172033]"
+              >
+                {EXPERIENCE_LEVEL_OPTIONS.map((exp) => (
+                  <option key={exp} value={exp}>
+                    {exp}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-[#172033]">Analysis Focus</label>
+              <select
+                value={analysisType}
+                onChange={(e) => setAnalysisType(e.target.value as ResumeAnalysisType)}
+                className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-[#172033]"
+              >
+                <option value={ResumeAnalysisType.COMPLETE_ANALYSIS}>Complete Resume Analysis</option>
+                <option value={ResumeAnalysisType.ATS_COMPATIBILITY}>ATS Compatibility</option>
+                <option value={ResumeAnalysisType.TECHNICAL_SKILLS}>Technical Skills Analysis</option>
+                <option value={ResumeAnalysisType.PROJECT_EVALUATION}>Project Evaluation</option>
+              </select>
+            </div>
+          </div>
+
           <div
             onDragOver={(e) => {
               e.preventDefault();

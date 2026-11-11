@@ -24,8 +24,15 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import { JobMatchDTO, ResumeDTO } from "@careerpilot/shared";
+import {
+  CAREER_ROLE_PRESETS,
+  EXPERIENCE_LEVEL_OPTIONS,
+  JobMatchDTO,
+  JobType,
+  ResumeDTO,
+} from "@careerpilot/shared";
 import { ApiClientError } from "@/lib/api";
+import { useAuth } from "@/store/auth-context";
 import { resumeApi } from "@/services/resume.service";
 import { matcherApi } from "@/services/matcher.service";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
@@ -34,6 +41,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
 export default function JobMatcherPage() {
+  const { user } = useAuth();
   const jdFileRef = useRef<HTMLInputElement | null>(null);
 
   const [resumes, setResumes] = useState<ResumeDTO[]>([]);
@@ -43,6 +51,9 @@ export default function JobMatcherPage() {
 
   const [resumeId, setResumeId] = useState("");
   const [targetRole, setTargetRole] = useState("");
+  const [customRole, setCustomRole] = useState("");
+  const [experienceLevel, setExperienceLevel] = useState<string>(EXPERIENCE_LEVEL_OPTIONS[1]);
+  const [jobType, setJobType] = useState<JobType>(JobType.FULL_TIME);
   const [companyName, setCompanyName] = useState("");
   const [inputMode, setInputMode] = useState<"paste" | "upload">("paste");
   const [jobDescription, setJobDescription] = useState("");
@@ -79,6 +90,21 @@ export default function JobMatcherPage() {
     void loadInitial();
   }, [loadInitial]);
 
+  useEffect(() => {
+    if (!user) return;
+    if (user.targetRole && !targetRole) {
+      if ((CAREER_ROLE_PRESETS as readonly string[]).includes(user.targetRole)) {
+        setTargetRole(user.targetRole);
+      } else {
+        setTargetRole("Other");
+        setCustomRole(user.targetRole);
+      }
+    }
+    if (user.careerPreferences?.experienceLevel) {
+      setExperienceLevel(user.careerPreferences.experienceLevel);
+    }
+  }, [user, targetRole]);
+
   const analyzedResumes = resumes.filter((r) => Boolean(r.analyzedAt));
   const selectedMatch = matches.find((m) => m.id === selectedMatchId) || matches[0] || null;
 
@@ -103,10 +129,14 @@ export default function JobMatcherPage() {
 
     setSubmitting(true);
     try {
+      const effectiveRole =
+        targetRole === "Other" ? customRole.trim() : targetRole.trim();
       const created = await matcherApi.evaluate({
         resumeId,
-        targetRole,
+        targetRole: effectiveRole || undefined,
         companyName,
+        experienceLevel,
+        jobType,
         jobDescription: inputMode === "paste" ? jobDescription : undefined,
         jdFile: inputMode === "upload" ? jdFile : null,
       });
@@ -186,10 +216,10 @@ export default function JobMatcherPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="space-y-1.5">
                   <label htmlFor="resumeId" className="block text-xs font-medium text-[#172033]">
-                    Select Analyzed Resume
+                    Analyzed Resume
                   </label>
                   <select
                     id="resumeId"
@@ -205,12 +235,63 @@ export default function JobMatcherPage() {
                   </select>
                 </div>
 
-                <Input
-                  label="Target Role (optional — auto-detected)"
-                  placeholder="e.g. Software Engineer Intern"
-                  value={targetRole}
-                  onChange={(e) => setTargetRole(e.target.value)}
-                />
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-[#172033]">Target Job Role</label>
+                  <select
+                    value={targetRole}
+                    onChange={(e) => setTargetRole(e.target.value)}
+                    className="w-full h-10 px-3 rounded-lg border border-[#E2E8F0] bg-white text-sm text-[#172033]"
+                  >
+                    <option value="">Auto-detect from JD</option>
+                    {[...CAREER_ROLE_PRESETS, "Other"].map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                  {targetRole === "Other" && (
+                    <input
+                      type="text"
+                      value={customRole}
+                      onChange={(e) => setCustomRole(e.target.value)}
+                      placeholder="Custom role title"
+                      className="mt-1.5 w-full h-9 px-3 rounded-lg border border-[#E2E8F0] bg-white text-xs text-[#172033]"
+                    />
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-[#172033]">
+                    Experience Level
+                  </label>
+                  <select
+                    value={experienceLevel}
+                    onChange={(e) => setExperienceLevel(e.target.value)}
+                    className="w-full h-10 px-3 rounded-lg border border-[#E2E8F0] bg-white text-sm text-[#172033]"
+                  >
+                    {EXPERIENCE_LEVEL_OPTIONS.map((exp) => (
+                      <option key={exp} value={exp}>
+                        {exp}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-[#172033]">Job Type</label>
+                  <select
+                    value={jobType}
+                    onChange={(e) => setJobType(e.target.value as JobType)}
+                    className="w-full h-10 px-3 rounded-lg border border-[#E2E8F0] bg-white text-sm text-[#172033]"
+                  >
+                    <option value={JobType.INTERNSHIP}>Internship</option>
+                    <option value={JobType.FULL_TIME}>Full-time</option>
+                    <option value={JobType.PART_TIME}>Part-time</option>
+                    <option value={JobType.REMOTE}>Remote</option>
+                    <option value={JobType.ON_SITE}>On-site</option>
+                    <option value={JobType.HYBRID}>Hybrid</option>
+                  </select>
+                </div>
 
                 <Input
                   label="Company Name (optional)"

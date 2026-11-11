@@ -60,6 +60,9 @@ class BulletSuggestion(BaseModel):
 
 class ResumeFeedbackReport(BaseModel):
     scoringMethodologyNote: str
+    analysisType: Optional[str] = None
+    targetRoleUsed: Optional[str] = None
+    experienceLevelUsed: Optional[str] = None
     strengths: List[str] = Field(default_factory=list)
     weaknesses: List[str] = Field(default_factory=list)
     missingKeywords: List[str] = Field(default_factory=list)

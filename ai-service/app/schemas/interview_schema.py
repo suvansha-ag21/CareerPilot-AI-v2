@@ -10,6 +10,8 @@ CategoryStr = Literal[
     "SQL",
     "FULL_STACK",
     "PROJECT_BASED",
+    "BEHAVIORAL",
+    "MIXED",
 ]
 DifficultyStr = Literal["EASY", "MEDIUM", "HARD"]
 
@@ -47,8 +49,9 @@ class InterviewSummaryLLM(BaseModel):
 class StartInterviewQuestionRequest(BaseModel):
     user_id: str
     category: CategoryStr
-    difficulty: DifficultyStr
     target_role: str
+    subcategories: List[str] = Field(default_factory=list)
+    difficulty: DifficultyStr
     years_experience: int = 0
     resume_id: Optional[str] = None
     resume_summary: Optional[str] = None
@@ -76,6 +79,7 @@ class EvaluateAnswerRequest(BaseModel):
     category: CategoryStr
     difficulty: DifficultyStr
     target_role: str
+    subcategories: List[str] = Field(default_factory=list)
     current_question: str
     current_topic_tag: str
     current_model_answer: str

@@ -14,7 +14,7 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { ApplicationStatus, JobApplicationDTO } from "@careerpilot/shared";
+import { ApplicationStatus, JobApplicationDTO, JobType } from "@careerpilot/shared";
 import { ApiClientError } from "@/lib/api";
 import { applicationsApi } from "@/services/applications.service";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
@@ -28,24 +28,45 @@ const STATUS_META: Record<
   { label: string; tone: "brand" | "neutral" | "success" | "warning" | "danger" }
 > = {
   [ApplicationStatus.APPLIED]: { label: "Applied", tone: "neutral" },
-  [ApplicationStatus.ASSESSMENT]: { label: "Assessment", tone: "brand" },
+  [ApplicationStatus.ASSESSMENT]: { label: "Online Assessment", tone: "brand" },
+  [ApplicationStatus.SHORTLISTED]: { label: "Shortlisted", tone: "brand" },
   [ApplicationStatus.INTERVIEW_SCHEDULED]: { label: "Interview Scheduled", tone: "warning" },
   [ApplicationStatus.SELECTED]: { label: "Selected", tone: "success" },
   [ApplicationStatus.OFFER_RECEIVED]: { label: "Offer Received", tone: "success" },
   [ApplicationStatus.REJECTED]: { label: "Rejected", tone: "danger" },
 };
 
+const JOB_TYPE_META: Record<JobType, string> = {
+  [JobType.INTERNSHIP]: "Internship",
+  [JobType.FULL_TIME]: "Full-time",
+  [JobType.REMOTE]: "Remote",
+  [JobType.HYBRID]: "Hybrid",
+  [JobType.ON_SITE]: "On-site",
+  [JobType.PART_TIME]: "Part-time",
+};
+
+const SELECTABLE_JOB_TYPES: JobType[] = [
+  JobType.INTERNSHIP,
+  JobType.FULL_TIME,
+  JobType.REMOTE,
+  JobType.HYBRID,
+  JobType.ON_SITE,
+  JobType.PART_TIME,
+];
+
 export default function ApplicationsTrackerPage() {
   const [apps, setApps] = useState<JobApplicationDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"table" | "board">("table");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [jobTypeFilter, setJobTypeFilter] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
 
   // Add application form modal toggle
   const [showAddForm, setShowAddForm] = useState(false);
   const [company, setCompany] = useState("");
   const [jobRole, setJobRole] = useState("");
+  const [jobType, setJobType] = useState<JobType>(JobType.FULL_TIME);
   const [status, setStatus] = useState<ApplicationStatus>(ApplicationStatus.APPLIED);
   const [interviewDate, setInterviewDate] = useState("");
   const [applicationUrl, setApplicationUrl] = useState("");
@@ -80,6 +101,7 @@ export default function ApplicationsTrackerPage() {
       const created = await applicationsApi.create({
         company: company.trim(),
         jobRole: jobRole.trim(),
+        jobType,
         status,
         interviewDate: interviewDate ? new Date(interviewDate).toISOString() : null,
         applicationUrl: applicationUrl.trim() || null,
@@ -88,6 +110,7 @@ export default function ApplicationsTrackerPage() {
       setApps((prev) => [created, ...prev]);
       setCompany("");
       setJobRole("");
+      setJobType(JobType.FULL_TIME);
       setInterviewDate("");
       setApplicationUrl("");
       setNotes("");
@@ -119,11 +142,18 @@ export default function ApplicationsTrackerPage() {
     }
   }
 
-  const totalCount = apps.length;
-  const interviewsCount = apps.filter(
-    (a) => a.status === ApplicationStatus.INTERVIEW_SCHEDULED
+  const visibleApps =
+    jobTypeFilter === "ALL"
+      ? apps
+      : apps.filter((a) => a.jobType === jobTypeFilter);
+
+  const totalCount = visibleApps.length;
+  const interviewsCount = visibleApps.filter(
+    (a) =>
+      a.status === ApplicationStatus.INTERVIEW_SCHEDULED ||
+      a.status === ApplicationStatus.SHORTLISTED
   ).length;
-  const offersCount = apps.filter(
+  const offersCount = visibleApps.filter(
     (a) =>
       a.status === ApplicationStatus.OFFER_RECEIVED ||
       a.status === ApplicationStatus.SELECTED
@@ -225,6 +255,19 @@ export default function ApplicationsTrackerPage() {
                 </option>
               ))}
             </select>
+
+            <select
+              value={jobTypeFilter}
+              onChange={(e) => setJobTypeFilter(e.target.value)}
+              className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-[#172033]"
+            >
+              <option value="ALL">All Job Types</option>
+              {SELECTABLE_JOB_TYPES.map((jt) => (
+                <option key={jt} value={jt}>
+                  {JOB_TYPE_META[jt]}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex items-center gap-2.5">
@@ -278,6 +321,21 @@ export default function ApplicationsTrackerPage() {
               onChange={(e) => setJobRole(e.target.value)}
               placeholder="e.g. Software Engineer I"
             />
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-[#172033]">Job Type</label>
+              <select
+                value={jobType}
+                onChange={(e) => setJobType(e.target.value as JobType)}
+                className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-[#172033]"
+              >
+                {SELECTABLE_JOB_TYPES.map((jt) => (
+                  <option key={jt} value={jt}>
+                    {JOB_TYPE_META[jt]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="space-y-1.5">
               <label className="block text-xs font-medium text-[#172033]">Pipeline Stage</label>
               <select
@@ -338,7 +396,7 @@ export default function ApplicationsTrackerPage() {
             <Skeleton className="h-12 w-full" />
           </CardContent>
         </Card>
-      ) : apps.length === 0 ? (
+      ) : visibleApps.length === 0 ? (
         <Card>
           <CardContent className="p-10 text-center space-y-3">
             <Briefcase className="h-8 w-8 text-slate-300 mx-auto" />
@@ -360,6 +418,7 @@ export default function ApplicationsTrackerPage() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
                   <th className="py-3 px-5">Company &amp; Role</th>
+                  <th className="py-3 px-4">Job Type</th>
                   <th className="py-3 px-4">Stage</th>
                   <th className="py-3 px-4">Applied</th>
                   <th className="py-3 px-4">Interview Date</th>
@@ -368,7 +427,7 @@ export default function ApplicationsTrackerPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs">
-                {apps.map((app) => (
+                {visibleApps.map((app) => (
                   <tr key={app.id} className="hover:bg-[#F8FAFC]/80 transition-colors">
                     <td className="py-3.5 px-5">
                       <div className="flex items-center gap-2">
@@ -385,6 +444,11 @@ export default function ApplicationsTrackerPage() {
                         )}
                       </div>
                       <p className="text-[11px] text-[#64748B] mt-0.5">{app.jobRole}</p>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <Badge tone="neutral">
+                        {JOB_TYPE_META[app.jobType] || app.jobType}
+                      </Badge>
                     </td>
                     <td className="py-3.5 px-4">
                       <select
@@ -436,7 +500,7 @@ export default function ApplicationsTrackerPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {Object.values(ApplicationStatus).map((stage) => {
-            const stageApps = apps.filter((a) => a.status === stage);
+            const stageApps = visibleApps.filter((a) => a.status === stage);
             const meta = STATUS_META[stage];
             return (
               <Card key={stage}>
@@ -453,7 +517,12 @@ export default function ApplicationsTrackerPage() {
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <p className="text-xs font-semibold text-[#172033]">{app.company}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="text-xs font-semibold text-[#172033]">{app.company}</p>
+                              <Badge tone="neutral">
+                                {JOB_TYPE_META[app.jobType] || app.jobType}
+                              </Badge>
+                            </div>
                             <p className="text-[11px] text-[#64748B]">{app.jobRole}</p>
                           </div>
                           <button

@@ -13,7 +13,7 @@ async def generate_personalized_roadmap(
     payload: GenerateRoadmapRequest,
 ) -> GenerateRoadmapResponse:
     weeks = payload.estimated_weeks
-    target_task_count = min(max(weeks * 3, 6), 24)
+    target_task_count = min(max(weeks * 3, 6), 28)
 
     gaps_desc = "\n".join(
         f"- {g.skill} (importance={g.importance}, status={g.status}, target={g.requiredLevel}, action={g.recommendedAction})"
@@ -22,12 +22,14 @@ async def generate_personalized_roadmap(
 
     system_prompt = (
         "You are a Senior Staff Engineer designing structured technical interview & skill-building study plans. "
-        "Every task must be concrete, realistic, scoped to a 1-3 hour study session, and respect skill prerequisite order."
+        "Every task must be concrete, realistic, tailored to the candidate's current skill level, daily study hours, and preferred learning style."
     )
     user_prompt = (
         f"Target Role: {payload.target_role}\n"
-        f"Timeline: {weeks} weeks at ~{payload.hours_per_week} hours/week.\n"
-        f"Target number of tasks: around {target_task_count} tasks distributed evenly across weeks 1..{weeks} and dayNumber 1..5.\n"
+        f"Current Skill Level: {payload.skill_level}\n"
+        f"Study Duration: {payload.duration_days} days (~{weeks} weeks) at {payload.daily_study_hours} hr/day (~{payload.hours_per_week} hrs/week).\n"
+        f"Learning Preference: {payload.learning_preference}\n"
+        f"Target number of tasks: around {target_task_count} tasks distributed cleanly across weeks 1..{weeks} and dayNumber 1..5.\n"
         f"Dependency-Ordered Focus Sequence: {', '.join(payload.learning_order) or 'Role Mastery & Mock Interviews'}\n"
         f"Current Verified Skills: {', '.join(payload.current_skill_names[:20]) or 'None yet'}\n"
         f"Open Skill Gaps:\n{gaps_desc}\n"

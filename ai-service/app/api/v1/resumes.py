@@ -17,6 +17,8 @@ async def parse_and_evaluate_resume(
     user_id: str = Form(...),
     resume_id: str = Form(...),
     target_role: str = Form("Full Stack Developer"),
+    experience_level: str = Form("Fresher"),
+    analysis_type: str = Form("COMPLETE_ANALYSIS"),
     file_type: str = Form("PDF"),
 ) -> ResumeAnalyzeResponse:
     file_bytes = await file.read()
@@ -24,6 +26,8 @@ async def parse_and_evaluate_resume(
         user_id=user_id,
         resume_id=resume_id,
         target_role=target_role,
+        experience_level=experience_level,
+        analysis_type=analysis_type,
         file_type=file_type,
         file_bytes=file_bytes,
     )

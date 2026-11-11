@@ -10,6 +10,8 @@ export async function createJobMatchController(req: Request, res: Response): Pro
     resumeId: req.body?.resumeId,
     targetRole: req.body?.targetRole || undefined,
     companyName: req.body?.companyName || undefined,
+    experienceLevel: req.body?.experienceLevel || undefined,
+    jobType: req.body?.jobType || undefined,
     jobDescription: req.body?.jobDescription || undefined,
   });
 

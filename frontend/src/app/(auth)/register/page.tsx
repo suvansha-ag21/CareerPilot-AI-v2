@@ -24,7 +24,8 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.replace("/dashboard");
+      const done = user.careerPreferences?.onboardingCompleted === true;
+      router.replace(done ? "/dashboard" : "/onboarding");
     }
   }, [isLoading, user, router]);
 
@@ -40,7 +41,7 @@ export default function RegisterPage() {
         targetRole,
         yearsExperience: Number(yearsExperience) || 0,
       });
-      router.replace("/dashboard");
+      router.replace("/onboarding");
     } catch (err) {
       if (err instanceof ApiClientError) {
         if (err.details && typeof err.details === "object") {

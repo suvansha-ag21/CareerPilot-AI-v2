@@ -50,6 +50,8 @@ function mapInterviewToDTO(row: InterviewWithQuestions): InterviewSessionDTO {
     userId: row.userId,
     resumeId: row.resumeId,
     category: row.category as InterviewCategory,
+    targetRole: row.targetRole,
+    subcategories: row.subcategories ?? [],
     difficulty: row.difficulty as InterviewDifficulty,
     mode: row.mode as InterviewMode,
     durationMinutes: row.durationMinutes,
@@ -126,11 +128,15 @@ export class InterviewsService {
         .join(" | ") || null;
     const skillsList = user.skills.map((us) => us.skill.name);
 
+    const chosenRole = input.targetRole || user.targetRole;
+    const chosenSubcats = input.subcategories ?? [];
+
     const opening = await aiServiceClient.startInterviewQuestion({
       userId,
       category: input.category,
       difficulty: input.difficulty,
-      targetRole: user.targetRole,
+      targetRole: chosenRole,
+      subcategories: chosenSubcats,
       yearsExperience: user.yearsExperience,
       resumeId: resume?.id ?? null,
       resumeSummary: resume?.extractedText ? resume.extractedText.slice(0, 1500) : null,
@@ -144,6 +150,8 @@ export class InterviewsService {
         userId,
         resumeId: resume?.id ?? null,
         category: input.category,
+        targetRole: chosenRole,
+        subcategories: chosenSubcats,
         difficulty: input.difficulty,
         mode: input.mode,
         durationMinutes: input.durationMinutes,
@@ -265,7 +273,8 @@ export class InterviewsService {
       userId,
       category: interview.category as InterviewCategory,
       difficulty: interview.difficulty as InterviewDifficulty,
-      targetRole: user.targetRole,
+      targetRole: interview.targetRole || user.targetRole,
+      subcategories: interview.subcategories ?? [],
       currentQuestion: targetQ.question,
       currentTopicTag: targetQ.topicTag,
       currentModelAnswer: targetQ.modelAnswer,

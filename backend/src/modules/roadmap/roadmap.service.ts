@@ -5,6 +5,7 @@ import {
   ProficiencyLevel,
   RoadmapTaskDTO,
   SkillCategory,
+  SkillGapLearningPreference,
   TaskPriority,
   TaskStatus,
   UpdateRoadmapTaskInput,
@@ -105,6 +106,7 @@ export class RoadmapService {
         targetRole: input.targetRole,
         resumeId: input.resumeId,
         jobMatchId: input.jobMatchId,
+        learningPreference: SkillGapLearningPreference.BEGINNER_TO_ADVANCED,
       }),
     ]);
 
@@ -143,10 +145,25 @@ export class RoadmapService {
       }
     }
 
+    const effectiveDurationDays = input.durationDays ?? 30;
+    const effectiveWeeks =
+      input.estimatedWeeks && input.estimatedWeeks !== 4
+        ? input.estimatedWeeks
+        : Math.max(2, Math.min(26, Math.round(effectiveDurationDays / 7)));
+    const effectiveDailyHours = input.dailyStudyHours ?? 2;
+    const effectiveHoursPerWeek =
+      input.hoursPerWeek && input.hoursPerWeek !== 14
+        ? input.hoursPerWeek
+        : Math.min(60, effectiveDailyHours * 6);
+
     const generated = await aiServiceClient.generateRoadmap({
       targetRole: effectiveRole,
-      estimatedWeeks: input.estimatedWeeks,
-      hoursPerWeek: input.hoursPerWeek,
+      skillLevel: input.skillLevel,
+      dailyStudyHours: effectiveDailyHours,
+      durationDays: effectiveDurationDays,
+      estimatedWeeks: effectiveWeeks,
+      hoursPerWeek: effectiveHoursPerWeek,
+      learningPreference: input.learningPreference,
       skillGaps,
       learningOrder,
       currentSkillNames: gapReport.currentSkills.map((s) => s.name),

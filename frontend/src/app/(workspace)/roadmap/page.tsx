@@ -18,7 +18,11 @@ import {
   CAREER_ROLE_PRESETS,
   JobMatchDTO,
   LearningRoadmapDTO,
+  ProficiencyLevel,
+  ROADMAP_DAILY_HOURS_OPTIONS,
+  ROADMAP_DURATION_DAYS_OPTIONS,
   ResumeDTO,
+  RoadmapLearningPreference,
   TaskPriority,
   TaskStatus,
 } from "@careerpilot/shared";
@@ -33,6 +37,22 @@ import { Button } from "@/components/ui/Button";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { Skeleton } from "@/components/ui/Skeleton";
 
+const LEARNING_STYLE_OPTIONS: Array<{
+  value: RoadmapLearningPreference;
+  label: string;
+}> = [
+  { value: RoadmapLearningPreference.VIDEO_BASED, label: "Video-based" },
+  { value: RoadmapLearningPreference.DOCUMENTATION, label: "Documentation" },
+  { value: RoadmapLearningPreference.HANDS_ON_PROJECTS, label: "Hands-on projects" },
+  { value: RoadmapLearningPreference.MIXED_LEARNING, label: "Mixed learning" },
+];
+
+const SKILL_LEVEL_OPTIONS: Array<{ value: ProficiencyLevel; label: string }> = [
+  { value: ProficiencyLevel.BEGINNER, label: "Beginner" },
+  { value: ProficiencyLevel.INTERMEDIATE, label: "Intermediate" },
+  { value: ProficiencyLevel.ADVANCED, label: "Advanced" },
+];
+
 export default function LearningRoadmapPage() {
   const { user } = useAuth();
 
@@ -45,8 +65,13 @@ export default function LearningRoadmapPage() {
   const [targetRole, setTargetRole] = useState<string>(
     user?.targetRole || CAREER_ROLE_PRESETS[0]
   );
-  const [estimatedWeeks, setEstimatedWeeks] = useState<number>(4);
-  const [hoursPerWeek, setHoursPerWeek] = useState<number>(10);
+  const [customTargetRole, setCustomTargetRole] = useState<string>("");
+  const [skillLevel, setSkillLevel] = useState<ProficiencyLevel>(ProficiencyLevel.BEGINNER);
+  const [dailyStudyHours, setDailyStudyHours] = useState<number>(2);
+  const [durationDays, setDurationDays] = useState<number>(60);
+  const [learningPreference, setLearningPreference] = useState<RoadmapLearningPreference>(
+    RoadmapLearningPreference.MIXED_LEARNING
+  );
   const [resumeId, setResumeId] = useState<string>("");
   const [jobMatchId, setJobMatchId] = useState<string>("");
 
@@ -85,7 +110,7 @@ export default function LearningRoadmapPage() {
   }, [loadAll]);
 
   useEffect(() => {
-    if (user?.targetRole) {
+    if (user?.targetRole && user.targetRole !== "Other") {
       setTargetRole(user.targetRole);
     }
   }, [user?.targetRole]);
@@ -97,11 +122,21 @@ export default function LearningRoadmapPage() {
     e.preventDefault();
     setErrorMsg(null);
     setGenerating(true);
+    const resolvedTargetRole =
+      targetRole === "Other"
+        ? customTargetRole.trim() || undefined
+        : targetRole.trim() || undefined;
+    const computedWeeks = Math.max(2, Math.min(26, Math.round(durationDays / 7)));
+    const computedHoursPerWeek = Math.min(60, dailyStudyHours * 6);
     try {
       const created = await roadmapApi.generate({
-        targetRole: targetRole.trim() || undefined,
-        estimatedWeeks,
-        hoursPerWeek,
+        targetRole: resolvedTargetRole,
+        skillLevel,
+        dailyStudyHours,
+        durationDays,
+        estimatedWeeks: computedWeeks,
+        hoursPerWeek: computedHoursPerWeek,
+        learningPreference,
         resumeId: resumeId || undefined,
         jobMatchId: jobMatchId || undefined,
       });
@@ -169,7 +204,11 @@ export default function LearningRoadmapPage() {
   }
 
   const ROLE_OPTIONS = Array.from(
-    new Set([...CAREER_ROLE_PRESETS, ...(user?.targetRole ? [user.targetRole] : [])])
+    new Set([
+      ...CAREER_ROLE_PRESETS,
+      ...(user?.targetRole && user.targetRole !== "Other" ? [user.targetRole] : []),
+      "Other",
+    ])
   );
 
   const visibleTasks =
@@ -217,7 +256,7 @@ export default function LearningRoadmapPage() {
 
           <form
             onSubmit={handleGenerate}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-4 border-t border-slate-200/80 items-end"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 pt-4 border-t border-slate-200/80 items-end"
           >
             <div className="space-y-1.5">
               <label className="block text-xs font-medium text-[#172033]">Target Role</label>
@@ -232,33 +271,82 @@ export default function LearningRoadmapPage() {
                   </option>
                 ))}
               </select>
+              {targetRole === "Other" && (
+                <input
+                  type="text"
+                  value={customTargetRole}
+                  onChange={(e) => setCustomTargetRole(e.target.value)}
+                  placeholder="Custom role (e.g. Cloud Architect)"
+                  className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs text-[#172033]"
+                />
+              )}
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-[#172033]">Duration (Weeks)</label>
+              <label className="block text-xs font-medium text-[#172033]">
+                Current Skill Level
+              </label>
               <select
-                value={estimatedWeeks}
-                onChange={(e) => setEstimatedWeeks(Number(e.target.value))}
+                value={skillLevel}
+                onChange={(e) => setSkillLevel(e.target.value as ProficiencyLevel)}
                 className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-[#172033]"
               >
-                {[2, 4, 6, 8, 12].map((w) => (
-                  <option key={w} value={w}>
-                    {w} Weeks
+                {SKILL_LEVEL_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
                   </option>
                 ))}
               </select>
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-[#172033]">Study Pace</label>
+              <label className="block text-xs font-medium text-[#172033]">
+                Daily Study Time
+              </label>
               <select
-                value={hoursPerWeek}
-                onChange={(e) => setHoursPerWeek(Number(e.target.value))}
+                value={dailyStudyHours}
+                onChange={(e) => setDailyStudyHours(Number(e.target.value))}
                 className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-[#172033]"
               >
-                {[6, 10, 15, 20, 30].map((h) => (
-                  <option key={h} value={h}>
-                    {h} hrs / week
+                {ROADMAP_DAILY_HOURS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-[#172033]">
+                Learning Duration
+              </label>
+              <select
+                value={durationDays}
+                onChange={(e) => setDurationDays(Number(e.target.value))}
+                className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-[#172033]"
+              >
+                {ROADMAP_DURATION_DAYS_OPTIONS.map((d) => (
+                  <option key={d} value={d}>
+                    {d} days
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-[#172033]">
+                Learning Preference
+              </label>
+              <select
+                value={learningPreference}
+                onChange={(e) =>
+                  setLearningPreference(e.target.value as RoadmapLearningPreference)
+                }
+                className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-[#172033]"
+              >
+                {LEARNING_STYLE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
                   </option>
                 ))}
               </select>
@@ -283,10 +371,16 @@ export default function LearningRoadmapPage() {
               </select>
             </div>
 
-            <Button type="submit" variant="primary" className="w-full h-10" loading={generating}>
-              <Map className="h-4 w-4" />
-              Generate Plan
-            </Button>
+            <div className="sm:col-span-2 lg:col-span-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+              <p className="text-[11px] text-[#64748B]">
+                Generates a {durationDays}-day (~{Math.max(2, Math.min(26, Math.round(durationDays / 7)))} weeks) sprint tuned to{" "}
+                {dailyStudyHours >= 4 ? "4+ hours" : `${dailyStudyHours} hour${dailyStudyHours === 1 ? "" : "s"}`}/day.
+              </p>
+              <Button type="submit" variant="primary" className="h-10 px-6 shrink-0" loading={generating}>
+                <Map className="h-4 w-4" />
+                Generate Plan
+              </Button>
+            </div>
           </form>
         </div>
       </Card>
@@ -358,7 +452,7 @@ export default function LearningRoadmapPage() {
               <Loader2 className="h-5 w-5 animate-spin text-[#6D5DFB]" />
               <p className="text-sm font-medium text-[#172033]">
                 {generating
-                  ? "Synthesizing dependency-ordered weekly study sprint with Gemini..."
+                  ? "Synthesizing dependency-ordered weekly study sprint..."
                   : "Loading saved learning roadmaps..."}
               </p>
             </div>

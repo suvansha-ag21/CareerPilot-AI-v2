@@ -94,8 +94,9 @@ export class MatcherService {
 
     const user = await prisma.user.findUnique({
       where: { id: params.userId },
-      select: { yearsExperience: true },
+      select: { yearsExperience: true, careerPreferences: true },
     });
+    const prefs = (user?.careerPreferences as Record<string, unknown> | null) ?? {};
 
     const aiRes = await aiServiceClient.evaluateJobMatch({
       userId: params.userId,
@@ -106,6 +107,10 @@ export class MatcherService {
       jobDescription: jdText || undefined,
       targetRole: params.input.targetRole,
       companyName: params.input.companyName,
+      experienceLevel:
+        params.input.experienceLevel ||
+        (typeof prefs.experienceLevel === "string" ? prefs.experienceLevel : undefined),
+      jobType: params.input.jobType,
       jdFile: verifiedJdFile,
     });
 

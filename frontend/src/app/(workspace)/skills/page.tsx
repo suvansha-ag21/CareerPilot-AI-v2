@@ -27,15 +27,39 @@ import {
   CartesianGrid,
 } from "recharts";
 import {
-  CAREER_ROLE_PRESETS,
   CurrentCandidateSkillDTO,
   JobMatchDTO,
   ProficiencyLevel,
   ResumeDTO,
+  RoadmapLearningPreference,
+  SKILL_GAP_ROLE_OPTIONS,
   SkillBenchmarkStatus,
   SkillCategory,
+  SkillGapLearningPreference,
   SkillGapReportDTO,
 } from "@careerpilot/shared";
+
+const LEARNING_PREFERENCE_OPTIONS: Array<{
+  value: SkillGapLearningPreference;
+  label: string;
+}> = [
+  {
+    value: SkillGapLearningPreference.BEGINNER_TO_ADVANCED,
+    label: "Beginner to Advanced",
+  },
+  {
+    value: SkillGapLearningPreference.INTERMEDIATE_TO_ADVANCED,
+    label: "Intermediate to Advanced",
+  },
+  {
+    value: SkillGapLearningPreference.INTERVIEW_PREPARATION,
+    label: "Interview Preparation",
+  },
+  {
+    value: SkillGapLearningPreference.PROJECT_BASED_LEARNING,
+    label: "Project-Based Learning",
+  },
+];
 import { ApiClientError } from "@/lib/api";
 import { useAuth } from "@/store/auth-context";
 import { resumeApi } from "@/services/resume.service";
@@ -80,7 +104,11 @@ export default function SkillGapAnalyzerPage() {
   const [loadingInit, setLoadingInit] = useState(true);
 
   const [targetRole, setTargetRole] = useState<string>(
-    user?.targetRole || CAREER_ROLE_PRESETS[0]
+    user?.targetRole || SKILL_GAP_ROLE_OPTIONS[0]
+  );
+  const [customTargetRole, setCustomTargetRole] = useState<string>("");
+  const [learningPreference, setLearningPreference] = useState<SkillGapLearningPreference>(
+    SkillGapLearningPreference.BEGINNER_TO_ADVANCED
   );
   const [resumeId, setResumeId] = useState<string>("");
   const [jobMatchId, setJobMatchId] = useState<string>("");
@@ -131,6 +159,11 @@ export default function SkillGapAnalyzerPage() {
     }
   }, [user?.targetRole]);
 
+  const resolvedTargetRole =
+    targetRole === "Other"
+      ? customTargetRole.trim() || undefined
+      : targetRole.trim() || undefined;
+
   async function handleAnalyze(e?: React.FormEvent) {
     if (e) e.preventDefault();
     setErrorMsg(null);
@@ -138,9 +171,10 @@ export default function SkillGapAnalyzerPage() {
     setAnalyzing(true);
     try {
       const res = await skillsApi.analyzeGap({
-        targetRole: targetRole.trim() || undefined,
+        targetRole: resolvedTargetRole,
         resumeId: resumeId || undefined,
         jobMatchId: jobMatchId || undefined,
+        learningPreference,
       });
       setReport(res);
     } catch (err) {
@@ -169,9 +203,10 @@ export default function SkillGapAnalyzerPage() {
       setInfoMsg(`Saved ${name} (${proficiencyLevel.toLowerCase()}) to your skill profile.`);
       if (report) {
         const refreshed = await skillsApi.analyzeGap({
-          targetRole: targetRole.trim() || undefined,
+          targetRole: resolvedTargetRole,
           resumeId: resumeId || undefined,
           jobMatchId: jobMatchId || undefined,
+          learningPreference,
         });
         setReport(refreshed);
       }
@@ -205,9 +240,19 @@ export default function SkillGapAnalyzerPage() {
     setErrorMsg(null);
     try {
       await roadmapApi.generate({
-        targetRole: targetRole.trim() || undefined,
+        targetRole: resolvedTargetRole,
+        skillLevel:
+          learningPreference === SkillGapLearningPreference.BEGINNER_TO_ADVANCED
+            ? ProficiencyLevel.BEGINNER
+            : ProficiencyLevel.INTERMEDIATE,
+        dailyStudyHours: 2,
+        durationDays: 30,
         estimatedWeeks: 4,
-        hoursPerWeek: 10,
+        hoursPerWeek: 12,
+        learningPreference:
+          learningPreference === SkillGapLearningPreference.PROJECT_BASED_LEARNING
+            ? RoadmapLearningPreference.HANDS_ON_PROJECTS
+            : RoadmapLearningPreference.MIXED_LEARNING,
         resumeId: resumeId || undefined,
         jobMatchId: jobMatchId || undefined,
       });
@@ -226,7 +271,11 @@ export default function SkillGapAnalyzerPage() {
     ) ?? [];
 
   const ROLE_OPTIONS = Array.from(
-    new Set([...CAREER_ROLE_PRESETS, ...(user?.targetRole ? [user.targetRole] : [])])
+    new Set([
+      ...SKILL_GAP_ROLE_OPTIONS,
+      ...(user?.targetRole && user.targetRole !== "Other" ? [user.targetRole] : []),
+      "Other",
+    ])
   );
 
   return (
@@ -280,7 +329,7 @@ export default function SkillGapAnalyzerPage() {
 
           <form
             onSubmit={handleAnalyze}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-200/80"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-slate-200/80"
           >
             <div className="space-y-1.5">
               <label className="block text-xs font-medium text-[#172033]">Target Job Role</label>
@@ -292,6 +341,34 @@ export default function SkillGapAnalyzerPage() {
                 {ROLE_OPTIONS.map((role) => (
                   <option key={role} value={role}>
                     {role}
+                  </option>
+                ))}
+              </select>
+              {targetRole === "Other" && (
+                <input
+                  type="text"
+                  value={customTargetRole}
+                  onChange={(e) => setCustomTargetRole(e.target.value)}
+                  placeholder="Enter target role (e.g. Cloud Engineer)"
+                  className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6D5DFB]/20 focus:border-[#6D5DFB]"
+                />
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-[#172033]">
+                Learning Preference
+              </label>
+              <select
+                value={learningPreference}
+                onChange={(e) =>
+                  setLearningPreference(e.target.value as SkillGapLearningPreference)
+                }
+                className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6D5DFB]/20 focus:border-[#6D5DFB]"
+              >
+                {LEARNING_PREFERENCE_OPTIONS.map((pref) => (
+                  <option key={pref.value} value={pref.value}>
+                    {pref.label}
                   </option>
                 ))}
               </select>

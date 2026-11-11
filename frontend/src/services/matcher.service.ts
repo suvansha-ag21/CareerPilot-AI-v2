@@ -1,4 +1,4 @@
-import { JobMatchDTO } from "@careerpilot/shared";
+import { JobMatchDTO, JobType } from "@careerpilot/shared";
 import { apiRequest } from "@/lib/api";
 
 export const matcherApi = {
@@ -10,6 +10,8 @@ export const matcherApi = {
     resumeId: string;
     targetRole?: string;
     companyName?: string;
+    experienceLevel?: string;
+    jobType?: JobType;
     jobDescription?: string;
     jdFile?: File | null;
   }) => {
@@ -18,7 +20,13 @@ export const matcherApi = {
       formData.append("resumeId", params.resumeId);
       if (params.targetRole?.trim()) formData.append("targetRole", params.targetRole.trim());
       if (params.companyName?.trim()) formData.append("companyName", params.companyName.trim());
-      if (params.jobDescription?.trim()) formData.append("jobDescription", params.jobDescription.trim());
+      if (params.experienceLevel?.trim()) {
+        formData.append("experienceLevel", params.experienceLevel.trim());
+      }
+      if (params.jobType) formData.append("jobType", params.jobType);
+      if (params.jobDescription?.trim()) {
+        formData.append("jobDescription", params.jobDescription.trim());
+      }
       formData.append("jdFile", params.jdFile);
 
       return apiRequest<JobMatchDTO>("/job-matches", {
@@ -33,6 +41,8 @@ export const matcherApi = {
         resumeId: params.resumeId,
         targetRole: params.targetRole?.trim() || undefined,
         companyName: params.companyName?.trim() || undefined,
+        experienceLevel: params.experienceLevel?.trim() || undefined,
+        jobType: params.jobType,
         jobDescription: params.jobDescription?.trim() || undefined,
       }),
     });

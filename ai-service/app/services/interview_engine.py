@@ -27,9 +27,11 @@ CATEGORY_TOPIC_FILTER: Dict[CategoryStr, Optional[str]] = {
     "PYTHON": "Python",
     "SQL": "SQL",
     "HR": "Full Stack & HR",
+    "BEHAVIORAL": "Full Stack & HR",
     "FULL_STACK": None,
     "TECHNICAL": None,
     "PROJECT_BASED": None,
+    "MIXED": None,
 }
 
 
@@ -47,9 +49,10 @@ def compute_weighted_score(c: CriteriaScoresSchema) -> float:
 async def generate_opening_question(
     payload: StartInterviewQuestionRequest,
 ) -> StartInterviewQuestionResponse:
-    kb_query = f"{payload.category} {payload.difficulty} {payload.target_role} {payload.target_job_description or ''}"
+    subcats_str = ", ".join(payload.subcategories)
+    kb_query = f"{payload.category} {subcats_str} {payload.difficulty} {payload.target_role} {payload.target_job_description or ''}"
     topic_filter = CATEGORY_TOPIC_FILTER.get(payload.category)
-    rag_docs = vector_store.retrieve_cs_context(kb_query, topic_filter=topic_filter, top_k=3)
+    rag_docs = vector_store.retrieve_cs_context(kb_query, topic_filter=topic_filter, top_k=4)
 
     resume_snippets = []
     if payload.resume_id:
@@ -70,6 +73,7 @@ async def generate_opening_question(
     )
     user_prompt = (
         f"Category: {payload.category} | Difficulty: {payload.difficulty}\n"
+        f"Focus Subcategories: {subcats_str or 'General Role Core'}\n"
         f"Target Role: {payload.target_role} ({payload.years_experience} yrs experience)\n"
         f"Candidate Skills: {', '.join(payload.skills_list[:20]) or 'General CS'}\n"
         f"Candidate Projects: {payload.projects_summary or 'None specified'}\n"
@@ -120,10 +124,11 @@ async def evaluate_and_advance_interview(
     )
 
     need_next = payload.remaining_questions > 0
+    subcats_note = f" focusing across selected topics [{', '.join(payload.subcategories)}]" if payload.subcategories else ""
     next_instruction = (
         f"There are {payload.remaining_questions} question(s) remaining. "
         "Decide `should_follow_up`: set `true` (and ask a targeted follow-up probe) ONLY if the candidate gave a partially right or vague answer (roughly 35-78 quality) where probing deeper makes sense AND current_is_follow_up is false. "
-        f"Otherwise set `should_follow_up=false` and pick a fresh distinct subtopic in `{payload.category}` avoiding already-covered topics: {', '.join(covered_topics)}. "
+        f"Otherwise set `should_follow_up=false` and pick a fresh distinct subtopic in `{payload.category}`{subcats_note} avoiding already-covered topics: {', '.join(covered_topics)}. "
         "Populate `next_question`, `next_topic_tag`, and `next_model_answer`."
         if need_next
         else "This was the final question (remaining_questions=0). Set should_follow_up=false and leave next_question/next_topic_tag/next_model_answer as null."
@@ -167,6 +172,7 @@ async def evaluate_and_advance_interview(
                     category=payload.category,
                     difficulty=payload.difficulty,
                     target_role=payload.target_role,
+                    subcategories=payload.subcategories,
                     resume_id=payload.resume_id,
                     resume_summary=payload.resume_summary,
                     target_job_description=payload.target_job_description,

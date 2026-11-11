@@ -171,6 +171,8 @@ class AiServiceClient {
     userId: string;
     resumeId: string;
     targetRole: string;
+    experienceLevel?: string;
+    analysisType?: string;
     filename: string;
     fileType: "PDF" | "DOCX";
     fileBuffer: Buffer;
@@ -190,6 +192,8 @@ class AiServiceClient {
       form.append("user_id", params.userId);
       form.append("resume_id", params.resumeId);
       form.append("target_role", params.targetRole);
+      if (params.experienceLevel) form.append("experience_level", params.experienceLevel);
+      if (params.analysisType) form.append("analysis_type", params.analysisType);
       form.append("file_type", params.fileType);
 
       const res = await fetch(`${this.baseUrl}/internal/ai/resumes/parse-and-evaluate`, {
@@ -243,6 +247,8 @@ class AiServiceClient {
     jobDescription?: string;
     targetRole?: string;
     companyName?: string;
+    experienceLevel?: string;
+    jobType?: string;
     jdFile?: { buffer: Buffer; filename: string; mime: string };
   }): Promise<AiJobMatchResponse> {
     const controller = new AbortController();
@@ -259,6 +265,8 @@ class AiServiceClient {
       if (params.jobDescription) form.append("job_description", params.jobDescription);
       if (params.targetRole) form.append("target_role", params.targetRole);
       if (params.companyName) form.append("company_name", params.companyName);
+      if (params.experienceLevel) form.append("experience_level", params.experienceLevel);
+      if (params.jobType) form.append("job_type", params.jobType);
       if (params.jdFile) {
         const blob = new Blob([new Uint8Array(params.jdFile.buffer)], {
           type: params.jdFile.mime,
@@ -355,6 +363,7 @@ class AiServiceClient {
 
   async analyzeSkillGap(params: {
     targetRole: string;
+    learningPreference?: string;
     currentSkills: CurrentCandidateSkillDTO[];
     resumeSkills: string[];
     resumeSummary?: string | null;
@@ -379,6 +388,7 @@ class AiServiceClient {
       "/internal/ai/skills/analyze-gap",
       {
         target_role: params.targetRole,
+        learning_preference: params.learningPreference || "BEGINNER_TO_ADVANCED",
         current_skills: params.currentSkills.map((s) => ({
           name: s.name,
           normalizedName: s.normalizedName,
@@ -415,8 +425,12 @@ class AiServiceClient {
 
   async generateRoadmap(params: {
     targetRole: string;
+    skillLevel?: string;
+    dailyStudyHours?: number;
+    durationDays?: number;
     estimatedWeeks: number;
     hoursPerWeek: number;
+    learningPreference?: string;
     skillGaps: SkillRequirementBenchmarkDTO[];
     learningOrder: string[];
     currentSkillNames: string[];
@@ -430,8 +444,12 @@ class AiServiceClient {
       "/internal/ai/roadmap/generate",
       {
         target_role: params.targetRole,
+        skill_level: params.skillLevel || "BEGINNER",
+        daily_study_hours: params.dailyStudyHours ?? 2,
+        duration_days: params.durationDays ?? 30,
         estimated_weeks: params.estimatedWeeks,
         hours_per_week: params.hoursPerWeek,
+        learning_preference: params.learningPreference || "MIXED_LEARNING",
         skill_gaps: params.skillGaps,
         learning_order: params.learningOrder,
         current_skill_names: params.currentSkillNames,
@@ -453,6 +471,7 @@ class AiServiceClient {
     category: InterviewCategory;
     difficulty: InterviewDifficulty;
     targetRole: string;
+    subcategories?: string[];
     yearsExperience: number;
     resumeId?: string | null;
     resumeSummary?: string | null;
@@ -471,6 +490,7 @@ class AiServiceClient {
         category: params.category,
         difficulty: params.difficulty,
         target_role: params.targetRole,
+        subcategories: params.subcategories ?? [],
         years_experience: params.yearsExperience,
         resume_id: params.resumeId ?? null,
         resume_summary: params.resumeSummary ?? null,
@@ -494,6 +514,7 @@ class AiServiceClient {
     category: InterviewCategory;
     difficulty: InterviewDifficulty;
     targetRole: string;
+    subcategories?: string[];
     currentQuestion: string;
     currentTopicTag: string;
     currentModelAnswer: string;
@@ -528,6 +549,7 @@ class AiServiceClient {
         category: params.category,
         difficulty: params.difficulty,
         target_role: params.targetRole,
+        subcategories: params.subcategories ?? [],
         current_question: params.currentQuestion,
         current_topic_tag: params.currentTopicTag,
         current_model_answer: params.currentModelAnswer,

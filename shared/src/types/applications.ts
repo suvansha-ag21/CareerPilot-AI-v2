@@ -1,4 +1,4 @@
-import { ApplicationStatus, InterviewCategory, InterviewMode } from "../constants/enums";
+import { ApplicationStatus, InterviewCategory, InterviewMode, JobType } from "../constants/enums";
 import { DashboardAnalyticsDTO } from "./index";
 
 export interface JobApplicationDTO {
@@ -6,6 +6,7 @@ export interface JobApplicationDTO {
   userId: string;
   company: string;
   jobRole: string;
+  jobType: JobType;
   jobDescription: string | null;
   applicationDate: string;
   status: ApplicationStatus;

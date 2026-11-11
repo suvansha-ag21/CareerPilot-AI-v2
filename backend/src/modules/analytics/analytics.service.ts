@@ -178,8 +178,23 @@ export class AnalyticsService {
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
 
-    // Deterministic, state-driven AI workflow recommendations
+    // Deterministic, state-driven AI workflow recommendations personalized by goals
+    const prefs = (user?.careerPreferences as Record<string, unknown> | null) ?? {};
+    const goals = Array.isArray(prefs.careerGoals)
+      ? (prefs.careerGoals as string[])
+      : [];
+    const onboardingDone = prefs.onboardingCompleted === true;
+
     const recommendations: DashboardAnalyticsDTO["recommendations"] = [];
+    if (!onboardingDone) {
+      recommendations.push({
+        title: "Personalize your 3-step career path",
+        reason: "Tell us your education background, target role, and goals so CareerPilot AI tailors interviews and roadmaps.",
+        actionHref: "/onboarding",
+        actionLabel: "Start Setup",
+        priority: "HIGH",
+      });
+    }
     if (profileCompletenessPct < 75) {
       recommendations.push({
         title: "Complete education, projects & skill inventory",
@@ -192,7 +207,9 @@ export class AnalyticsService {
     if (resumes.length === 0) {
       recommendations.push({
         title: "Upload your resume for ATS & structure audit",
-        reason: "Phase 2 unlocks PDF/DOCX parsing, structural feedback, and semantic embedding indexing.",
+        reason: goals.includes("Improve my resume")
+          ? "Goal Match: Upload your PDF/DOCX resume to unlock ATS scoring, missing keywords, and AI bullet rewrites."
+          : "Upload your PDF or DOCX resume to unlock section feedback and job matching.",
         actionHref: "/resume",
         actionLabel: "Go to Resume AI",
         priority: "HIGH",
@@ -200,7 +217,9 @@ export class AnalyticsService {
     }
     if (!latestMatch) {
       recommendations.push({
-        title: "Benchmark against a target Job Description",
+        title: goals.includes("Get an internship")
+          ? "Compare resume against an internship description"
+          : "Benchmark against a target Job Description",
         reason: "Compare your current stack against real hiring requirements to uncover high-priority skill gaps.",
         actionHref: "/matcher",
         actionLabel: "Open Job Matcher",
@@ -209,8 +228,8 @@ export class AnalyticsService {
     }
     if (!activeRoadmap) {
       recommendations.push({
-        title: "Analyze skill gaps & generate a weekly roadmap",
-        reason: "Turn your target role requirements into prioritized weekly study tasks tracked in PostgreSQL.",
+        title: "Analyze skill gaps & generate a study roadmap",
+        reason: "Turn your target role requirements into structured daily and weekly study milestones.",
         actionHref: "/skills",
         actionLabel: "Analyze Skills",
         priority: "MEDIUM",
@@ -219,10 +238,12 @@ export class AnalyticsService {
     if (completedInterviews.length === 0) {
       recommendations.push({
         title: `Start a baseline ${user?.targetRole || "Technical"} interview`,
-        reason: "Establish your objective communication and technical correctness baseline.",
+        reason: goals.includes("Prepare for campus placements") || goals.includes("Prepare for technical interviews")
+          ? "Goal Match: Practice structured core CS, coding, and behavioral prompts with rubric feedback."
+          : "Establish your objective communication and technical correctness baseline.",
         actionHref: "/interview",
         actionLabel: "Launch Mock Room",
-        priority: "MEDIUM",
+        priority: goals.includes("Prepare for technical interviews") ? "HIGH" : "MEDIUM",
       });
     }
 
@@ -305,6 +326,7 @@ export class AnalyticsService {
     const statusCounts: Record<ApplicationStatus, number> = {
       [ApplicationStatus.APPLIED]: 0,
       [ApplicationStatus.ASSESSMENT]: 0,
+      [ApplicationStatus.SHORTLISTED]: 0,
       [ApplicationStatus.INTERVIEW_SCHEDULED]: 0,
       [ApplicationStatus.SELECTED]: 0,
       [ApplicationStatus.OFFER_RECEIVED]: 0,
@@ -317,6 +339,7 @@ export class AnalyticsService {
 
     const totalApps = applications.length;
     const progressedToInterview =
+      statusCounts[ApplicationStatus.SHORTLISTED] +
       statusCounts[ApplicationStatus.INTERVIEW_SCHEDULED] +
       statusCounts[ApplicationStatus.SELECTED] +
       statusCounts[ApplicationStatus.OFFER_RECEIVED];
@@ -326,6 +349,7 @@ export class AnalyticsService {
     const FUNNEL_LABELS: Record<ApplicationStatus, string> = {
       [ApplicationStatus.APPLIED]: "Applied",
       [ApplicationStatus.ASSESSMENT]: "Assessment",
+      [ApplicationStatus.SHORTLISTED]: "Shortlisted",
       [ApplicationStatus.INTERVIEW_SCHEDULED]: "Interviewing",
       [ApplicationStatus.SELECTED]: "Selected",
       [ApplicationStatus.OFFER_RECEIVED]: "Offer Received",

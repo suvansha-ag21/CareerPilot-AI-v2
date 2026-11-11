@@ -56,6 +56,7 @@ class SkillCategoryCoverageSchema(BaseModel):
 
 class AnalyzeSkillGapRequest(BaseModel):
     target_role: str
+    learning_preference: str = "BEGINNER_TO_ADVANCED"
     current_skills: List[CandidateSkillInput] = Field(default_factory=list)
     resume_skills: List[str] = Field(default_factory=list)
     resume_summary: Optional[str] = None
@@ -92,8 +93,12 @@ class AnalyzeSkillGapResponse(BaseModel):
 
 class GenerateRoadmapRequest(BaseModel):
     target_role: str
-    estimated_weeks: int = Field(default=4, ge=2, le=12)
-    hours_per_week: int = Field(default=10, ge=3, le=40)
+    skill_level: str = "BEGINNER"
+    daily_study_hours: int = Field(default=2, ge=1, le=12)
+    duration_days: int = Field(default=30, ge=14, le=180)
+    estimated_weeks: int = Field(default=4, ge=2, le=26)
+    hours_per_week: int = Field(default=14, ge=3, le=60)
+    learning_preference: str = "MIXED_LEARNING"
     skill_gaps: List[SkillRequirementBenchmarkSchema] = Field(default_factory=list)
     learning_order: List[str] = Field(default_factory=list)
     current_skill_names: List[str] = Field(default_factory=list)
@@ -101,7 +106,7 @@ class GenerateRoadmapRequest(BaseModel):
 
 
 class RoadmapTaskLLMSchema(BaseModel):
-    weekNumber: int = Field(ge=1, le=12)
+    weekNumber: int = Field(ge=1, le=26)
     dayNumber: int = Field(ge=1, le=5)
     title: str
     description: str

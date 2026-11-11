@@ -200,6 +200,7 @@ async def run_skill_gap_analysis(payload: AnalyzeSkillGapRequest) -> AnalyzeSkil
     )
     user_prompt = (
         f"Target Role: {payload.target_role}\n"
+        f"Candidate Learning Preference: {payload.learning_preference}\n"
         f"Computed Role Readiness: {readiness_pct}%\n"
         f"Current Skills: {current_summary}\n"
         f"Open Skill Gaps & Level-Ups: {gap_summary}\n"

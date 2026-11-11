@@ -158,6 +158,37 @@ export default function UserDashboardPage() {
               study progress—no artificial scores or preset progress.
             </p>
 
+            {/* Personalized Onboarding Goals & Context Chips */}
+            {(user?.careerPreferences?.userPersona ||
+              (user?.careerPreferences?.careerGoals?.length ?? 0) > 0) && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                {user?.careerPreferences?.userPersona && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-[11px] font-medium text-[#172033]">
+                    {user.careerPreferences.userPersona}
+                  </span>
+                )}
+                {user?.careerPreferences?.experienceLevel && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-[11px] font-medium text-[#64748B]">
+                    {user.careerPreferences.experienceLevel}
+                  </span>
+                )}
+                {(user?.careerPreferences?.careerGoals ?? []).slice(0, 3).map((goal) => (
+                  <span
+                    key={goal}
+                    className="px-2.5 py-0.5 rounded-full bg-[#EEF2FF] border border-[#6D5DFB]/20 text-[11px] font-medium text-[#6D5DFB]"
+                  >
+                    {goal}
+                  </span>
+                ))}
+                <Link
+                  href="/onboarding"
+                  className="text-[11px] font-medium text-[#6D5DFB] hover:underline ml-1"
+                >
+                  Edit Path
+                </Link>
+              </div>
+            )}
+
             {/* Pipeline Readiness Strip */}
             <div className="pt-2 flex flex-wrap items-center gap-2">
               {pipelineSteps.map((step) => (

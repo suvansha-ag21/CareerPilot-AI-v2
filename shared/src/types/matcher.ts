@@ -14,6 +14,8 @@ export interface JobMatchRecommendationsDTO {
   summary: string;
   methodologyNote: string;
   experienceAssessment: string;
+  experienceLevelUsed?: string;
+  jobTypeUsed?: string;
   requiredSkillsFound: string[];
   preferredSkillsFound: string[];
   items: MatchRecommendationItemDTO[];

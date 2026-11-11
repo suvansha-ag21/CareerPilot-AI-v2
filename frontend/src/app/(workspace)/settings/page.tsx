@@ -39,7 +39,9 @@ export default function SettingsPage() {
     setStatusMsg(null);
     setErrorMsg(null);
 
+    const existing = user?.careerPreferences;
     const prefs: CareerPreferences = {
+      ...(existing ?? {}),
       preferredWorkMode,
       weeklyStudyHours: Number(weeklyStudyHours) || 10,
       openToInternships,
@@ -48,6 +50,8 @@ export default function SettingsPage() {
         .map((s) => s.trim())
         .filter(Boolean)
         .slice(0, 8),
+      careerGoals: existing?.careerGoals ?? [],
+      onboardingCompleted: existing?.onboardingCompleted ?? false,
     };
 
     try {

@@ -71,6 +71,33 @@ ROLE_CORE_SKILLS: Dict[str, List[str]] = {
         "Python", "SQL", "Machine Learning", "Scikit-learn", "PyTorch",
         "Pandas", "NumPy", "NLP", "Vector Databases", "Docker", "Git"
     ],
+    "AI/ML Engineer": [
+        "Python", "Machine Learning", "Scikit-learn", "PyTorch", "NLP",
+        "LangChain", "Vector Databases", "FastAPI", "Docker", "Git"
+    ],
+    "Data Scientist": [
+        "Python", "SQL", "Pandas", "NumPy", "Machine Learning",
+        "Scikit-learn", "NLP", "Git"
+    ],
+    "Data Analyst": [
+        "SQL", "PostgreSQL", "Python", "Pandas", "NumPy", "Git"
+    ],
+    "Software Engineer (SDE)": [
+        "Data Structures & Algorithms", "OOP", "DBMS", "Operating Systems",
+        "System Design", "Python", "Java", "SQL", "REST APIs", "Git"
+    ],
+    "DevOps Engineer": [
+        "Linux", "Docker", "Kubernetes", "AWS", "CI/CD", "Git",
+        "Python", "Computer Networks"
+    ],
+    "Cybersecurity Engineer": [
+        "Linux", "Computer Networks", "Operating Systems", "Python",
+        "SQL", "Docker", "Git"
+    ],
+    "Backend Developer": [
+        "Node.js", "Python", "PostgreSQL", "SQL", "Redis",
+        "REST APIs", "System Design", "Docker", "Git", "Testing"
+    ],
     "Java Spring Boot Developer": [
         "Java", "Spring Boot", "SQL", "PostgreSQL", "REST APIs",
         "Data Structures & Algorithms", "OOP", "Docker", "Git"
@@ -102,8 +129,16 @@ def get_expected_skills_for_role(target_role: str) -> List[str]:
     if target_role in ROLE_CORE_SKILLS:
         return ROLE_CORE_SKILLS[target_role]
     lower_role = target_role.lower()
+    if "analyst" in lower_role:
+        return ROLE_CORE_SKILLS["Data Analyst"]
+    if "devops" in lower_role or "cloud" in lower_role or "sre" in lower_role:
+        return ROLE_CORE_SKILLS["DevOps Engineer"]
+    if "cyber" in lower_role or "security" in lower_role:
+        return ROLE_CORE_SKILLS["Cybersecurity Engineer"]
     if "data" in lower_role or "ml" in lower_role or "ai" in lower_role:
-        return ROLE_CORE_SKILLS["Data Scientist & ML Engineer"]
+        return ROLE_CORE_SKILLS["AI/ML Engineer"]
+    if "sde" in lower_role or "software engineer" in lower_role:
+        return ROLE_CORE_SKILLS["Software Engineer (SDE)"]
     if "frontend" in lower_role:
         return ROLE_CORE_SKILLS["Frontend Developer"]
     if "java" in lower_role:
@@ -111,7 +146,7 @@ def get_expected_skills_for_role(target_role: str) -> List[str]:
     if "python" in lower_role:
         return ROLE_CORE_SKILLS["Python Backend Developer"]
     if "backend" in lower_role:
-        return ROLE_CORE_SKILLS["Backend Software Engineer"]
+        return ROLE_CORE_SKILLS["Backend Developer"]
     if "intern" in lower_role:
         return ROLE_CORE_SKILLS["Software Engineer Intern"]
     return ROLE_CORE_SKILLS["Full Stack Developer"]

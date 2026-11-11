@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { AnalyzeResumeOptionsSchema } from "@careerpilot/shared";
 import { BadRequestError, UnauthorizedError } from "../../utils/errors";
 import { resumeService } from "./resume.service";
 
@@ -22,7 +23,12 @@ export async function uploadResumeController(req: Request, res: Response): Promi
 
 export async function analyzeResumeController(req: Request, res: Response): Promise<void> {
   if (!req.user) throw new UnauthorizedError();
-  const resume = await resumeService.analyzeResume(req.user.id, String(req.params.id));
+  const options = AnalyzeResumeOptionsSchema.parse(req.body ?? {});
+  const resume = await resumeService.analyzeResume(
+    req.user.id,
+    String(req.params.id),
+    options
+  );
   res.status(200).json({ success: true, data: resume });
 }
 
