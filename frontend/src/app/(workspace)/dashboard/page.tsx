@@ -83,7 +83,7 @@ export default function UserDashboardPage() {
   }, []);
 
   const firstName = user?.name?.split(" ")[0] || "Candidate";
-  const targetRole = user?.targetRole || "Full Stack Developer";
+  const targetRole = user?.targetRole?.trim() || null;
 
   const chartData = [
     { name: "Profile", value: data?.profileCompletenessPct ?? 0 },
@@ -136,10 +136,19 @@ export default function UserDashboardPage() {
         <div className="relative p-6 sm:p-7 flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-gradient-to-br from-white via-white to-[#EEF2FF]/75">
           <div className="space-y-2.5 max-w-2xl">
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge tone="brand">
-                <Sparkles className="h-3 w-3" />
-                Active Track: {targetRole}
-              </Badge>
+              {targetRole ? (
+                <Badge tone="brand">
+                  <Sparkles className="h-3 w-3" />
+                  Active Track: {targetRole}
+                </Badge>
+              ) : (
+                <Link href="/onboarding">
+                  <Badge tone="brand">
+                    <Sparkles className="h-3 w-3" />
+                    Set Target Role
+                  </Badge>
+                </Link>
+              )}
               {data && (
                 <Badge tone={data.serviceHealth.aiService === "healthy" ? "success" : "warning"}>
                   <Cpu className="h-3 w-3" />

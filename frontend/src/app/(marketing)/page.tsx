@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -19,6 +19,8 @@ import {
   Target,
   TrendingUp,
 } from "lucide-react";
+import { DashboardAnalyticsDTO } from "@careerpilot/shared";
+import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/store/auth-context";
 import { Button } from "@/components/ui/Button";
 import { ProgressRing } from "@/components/ui/ProgressRing";
@@ -118,30 +120,28 @@ const ENGINE_PILLARS = [
   },
 ];
 
-const TESTIMONIALS = [
-  {
-    name: "Aarav Mehta",
-    role: "Final-Year CS Student • Backend Intern Offer",
-    quote:
-      "Seeing missing Spring Boot and SQL indexing requirements side by side against my resume immediately clarified what to study before campus placements.",
-  },
-  {
-    name: "Neha Kulkarni",
-    role: "Full Stack Developer Applicant",
-    quote:
-      "The adaptive follow-up questions during project-based mock interviews pushed me to explain architecture trade-offs instead of reciting memorized answers.",
-  },
-  {
-    name: "Rohan Desai",
-    role: "Graduate Software Engineer",
-    quote:
-      "Having my skill gaps flow straight into a week-by-week roadmap and application tracker replaced four disconnected spreadsheets for me.",
-  },
-];
-
 export default function LandingPage() {
   const { user } = useAuth();
   const [previewTab, setPreviewTab] = useState<PreviewTab>("overview");
+  const [liveDashboard, setLiveDashboard] = useState<DashboardAnalyticsDTO | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setLiveDashboard(null);
+      return;
+    }
+    let active = true;
+    apiRequest<DashboardAnalyticsDTO>("/analytics/dashboard")
+      .then((res) => {
+        if (active) setLiveDashboard(res);
+      })
+      .catch(() => {
+        if (active) setLiveDashboard(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#172033]">
@@ -166,9 +166,6 @@ export default function LandingPage() {
             </a>
             <a href="#why-careerpilot" className="hover:text-[#172033] transition-colors">
               Scoring &amp; AI
-            </a>
-            <a href="#testimonials" className="hover:text-[#172033] transition-colors">
-              Stories
             </a>
           </nav>
 
@@ -253,7 +250,7 @@ export default function LandingPage() {
           </motion.div>
         </div>
 
-        {/* 3. Interactive Product Workspace Preview */}
+        {/* 3. Live Workspace / Module Overview (Zero Static Data) */}
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
@@ -269,16 +266,16 @@ export default function LandingPage() {
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
               </div>
               <span className="text-[11px] font-medium text-[#64748B]">
-                CareerPilot AI — Workspace Tour
+                CareerPilot AI — {user ? "Your Live Workspace" : "Module Architecture"}
               </span>
               <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#6D5DFB]">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Interactive Demo
+                {user ? "Live Telemetry" : "Zero-Baseline Start"}
               </span>
             </div>
 
             {/* Interactive Split Workspace Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-12 min-h-[360px]">
+            <div className="grid grid-cols-1 md:grid-cols-12 min-h-[340px]">
               {/* Dark Sidebar Mini Navigation (#111827) */}
               <div className="hidden md:flex md:col-span-3 bg-[#111827] text-slate-300 p-5 flex-col justify-between">
                 <div className="space-y-4">
@@ -316,7 +313,7 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <div className="text-[11px] text-slate-400 border-t border-slate-800 pt-3">
-                  Track: Full Stack Developer
+                  {user?.targetRole ? `Track: ${user.targetRole}` : "Personalized Career Track"}
                 </div>
               </div>
 
@@ -325,7 +322,7 @@ export default function LandingPage() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D5DFB]">
-                      Sample Workspace View
+                      {user ? "Live Account Data" : "Real-Data Workspace"}
                     </p>
                     <h3 className="text-base font-semibold text-[#172033]">
                       {previewTab === "overview" && "Placement Readiness & Progress"}
@@ -353,71 +350,93 @@ export default function LandingPage() {
                     ))}
                   </div>
 
-                  <span className="hidden md:inline-flex px-3 py-1 rounded-full bg-white border border-[#E2E8F0] text-xs font-medium text-[#172033]">
-                    Target: Full Stack Developer
-                  </span>
+                  {user?.targetRole && (
+                    <span className="hidden md:inline-flex px-3 py-1 rounded-full bg-white border border-[#E2E8F0] text-xs font-medium text-[#172033]">
+                      Target: {user.targetRole}
+                    </span>
+                  )}
                 </div>
 
                 {previewTab === "overview" && (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 flex items-center gap-3.5">
-                      <ProgressRing value={84} size={64} strokeWidth={6} label="Ready" />
+                      <ProgressRing
+                        value={user ? liveDashboard?.readinessScore ?? null : null}
+                        size={64}
+                        strokeWidth={6}
+                        label="Ready"
+                      />
                       <div>
                         <p className="text-xs text-[#64748B]">Placement Readiness</p>
-                        <p className="text-sm font-semibold text-[#172033] mt-0.5">Strong Trajectory</p>
-                        <p className="text-[11px] text-emerald-600 font-medium">14 verified skills</p>
+                        <p className="text-sm font-semibold text-[#172033] mt-0.5">
+                          {user && liveDashboard?.readinessScore !== null && liveDashboard?.readinessScore !== undefined
+                            ? `${liveDashboard.readinessScore}% Computed`
+                            : "Starts at 0"}
+                        </p>
+                        <p className="text-[11px] text-[#64748B] font-medium">
+                          {user
+                            ? `${liveDashboard?.skillsCount ?? 0} verified skills`
+                            : "Computed from your uploads"}
+                        </p>
                       </div>
                     </div>
                     <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2">
                       <p className="text-xs text-[#64748B]">Latest Resume Score</p>
-                      <p className="text-2xl font-bold text-[#172033] tabular-nums">86%</p>
+                      <p className="text-2xl font-bold text-[#172033] tabular-nums">
+                        {user && liveDashboard?.latestResumeScore !== null && liveDashboard?.latestResumeScore !== undefined
+                          ? `${liveDashboard.latestResumeScore}%`
+                          : "—"}
+                      </p>
                       <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                        <div className="h-full w-[86%] bg-emerald-500 rounded-full" />
+                        <div
+                          className="h-full bg-emerald-500 rounded-full transition-all"
+                          style={{
+                            width: `${user ? liveDashboard?.latestResumeScore ?? 0 : 0}%`,
+                          }}
+                        />
                       </div>
-                      <p className="text-[11px] text-[#64748B]">Strong project impact metrics</p>
+                      <p className="text-[11px] text-[#64748B]">
+                        {user ? "From your latest resume audit" : "Upload PDF or DOCX to evaluate"}
+                      </p>
                     </div>
                     <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2">
                       <p className="text-xs text-[#64748B]">Active Study Sprint</p>
-                      <p className="text-2xl font-bold text-[#172033] tabular-nums">75%</p>
+                      <p className="text-2xl font-bold text-[#172033] tabular-nums">
+                        {user && liveDashboard?.roadmapProgressPct !== null && liveDashboard?.roadmapProgressPct !== undefined
+                          ? `${liveDashboard.roadmapProgressPct}%`
+                          : "—"}
+                      </p>
                       <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                        <div className="h-full w-[75%] bg-[#6D5DFB] rounded-full" />
+                        <div
+                          className="h-full bg-[#6D5DFB] rounded-full transition-all"
+                          style={{
+                            width: `${user ? liveDashboard?.roadmapProgressPct ?? 0 : 0}%`,
+                          }}
+                        />
                       </div>
-                      <p className="text-[11px] text-[#6D5DFB] font-medium">9 of 12 weekly tasks done</p>
+                      <p className="text-[11px] text-[#6D5DFB] font-medium">
+                        {user ? "Synced with your roadmap tasks" : "Generated from your skill gaps"}
+                      </p>
                     </div>
                   </div>
                 )}
 
                 {previewTab === "resume" && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2.5">
-                      <p className="text-xs font-semibold text-[#172033]">Section Quality Signals</p>
-                      {[
-                        { s: "Technical Skills", p: 92 },
-                        { s: "Projects & Impact", p: 86 },
-                        { s: "Formatting & Keywords", p: 78 },
-                      ].map((row) => (
-                        <div key={row.s} className="space-y-1">
-                          <div className="flex justify-between text-[11px]">
-                            <span className="text-[#64748B]">{row.s}</span>
-                            <span className="font-semibold text-[#172033] tabular-nums">{row.p}%</span>
-                          </div>
-                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-[#6D5DFB] rounded-full"
-                              style={{ width: `${row.p}%` }}
-                            />
-                          </div>
-                        </div>
-                      ))}
+                    <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2">
+                      <p className="text-xs font-semibold text-[#172033]">Section-Wise Resume Audit</p>
+                      <p className="text-xs text-[#64748B] leading-relaxed">
+                        Evaluates your uploaded resume across Contact Clarity, Technical Skills,
+                        Project Impact, Education, Experience, and Formatting—with tailored
+                        recommendations for ATS Compatibility, Skills, or Full Audits.
+                      </p>
                     </div>
                     <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2">
-                      <p className="text-xs font-semibold text-[#6D5DFB]">AI Bullet Rewrite Suggestion</p>
-                      <p className="text-[11px] text-slate-400 line-through">
-                        Built a backend API for student tracking app.
-                      </p>
-                      <p className="text-xs text-[#172033] font-medium leading-relaxed">
-                        Engineered RESTful Node.js microservices with Redis caching, reducing API p95
-                        latency by 42% for 1,200+ active users.
+                      <p className="text-xs font-semibold text-[#6D5DFB]">Actionable Bullet Rewrites</p>
+                      <p className="text-xs text-[#64748B] leading-relaxed">
+                        Detects weak bullet descriptions directly from your document, suggests
+                        stronger engineering rewrites, surfaces missing target-role keywords, and
+                        syncs verified skills to your profile.
                       </p>
                     </div>
                   </div>
@@ -426,32 +445,32 @@ export default function LandingPage() {
                 {previewTab === "matcher" && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 flex items-center gap-4">
-                      <ProgressRing value={88} size={68} strokeWidth={7} color="#16A34A" label="Match" />
+                      <ProgressRing
+                        value={user ? liveDashboard?.latestJobMatchScore ?? null : null}
+                        size={68}
+                        strokeWidth={7}
+                        color="#16A34A"
+                        label="Match"
+                      />
                       <div className="space-y-1">
                         <p className="text-xs font-semibold text-[#172033]">
-                          Software Engineer — Cloud Platform
+                          {user && liveDashboard?.latestJobMatchScore !== null && liveDashboard?.latestJobMatchScore !== undefined
+                            ? `Latest Match: ${liveDashboard.latestJobMatchScore}%`
+                            : "Semantic Job Description Match"}
                         </p>
                         <p className="text-[11px] text-[#64748B]">
-                          Strong alignment across core stack &amp; production APIs.
+                          Combines semantic similarity, skill graph alignment, and experience level
+                          checks against pasted or uploaded JDs.
                         </p>
                       </div>
                     </div>
-                    <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2.5">
-                      <p className="text-xs font-semibold text-[#172033]">Detected Skill Fit</p>
-                      <div className="flex flex-wrap gap-1.5 text-[11px]">
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
-                          ✓ TypeScript
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
-                          ✓ React &amp; SQL
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
-                          ~ Kubernetes (Docker transferable)
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-medium">
-                          + System Design
-                        </span>
-                      </div>
+                    <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2">
+                      <p className="text-xs font-semibold text-[#172033]">Structured Fit Output</p>
+                      <p className="text-xs text-[#64748B] leading-relaxed">
+                        Separates exact Matching Skills, Partially Matching Skills, Missing
+                        Requirements, and Relevant Resume Projects for Internship, Full-time,
+                        Remote, Hybrid, and On-site roles.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -459,25 +478,28 @@ export default function LandingPage() {
                 {previewTab === "interview" && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs font-semibold text-[#172033]">Voice Delivery Metrics</p>
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold">
-                          128 WPM • Clear Pace
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-[#172033]">Voice &amp; Delivery Analytics</p>
+                        <span className="px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#6D5DFB] text-[10px] font-semibold">
+                          {user
+                            ? `${liveDashboard?.totalMockInterviews ?? 0} Session(s)`
+                            : "Voice + Text Modes"}
                         </span>
                       </div>
                       <p className="text-xs text-[#64748B] leading-relaxed">
-                        &ldquo;We used read-through caching with short TTL invalidation so stale reads
-                        stay bounded while protecting database throughput.&rdquo;
+                        Supports Technical, HR, DSA, Project-Based, Behavioral, and Mixed interviews
+                        with real speech transcription, speaking speed (WPM), and filler-word counts.
                       </p>
                     </div>
                     <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2">
-                      <p className="text-xs font-semibold text-[#6D5DFB]">5-Criterion Evaluation</p>
-                      <div className="grid grid-cols-2 gap-2 text-[11px]">
-                        <div className="p-2 rounded bg-slate-50">Accuracy: <strong>90%</strong></div>
-                        <div className="p-2 rounded bg-slate-50">Depth: <strong>85%</strong></div>
-                        <div className="p-2 rounded bg-slate-50">Clarity: <strong>88%</strong></div>
-                        <div className="p-2 rounded bg-slate-50">Examples: <strong>82%</strong></div>
-                      </div>
+                      <p className="text-xs font-semibold text-[#6D5DFB]">5-Criterion Rubric</p>
+                      <p className="text-xs text-[#64748B] leading-relaxed">
+                        {user && liveDashboard?.averageInterviewScore !== null && liveDashboard?.averageInterviewScore !== undefined
+                          ? `Your average completed interview score: ${liveDashboard.averageInterviewScore}%. `
+                          : ""}
+                        Every answer is graded across Technical Accuracy, Depth, Completeness,
+                        Clarity, and Practical Examples alongside a model answer.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -485,16 +507,16 @@ export default function LandingPage() {
                 <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="space-y-0.5">
                     <p className="text-xs font-semibold text-[#172033]">
-                      Built Around Your Own Progress
+                      100% Real-Data Guarantee
                     </p>
                     <p className="text-xs text-[#64748B]">
-                      Every new account starts cleanly at zero—your readiness score grows strictly
-                      from your real resumes, job matches, and practice sessions.
+                      Every new account starts cleanly at zero—no preloaded fake numbers, no mock
+                      evaluations.
                     </p>
                   </div>
                   <Link href={user ? "/dashboard" : "/register"} className="shrink-0">
                     <Button size="sm" variant="secondary">
-                      Create Free Workspace
+                      {user ? "Open Live Dashboard" : "Create Free Workspace"}
                     </Button>
                   </Link>
                 </div>
@@ -620,36 +642,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 7. Testimonials */}
-      <section id="testimonials" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="max-w-2xl mb-12">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#6D5DFB]">
-              Designed for Candidates
-            </p>
-            <h2 className="text-3xl font-semibold text-[#172033] tracking-tight mt-2">
-              Structured preparation for students and job seekers
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((t) => (
-              <div
-                key={t.name}
-                className="bg-white border border-[#E2E8F0] rounded-xl p-6 shadow-card flex flex-col justify-between gap-4"
-              >
-                <p className="text-sm text-[#172033] leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
-                <div className="pt-3 border-t border-slate-100">
-                  <p className="text-xs font-semibold text-[#172033]">{t.name}</p>
-                  <p className="text-[11px] text-[#64748B] mt-0.5">{t.role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 8. Final CTA Section */}
+      {/* 7. Final CTA Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto rounded-2xl bg-white border border-[#E2E8F0] p-8 sm:p-12 shadow-card flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-2 max-w-xl">
