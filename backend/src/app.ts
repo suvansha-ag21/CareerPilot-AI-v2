@@ -11,6 +11,8 @@ import analyticsRoutes from "./modules/analytics/analytics.routes";
 import healthRoutes from "./modules/health/health.routes";
 import resumeRoutes from "./modules/resumes/resume.routes";
 import matcherRoutes from "./modules/matcher/matcher.routes";
+import skillsRoutes from "./modules/skills/skills.routes";
+import roadmapRoutes from "./modules/roadmap/roadmap.routes";
 
 const app = express();
 
@@ -38,6 +40,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/resumes", resumeRoutes);
 app.use("/api/job-matches", matcherRoutes);
+app.use("/api/skills", skillsRoutes);
+app.use("/api/roadmaps", roadmapRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
 app.use((_req, res) => {

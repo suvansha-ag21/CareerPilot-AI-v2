@@ -1,9 +1,14 @@
 import {
+  CurrentCandidateSkillDTO,
   JobMatchRecommendationsDTO,
+  LearningResourceDTO,
   ParsedResumeDataDTO,
   RelevantProjectMatchDTO,
   ResumeFeedbackReportDTO,
   ResumeSectionEvaluationDTO,
+  SkillCategoryCoverageDTO,
+  SkillRequirementBenchmarkDTO,
+  TaskPriority,
 } from "@careerpilot/shared";
 import { env } from "../config/env";
 import { AppError } from "../utils/errors";
@@ -22,6 +27,38 @@ export interface AiResumeAnalyzeResponse {
   estimatedScore: number;
   sectionScores: ResumeSectionEvaluationDTO[];
   feedback: ResumeFeedbackReportDTO;
+}
+
+export interface AiSkillGapResponse {
+  targetRole: string;
+  readinessPct: number;
+  totalRequired: number;
+  masteredCount: number;
+  needsLevelUpCount: number;
+  missingCount: number;
+  benchmarks: SkillRequirementBenchmarkDTO[];
+  missingSkills: SkillRequirementBenchmarkDTO[];
+  learningOrder: string[];
+  categoryBreakdown: SkillCategoryCoverageDTO[];
+  aiSummary: string;
+  quickWins: string[];
+}
+
+export interface AiRoadmapTaskResponseItem {
+  weekNumber: number;
+  dayNumber: number;
+  title: string;
+  description: string;
+  skillTag: string;
+  priority: TaskPriority;
+  resources: LearningResourceDTO[];
+  dueDateOffsetDays: number;
+}
+
+export interface AiGenerateRoadmapResponse {
+  title: string;
+  estimatedWeeks: number;
+  tasks: AiRoadmapTaskResponseItem[];
 }
 
 export interface AiJobMatchResponse {
@@ -248,6 +285,134 @@ class AiServiceClient {
     } finally {
       clearTimeout(timer);
     }
+  }
+
+  private async postJsonInternal<T>(
+    path: string,
+    payload: unknown,
+    defaultErrorMsg: string,
+    timeoutMessage: string
+  ): Promise<T> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 90000);
+
+    try {
+      const res = await fetch(`${this.baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Internal-Service-Key": env.INTERNAL_SERVICE_KEY,
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        await this.handleErrorResponse(res, defaultErrorMsg);
+      }
+
+      return (await res.json()) as T;
+    } catch (err) {
+      if (err instanceof AppError) throw err;
+      throw new AppError(503, "AI_SERVICE_UNREACHABLE", timeoutMessage);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async analyzeSkillGap(params: {
+    targetRole: string;
+    currentSkills: CurrentCandidateSkillDTO[];
+    resumeSkills: string[];
+    resumeSummary?: string | null;
+    jobMatchRole?: string | null;
+    jobMatchMissingSkills?: string[];
+    jobMatchPartialSkills?: string[];
+  }): Promise<AiSkillGapResponse> {
+    const raw = await this.postJsonInternal<{
+      target_role: string;
+      readiness_pct: number;
+      total_required: number;
+      mastered_count: number;
+      needs_level_up_count: number;
+      missing_count: number;
+      benchmarks: SkillRequirementBenchmarkDTO[];
+      missing_skills: SkillRequirementBenchmarkDTO[];
+      learning_order: string[];
+      category_breakdown: SkillCategoryCoverageDTO[];
+      ai_summary: string;
+      quick_wins: string[];
+    }>(
+      "/internal/ai/skills/analyze-gap",
+      {
+        target_role: params.targetRole,
+        current_skills: params.currentSkills.map((s) => ({
+          name: s.name,
+          normalizedName: s.normalizedName,
+          category: s.category,
+          proficiencyLevel: s.proficiencyLevel,
+          confidenceScore: s.confidenceScore,
+          source: s.source,
+        })),
+        resume_skills: params.resumeSkills,
+        resume_summary: params.resumeSummary ?? null,
+        job_match_role: params.jobMatchRole ?? null,
+        job_match_missing_skills: params.jobMatchMissingSkills ?? [],
+        job_match_partial_skills: params.jobMatchPartialSkills ?? [],
+      },
+      "AI service failed during skill gap evaluation",
+      "Python AI microservice is unreachable or timed out while analyzing skill gaps."
+    );
+
+    return {
+      targetRole: raw.target_role,
+      readinessPct: raw.readiness_pct,
+      totalRequired: raw.total_required,
+      masteredCount: raw.mastered_count,
+      needsLevelUpCount: raw.needs_level_up_count,
+      missingCount: raw.missing_count,
+      benchmarks: raw.benchmarks,
+      missingSkills: raw.missing_skills,
+      learningOrder: raw.learning_order,
+      categoryBreakdown: raw.category_breakdown,
+      aiSummary: raw.ai_summary,
+      quickWins: raw.quick_wins,
+    };
+  }
+
+  async generateRoadmap(params: {
+    targetRole: string;
+    estimatedWeeks: number;
+    hoursPerWeek: number;
+    skillGaps: SkillRequirementBenchmarkDTO[];
+    learningOrder: string[];
+    currentSkillNames: string[];
+    resumeSummary?: string | null;
+  }): Promise<AiGenerateRoadmapResponse> {
+    const raw = await this.postJsonInternal<{
+      title: string;
+      estimated_weeks: number;
+      tasks: AiRoadmapTaskResponseItem[];
+    }>(
+      "/internal/ai/roadmap/generate",
+      {
+        target_role: params.targetRole,
+        estimated_weeks: params.estimatedWeeks,
+        hours_per_week: params.hoursPerWeek,
+        skill_gaps: params.skillGaps,
+        learning_order: params.learningOrder,
+        current_skill_names: params.currentSkillNames,
+        resume_summary: params.resumeSummary ?? null,
+      },
+      "AI service failed during personalized roadmap generation",
+      "Python AI microservice is unreachable or timed out while generating roadmap."
+    );
+
+    return {
+      title: raw.title,
+      estimatedWeeks: raw.estimated_weeks,
+      tasks: raw.tasks,
+    };
   }
 
   async deleteResumeVectors(userId: string, resumeId: string): Promise<void> {

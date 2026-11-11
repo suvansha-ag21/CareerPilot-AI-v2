@@ -200,6 +200,15 @@ export class AnalyticsService {
         priority: "MEDIUM",
       });
     }
+    if (!activeRoadmap) {
+      recommendations.push({
+        title: "Analyze skill gaps & generate a weekly roadmap",
+        reason: "Turn your target role requirements into prioritized weekly study tasks tracked in PostgreSQL.",
+        actionHref: "/skills",
+        actionLabel: "Analyze Skills",
+        priority: "MEDIUM",
+      });
+    }
     if (completedInterviews.length === 0) {
       recommendations.push({
         title: `Start a baseline ${user?.targetRole || "Technical"} interview`,

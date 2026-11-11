@@ -188,8 +188,9 @@ export default function LandingPage() {
       </header>
 
       {/* 2. Hero Section */}
-      <section className="pt-16 pb-14 sm:pt-24 sm:pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center space-y-6">
+      <section className="relative pt-16 pb-16 sm:pt-24 sm:pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden bg-hero-glow">
+        <div className="absolute inset-0 bg-grid-slate opacity-60 pointer-events-none [mask-image:linear-gradient(to_bottom,white,transparent)]" />
+        <div className="relative max-w-4xl mx-auto text-center space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

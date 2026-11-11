@@ -9,11 +9,31 @@
     color: #172033;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #CBD5E1 transparent;
   }
 }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+.bg-grid-slate {
+  background-image: radial-gradient(rgba(100, 116, 139, 0.16) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bg-hero-glow {
+  background: radial-gradient(
+    ellipse 70% 50% at 50% -10%,
+    rgba(109, 93, 251, 0.12),
+    rgba(139, 124, 255, 0.04) 55%,
+    transparent 85%
+  );
 }
 
 @keyframes fadeSlideIn {
@@ -27,6 +47,19 @@
   }
 }
 
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 .animate-fade-in {
   animation: fadeSlideIn 0.25s ease-out forwards;
+}
+
+.animate-shimmer {
+  animation: shimmer 1.6s infinite linear;
 }

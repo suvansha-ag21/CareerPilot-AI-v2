@@ -24,31 +24,31 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  badge?: string;
+  status?: "live" | "soon";
 }
 
 const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
   {
     title: "Workspace",
     items: [
-      { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Analytics", href: "/analytics", icon: BarChart3, badge: "P7" },
+      { label: "Overview", href: "/dashboard", icon: LayoutDashboard, status: "live" },
+      { label: "Analytics", href: "/analytics", icon: BarChart3, status: "soon" },
     ],
   },
   {
     title: "AI Intelligence",
     items: [
-      { label: "Resume AI", href: "/resume", icon: FileSearch, badge: "P2" },
-      { label: "Job Matcher", href: "/matcher", icon: GitCompare, badge: "P3" },
-      { label: "Skill Gap Analyzer", href: "/skills", icon: Sparkles, badge: "P4" },
-      { label: "Mock Interview", href: "/interview", icon: Mic, badge: "P5" },
+      { label: "Resume AI", href: "/resume", icon: FileSearch, status: "live" },
+      { label: "Job Matcher", href: "/matcher", icon: GitCompare, status: "live" },
+      { label: "Skill Gap Analyzer", href: "/skills", icon: Sparkles, status: "live" },
+      { label: "Mock Interview", href: "/interview", icon: Mic, status: "soon" },
     ],
   },
   {
     title: "Execution",
     items: [
-      { label: "Learning Roadmap", href: "/roadmap", icon: Map, badge: "P4" },
-      { label: "Applications", href: "/applications", icon: Briefcase, badge: "P7" },
+      { label: "Learning Roadmap", href: "/roadmap", icon: Map, status: "live" },
+      { label: "Applications", href: "/applications", icon: Briefcase, status: "soon" },
     ],
   },
   {
@@ -122,23 +122,29 @@ export function DarkSidebar({
                     <Link
                       href={item.href}
                       onClick={onCloseMobile}
-                      className={`flex items-center justify-between px-3 py-2 rounded-lg text-[13px] font-medium transition-colors duration-150 ${
+                      className={`group relative flex items-center justify-between px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${
                         isActive
-                          ? "bg-[#6D5DFB]/20 text-white border border-[#6D5DFB]/40"
+                          ? "bg-gradient-to-r from-[#6D5DFB]/25 to-[#8B7CFF]/10 text-white border border-[#6D5DFB]/40 shadow-sm"
                           : "text-slate-400 hover:text-white hover:bg-slate-800/70 border border-transparent"
                       }`}
                     >
+                      {isActive && (
+                        <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-[#6D5DFB]" />
+                      )}
                       <span className="flex items-center gap-2.5 truncate">
                         <Icon
-                          className={`h-4 w-4 shrink-0 ${
-                            isActive ? "text-[#8B7CFF]" : "text-slate-400"
+                          className={`h-4 w-4 shrink-0 transition-colors ${
+                            isActive ? "text-[#8B7CFF]" : "text-slate-400 group-hover:text-slate-200"
                           }`}
                         />
                         <span className="truncate">{item.label}</span>
                       </span>
-                      {item.badge && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/70">
-                          {item.badge}
+                      {item.status === "live" && isActive && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.75)]" />
+                      )}
+                      {item.status === "soon" && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-800/90 text-slate-500 border border-slate-700/60">
+                          Soon
                         </span>
                       )}
                     </Link>

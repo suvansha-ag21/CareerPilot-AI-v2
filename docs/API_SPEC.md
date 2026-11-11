@@ -37,3 +37,16 @@ All protected endpoints require `Authorization: Bearer <accessToken>` and return
 - `POST /api/job-matches` *(Protected, JSON or Multipart `jdFile`)* — Compares selected analyzed resume against pasted JD text or uploaded `.pdf`/`.docx`/`.txt` JD document using ChromaDB Sentence-Transformer similarity, Scikit-learn TF-IDF keyword scoring, canonical + adjacent skill graph classification (`matchingSkills`, `partialSkills`, `missingSkills`), and structured LLM recommendations.
 - `GET /api/job-matches` & `GET /api/job-matches/:id` *(Protected)* — Lists user's compatibility reports and retrieves detailed match breakdown.
 - `DELETE /api/job-matches/:id` *(Protected)* — Removes saved `JobMatch` record owned by user.
+
+## 7. AI Skill Gap Analyzer (`/api/skills`) — Phase 4
+- `GET /api/skills/inventory` *(Protected)* — Returns candidate's normalized `UserSkill` inventory joined with `Skill`, alongside the seeded canonical `Skill` catalog.
+- `PATCH /api/skills/inventory` *(Protected)* — Upserts a candidate skill (`name`, `category`, `proficiencyLevel`) into `Skill` & `UserSkill` tables, updating `confidenceScore` immediately.
+- `DELETE /api/skills/inventory/:id` *(Protected)* — Removes an owned `UserSkill` record.
+- `POST /api/skills/analyze` *(Protected)* — Evaluates `UserSkill`, optional primary/selected `Resume`, and optional `JobMatch` via FastAPI `/internal/ai/skills/analyze-gap`, computing role readiness %, dependency-ordered study sequence, category coverage, and Gemini tactical guidance.
+
+## 8. Personalized Learning Roadmap (`/api/roadmaps`) — Phase 4
+- `GET /api/roadmaps` & `GET /api/roadmaps/:id` *(Protected)* — Lists all saved `LearningRoadmap` plans (active plan first) with week/day ordered `RoadmapTask` items.
+- `POST /api/roadmaps/generate` *(Protected)* — Generates a week-by-week (`2-12` weeks) and day-by-day curriculum from open skill gaps via FastAPI `/internal/ai/roadmap/generate`, saves `LearningRoadmap` + `RoadmapTask` rows atomically in PostgreSQL, and sets it active.
+- `PATCH /api/roadmaps/:id/activate` *(Protected)* — Marks an existing roadmap active for Dashboard tracking.
+- `PATCH /api/roadmaps/:id/tasks/:taskId` *(Protected)* — Updates task status (`PENDING` | `IN_PROGRESS` | `COMPLETED`) or priority and automatically recalculates `progressPct`.
+- `DELETE /api/roadmaps/:id` *(Protected)* — Deletes a roadmap owned by the user and promotes the latest remaining plan if active.
