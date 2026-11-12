@@ -1,15 +1,29 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.api.v1.health import router as health_router
 from app.api.v1.resumes import router as resumes_router
 from app.api.v1.matcher import router as matcher_router
 from app.api.v1.skills import router as skills_router
 from app.api.v1.interviews import router as interviews_router
+from app.rag.vector_store import vector_store
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    try:
+        vector_store.ensure_cs_kb_indexed()
+    except Exception:
+        # Defer KB indexing cleanly if embedding model initializes lazily
+        pass
+    yield
+
 
 app = FastAPI(
     title="CareerPilot AI Microservice",
     version="1.0.0",
     docs_url="/internal/ai/docs",
     openapi_url="/internal/ai/openapi.json",
+    lifespan=lifespan,
 )
 
 app.include_router(health_router, prefix="/internal/ai")

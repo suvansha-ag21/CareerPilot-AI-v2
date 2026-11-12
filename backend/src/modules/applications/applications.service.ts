@@ -40,7 +40,7 @@ function parseOptionalDate(raw: string | null | undefined, label: string): Date 
 export class ApplicationsService {
   async listApplications(
     userId: string,
-    filters?: { status?: string; search?: string }
+    filters?: { status?: string; jobType?: string; search?: string }
   ): Promise<JobApplicationDTO[]> {
     const cleanSearch = filters?.search?.trim();
     const statusFilter =
@@ -48,11 +48,16 @@ export class ApplicationsService {
       Object.values(ApplicationStatus).includes(filters.status as ApplicationStatus)
         ? (filters.status as ApplicationStatus)
         : undefined;
+    const jobTypeFilter =
+      filters?.jobType && Object.values(JobType).includes(filters.jobType as JobType)
+        ? (filters.jobType as JobType)
+        : undefined;
 
     const rows = await prisma.jobApplication.findMany({
       where: {
         userId,
         ...(statusFilter ? { status: statusFilter } : {}),
+        ...(jobTypeFilter ? { jobType: jobTypeFilter } : {}),
         ...(cleanSearch
           ? {
               OR: [

@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import multer from "multer";
 import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
 import { env } from "../config/env";
@@ -67,6 +68,20 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
         code: "VALIDATION_ERROR",
         message: "Input validation failed",
         details: err.flatten().fieldErrors,
+      },
+    });
+    return;
+  }
+
+  if (err instanceof multer.MulterError) {
+    const isTooLarge = err.code === "LIMIT_FILE_SIZE";
+    res.status(isTooLarge ? 413 : 400).json({
+      success: false,
+      error: {
+        code: isTooLarge ? "FILE_TOO_LARGE" : "UPLOAD_ERROR",
+        message: isTooLarge
+          ? "Uploaded file exceeds the maximum allowed size limit."
+          : err.message || "Invalid file upload request.",
       },
     });
     return;

@@ -61,7 +61,7 @@ All protected endpoints require `Authorization: Bearer <accessToken>` and return
 - `DELETE /api/interviews/:id` *(Protected)* — Deletes an owned interview session and removes recorded voice clips from disk.
 
 ## 10. Job Application Tracker (`/api/applications`) — Phase 7
-- `GET /api/applications` & `GET /api/applications/:id` *(Protected)* — Lists filterable (`?status=...&search=...`) job applications owned by the user or fetches single record (`404` across users).
+- `GET /api/applications` & `GET /api/applications/:id` *(Protected)* — Lists filterable (`?status=...&jobType=...&search=...`) job applications owned by the user or fetches single record (`404` across users).
 - `POST /api/applications` & `PATCH /api/applications/:id` *(Protected)* — Creates or updates tracked job applications (`APPLIED`, `ASSESSMENT`, `SHORTLISTED`, `INTERVIEW_SCHEDULED`, `SELECTED`, `OFFER_RECEIVED`, `REJECTED`), `jobType` (`INTERNSHIP`, `FULL_TIME`, `PART_TIME`, `REMOTE`, `ON_SITE`, `HYBRID`), scheduled interview dates, URLs, and notes.
 - `DELETE /api/applications/:id` *(Protected)* — Deletes an application owned by the user.
 

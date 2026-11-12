@@ -483,6 +483,15 @@ export default function MockInterviewPage() {
           </div>
         </Card>
 
+        {remainingSeconds === 0 && (
+          <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-3 text-xs text-amber-900">
+            <span>
+              Session timer has reached 00:00. Submit your current response or click Finish &amp; Score
+              to generate your evaluation report.
+            </span>
+          </div>
+        )}
+
         {errorMsg && (
           <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-3 text-sm text-[#EF4444]">
             <AlertCircle className="h-4 w-4 shrink-0" />
@@ -523,7 +532,7 @@ export default function MockInterviewPage() {
                       Adaptive Follow-Up
                     </Badge>
                   ) : (
-                    <Badge tone="brand">RAG Grounded</Badge>
+                    <Badge tone="brand">Role-Tailored Prompt</Badge>
                   )}
                 </div>
               }

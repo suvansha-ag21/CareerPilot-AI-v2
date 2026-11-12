@@ -7,6 +7,7 @@ export async function listApplicationsController(req: Request, res: Response): P
   if (!req.user) throw new UnauthorizedError();
   const data = await applicationsService.listApplications(req.user.id, {
     status: typeof req.query.status === "string" ? req.query.status : undefined,
+    jobType: typeof req.query.jobType === "string" ? req.query.jobType : undefined,
     search: typeof req.query.search === "string" ? req.query.search : undefined,
   });
   res.json({ success: true, data });

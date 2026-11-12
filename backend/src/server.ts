@@ -3,11 +3,14 @@ import path from "path";
 import app from "./app";
 import { env } from "./config/env";
 import { prisma } from "./config/prisma";
+import { ensureCanonicalSkillsSeeded } from "./utils/ensureSkills";
 
 const storagePath = path.resolve(process.cwd(), env.STORAGE_DIR);
 if (!fs.existsSync(storagePath)) {
   fs.mkdirSync(storagePath, { recursive: true });
 }
+
+void ensureCanonicalSkillsSeeded();
 
 const server = app.listen(env.PORT, () => {
   console.log(`[CareerPilot Gateway] Running on http://localhost:${env.PORT} (${env.NODE_ENV})`);

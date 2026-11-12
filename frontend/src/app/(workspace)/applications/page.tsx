@@ -78,6 +78,7 @@ export default function ApplicationsTrackerPage() {
     try {
       const list = await applicationsApi.list({
         status: statusFilter,
+        jobType: jobTypeFilter,
         search: searchTerm,
       });
       setApps(list);
@@ -86,7 +87,7 @@ export default function ApplicationsTrackerPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, searchTerm]);
+  }, [statusFilter, jobTypeFilter, searchTerm]);
 
   useEffect(() => {
     void loadApps();

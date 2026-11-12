@@ -257,6 +257,26 @@ export default function UserDashboardPage() {
         </div>
       </Card>
 
+      {user && !user.careerPreferences?.onboardingCompleted && (
+        <div className="p-4 rounded-xl bg-[#EEF2FF]/75 border border-[#6D5DFB]/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-0.5">
+            <p className="text-xs font-semibold text-[#172033]">
+              Finish your 3-step career setup
+            </p>
+            <p className="text-xs text-[#64748B]">
+              Select your education, career goals, and baseline skills to personalize your dashboard,
+              mock interviews, and roadmap.
+            </p>
+          </div>
+          <Link href="/onboarding" className="shrink-0">
+            <Button variant="primary" size="sm">
+              Complete Setup
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </Link>
+        </div>
+      )}
+
       {error && (
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-3 text-sm text-[#EF4444]">
           <AlertCircle className="h-4 w-4 shrink-0" />

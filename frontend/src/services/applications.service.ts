@@ -7,9 +7,10 @@ import {
 import { apiRequest } from "@/lib/api";
 
 export const applicationsApi = {
-  list: (params?: { status?: string; search?: string }) => {
+  list: (params?: { status?: string; jobType?: string; search?: string }) => {
     const qs = new URLSearchParams();
     if (params?.status && params.status !== "ALL") qs.set("status", params.status);
+    if (params?.jobType && params.jobType !== "ALL") qs.set("jobType", params.jobType);
     if (params?.search?.trim()) qs.set("search", params.search.trim());
     const query = qs.toString() ? `?${qs.toString()}` : "";
     return apiRequest<JobApplicationDTO[]>(`/applications${query}`);
