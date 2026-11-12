@@ -31,6 +31,7 @@ All protected endpoints require `Authorization: Bearer <accessToken>` and return
 - `GET /api/resumes/:id/file` *(Protected)* — Streams original PDF/DOCX binary securely for authenticated owner preview.
 - `PATCH /api/resumes/:id/primary` *(Protected)* — Marks resume as primary default.
 - `POST /api/resumes/:id/sync-skills` *(Protected)* — Upserts extracted skills into normalized `Skill` & `UserSkill` tables.
+- `POST /api/resumes/:id/tailor` *(Protected)* — Generates role-tailored headline, executive summary, prioritized skills, and rewritten bullets (for browser ATS PDF export) using optional `jobMatchId` or `jobDescription`.
 - `DELETE /api/resumes/:id` *(Protected)* — Purges PostgreSQL record, stored file, and ChromaDB chunks (`/internal/ai/resumes/vectors/delete`).
 
 ## 6. AI Job Description Matcher (`/api/job-matches`) — Phase 3
@@ -57,7 +58,8 @@ All protected endpoints require `Authorization: Bearer <accessToken>` and return
 - `POST /api/interviews/:id/answer` *(Protected)* — Submits candidate response (plus optional `speechMetrics`), grades 5 rubric criteria (`technicalAccuracy`, `depthOfUnderstanding`, `completeness`, `clarityAndStructure`, `practicalExamples`), appends adaptive follow-up or next topic question, and auto-summarizes when `questionLimit` completes.
 - `POST /api/interviews/:id/transcribe` *(Protected, Multipart `audio`)* — Validates uploaded audio (`WebM`, `WAV`, `MP3`, `MP4`, `OGG` <= 15 MB) and returns verbatim STT transcript alongside WPM, word count, filler-word count, and pacing notes via FastAPI `/internal/ai/interviews/transcribe-audio`.
 - `POST /api/interviews/:id/answer-voice` *(Protected, Multipart `audio`)* — End-to-end voice answer endpoint: stores audio recording securely, runs STT + speech delivery metrics, grades response via RAG rubric, and advances session.
-- `POST /api/interviews/:id/complete` *(Protected)* — Completes an active session early and computes the post-interview report in PostgreSQL.
+- `POST /api/interviews/:id/hint-stream` *(Protected, SSE)* — Streams structured coaching framing tokens live over `text/event-stream`.
+- `POST /api/interviews/:id/complete` *(Protected)* — Completes an active session early, compiles the post-interview dossier in PostgreSQL, and seeds spaced-repetition `FlashcardDrill` cards for weak topics (`< 65%`).
 - `DELETE /api/interviews/:id` *(Protected)* — Deletes an owned interview session and removes recorded voice clips from disk.
 
 ## 10. Job Application Tracker (`/api/applications`) — Phase 7
@@ -65,5 +67,16 @@ All protected endpoints require `Authorization: Bearer <accessToken>` and return
 - `POST /api/applications` & `PATCH /api/applications/:id` *(Protected)* — Creates or updates tracked job applications (`APPLIED`, `ASSESSMENT`, `SHORTLISTED`, `INTERVIEW_SCHEDULED`, `SELECTED`, `OFFER_RECEIVED`, `REJECTED`), `jobType` (`INTERNSHIP`, `FULL_TIME`, `PART_TIME`, `REMOTE`, `ON_SITE`, `HYBRID`), scheduled interview dates, URLs, and notes.
 - `DELETE /api/applications/:id` *(Protected)* — Deletes an application owned by the user.
 
-## 11. Detailed Career Analytics (`/api/analytics/detailed`) — Phase 7
-- `GET /api/analytics/detailed` *(Protected)* — Computes longitudinal PostgreSQL analytics: `interviewTrend`, `resumeTrend`, `jobMatchTrend`, `applicationFunnel`, `conversionMetrics` (interview rate & offer rate), `skillCategoryStats`, `recurringWeakTopics`, `missingSkillHotspots`, and `roadmapStats`.
+## 11. Detailed Career Analytics & AI Telemetry (`/api/analytics/detailed`) — Phase 7
+- `GET /api/analytics/detailed` *(Protected)* — Computes longitudinal PostgreSQL analytics: `interviewTrend`, `resumeTrend`, `jobMatchTrend`, `applicationFunnel`, `conversionMetrics`, `skillCategoryStats`, `recurringWeakTopics`, `missingSkillHotspots`, `roadmapStats`, and `aiTelemetry` (`totalCalls`, `successRatePct`, `avgLatencyMs`, `fallbackCount`, `byOperation`, `recentLogs`).
+
+## 12. GitHub Repository Analyzer (`/api/projects`)
+- `GET /api/projects/github` *(Protected)* — Lists user's analyzed public GitHub repositories.
+- `POST /api/projects/analyze-github` *(Protected)* — Inspects a public GitHub repository (`README`, manifests, file tree) and extracts `detectedStack`, `architectureHighlights`, and `interviewHooks`.
+- `DELETE /api/projects/github/:id` *(Protected)* — Deletes a saved repository analysis.
+
+## 13. Spaced-Repetition Daily Micro-Drills (`/api/drills`)
+- `GET /api/drills` *(Protected)* — Lists spaced-repetition flashcards ordered by `nextReviewAt`.
+- `POST /api/drills/generate` *(Protected)* — Generates active-recall flashcards from weak interview topics / missing JD skills or custom topics.
+- `POST /api/drills/:id/review` *(Protected)* — Applies SM-2 interval scheduling (`rating` 1..4) and updates `nextReviewAt`.
+- `DELETE /api/drills/:id` *(Protected)* — Deletes a flashcard drill owned by the user.

@@ -273,8 +273,16 @@ export class AnalyticsService {
   }
 
   async getDetailedAnalytics(userId: string): Promise<DetailedAnalyticsDTO> {
-    const [overview, interviews, resumes, matches, applications, userSkills, roadmaps] =
-      await Promise.all([
+    const [
+      overview,
+      interviews,
+      resumes,
+      matches,
+      applications,
+      userSkills,
+      roadmaps,
+      telemetryLogs,
+    ] = await Promise.all([
         this.getDashboardAnalytics(userId),
         prisma.interview.findMany({
           where: { userId, status: "COMPLETED", overallScore: { not: null } },
@@ -320,6 +328,11 @@ export class AnalyticsService {
           where: { userId },
           include: { tasks: true },
           orderBy: [{ isActive: "desc" }, { updatedAt: "desc" }],
+        }),
+        prisma.aiTelemetryLog.findMany({
+          where: { OR: [{ userId }, { userId: null }] },
+          orderBy: { createdAt: "desc" },
+          take: 100,
         }),
       ]);
 
@@ -417,6 +430,22 @@ export class AnalyticsService {
     const activeRm = roadmaps.find((r) => r.isActive) || roadmaps[0] || null;
     const activeTasks = activeRm?.tasks ?? [];
 
+    // Real AI pipeline observability metrics
+    const totalCalls = telemetryLogs.length;
+    const successCount = telemetryLogs.filter((l) => l.success).length;
+    const fallbackCount = telemetryLogs.filter((l) => l.fallbackUsed).length;
+    const avgLatencyMs =
+      totalCalls > 0
+        ? Math.round(telemetryLogs.reduce((s, l) => s + l.latencyMs, 0) / totalCalls)
+        : 0;
+    const opAgg = new Map<string, { calls: number; totalLatency: number }>();
+    for (const log of telemetryLogs) {
+      const entry = opAgg.get(log.operation) ?? { calls: 0, totalLatency: 0 };
+      entry.calls += 1;
+      entry.totalLatency += log.latencyMs;
+      opAgg.set(log.operation, entry);
+    }
+
     return {
       overview,
       interviewTrend: interviews.map((iv) => ({
@@ -458,6 +487,28 @@ export class AnalyticsService {
         completedTasks: activeTasks.filter((t) => t.status === "COMPLETED").length,
         inProgressTasks: activeTasks.filter((t) => t.status === "IN_PROGRESS").length,
         pendingTasks: activeTasks.filter((t) => t.status === "PENDING").length,
+      },
+      aiTelemetry: {
+        totalCalls,
+        successRatePct: totalCalls > 0 ? Math.round((successCount / totalCalls) * 1000) / 10 : 100,
+        avgLatencyMs,
+        fallbackCount,
+        byOperation: Array.from(opAgg.entries()).map(([operation, v]) => ({
+          operation,
+          calls: v.calls,
+          avgLatencyMs: Math.round(v.totalLatency / v.calls),
+        })),
+        recentLogs: telemetryLogs.slice(0, 12).map((l) => ({
+          id: l.id,
+          operation: l.operation,
+          provider: l.provider,
+          model: l.model,
+          latencyMs: l.latencyMs,
+          fallbackUsed: l.fallbackUsed,
+          success: l.success,
+          errorCode: l.errorCode,
+          createdAt: l.createdAt.toISOString(),
+        })),
       },
     };
   }

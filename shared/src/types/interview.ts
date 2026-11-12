@@ -22,6 +22,14 @@ export interface SpeechMetricsDTO {
   deliveryFeedback: string;
 }
 
+export interface InterviewSubmissionContextDTO {
+  codeLanguage?: "javascript" | "sql" | "python" | "java";
+  codeSnippet?: string;
+  executionOutput?: string;
+  architectureNodes?: string[];
+  architectureNotes?: string;
+}
+
 export interface InterviewQuestionDTO {
   id: string;
   interviewId: string;
@@ -31,6 +39,7 @@ export interface InterviewQuestionDTO {
   userAnswer: string | null;
   audioUrl: string | null;
   speechMetrics: SpeechMetricsDTO | null;
+  submissionContext?: InterviewSubmissionContextDTO | null;
   modelAnswer: string;
   score: number | null;
   criteriaScores: InterviewCriteriaScoresDTO | null;
@@ -54,6 +63,7 @@ export interface InterviewSessionDTO {
   id: string;
   userId: string;
   resumeId: string | null;
+  githubRepoId: string | null;
   category: InterviewCategory;
   targetRole: string | null;
   subcategories: string[];

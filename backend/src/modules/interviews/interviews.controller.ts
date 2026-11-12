@@ -87,3 +87,37 @@ export async function deleteInterviewController(req: Request, res: Response): Pr
   const data = await interviewsService.deleteInterview(req.user.id, String(req.params.id));
   res.json({ success: true, data });
 }
+
+export async function streamHintController(req: Request, res: Response): Promise<void> {
+  if (!req.user) throw new UnauthorizedError();
+  const questionId = typeof req.body?.questionId === "string" ? req.body.questionId : undefined;
+  const upstream = await interviewsService.openHintStream(
+    req.user.id,
+    String(req.params.id),
+    questionId
+  );
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  if (!upstream.body) {
+    res.write("data: [DONE]\n\n");
+    res.end();
+    return;
+  }
+
+  const reader = upstream.body.getReader();
+  const decoder = new TextDecoder();
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (value) {
+        res.write(decoder.decode(value, { stream: true }));
+      }
+    }
+  } finally {
+    res.end();
+  }
+}

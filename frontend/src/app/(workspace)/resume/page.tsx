@@ -5,6 +5,7 @@ import {
   AlertCircle,
   ArrowRight,
   CheckCircle2,
+  Download,
   Eye,
   FileText,
   Info,
@@ -21,8 +22,10 @@ import {
   EXPERIENCE_LEVEL_OPTIONS,
   ResumeAnalysisType,
   ResumeDTO,
+  TailoredResumeDTO,
 } from "@careerpilot/shared";
 import { ApiClientError } from "@/lib/api";
+import { downloadTailoredResumePdf } from "@/lib/pdfExport";
 import { useAuth } from "@/store/auth-context";
 import { resumeApi } from "@/services/resume.service";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
@@ -52,7 +55,12 @@ export default function ResumeAnalyzerPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
-  const [previewMode, setPreviewMode] = useState<"report" | "document" | "parsed">("report");
+  const [previewMode, setPreviewMode] = useState<"report" | "document" | "parsed" | "tailored">(
+    "report"
+  );
+  const [tailoring, setTailoring] = useState(false);
+  const [tailoredDraft, setTailoredDraft] = useState<TailoredResumeDTO | null>(null);
+  const [tailorJd, setTailorJd] = useState("");
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
 
@@ -222,6 +230,25 @@ export default function ResumeAnalyzerPage() {
       setInfoMsg("Resume deleted.");
     } catch {
       setErrorMsg("Failed to delete resume.");
+    }
+  }
+
+  async function handleTailorResume(id: string) {
+    setErrorMsg(null);
+    setInfoMsg(null);
+    setTailoring(true);
+    try {
+      const res = await resumeApi.tailor(id, {
+        targetRole: effectiveTargetRole,
+        jobDescription: tailorJd.trim() || undefined,
+      });
+      setTailoredDraft(res);
+      setPreviewMode("tailored");
+      setInfoMsg("Generated tailored ATS resume rewrite.");
+    } catch (err) {
+      setErrorMsg(err instanceof ApiClientError ? err.message : "Could not tailor resume.");
+    } finally {
+      setTailoring(false);
     }
   }
 
@@ -506,9 +533,10 @@ export default function ResumeAnalyzerPage() {
                   </div>
                 </CardContent>
 
-                <div className="px-5 pb-3 flex items-center gap-2 border-t border-slate-100 pt-3">
+                <div className="px-5 pb-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
                   {[
                     { id: "report", label: "Analysis Report", icon: Sparkles },
+                    { id: "tailored", label: "Tailor & Export PDF", icon: Download },
                     { id: "parsed", label: "Parsed Entities & Text", icon: FileText },
                     { id: "document", label: "Original File Preview", icon: Eye },
                   ].map((tab) => {
@@ -518,7 +546,11 @@ export default function ResumeAnalyzerPage() {
                       <button
                         key={tab.id}
                         type="button"
-                        onClick={() => setPreviewMode(tab.id as "report" | "document" | "parsed")}
+                        onClick={() =>
+                          setPreviewMode(
+                            tab.id as "report" | "document" | "parsed" | "tailored"
+                          )
+                        }
                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                           active
                             ? "bg-[#6D5DFB] text-white"
@@ -532,6 +564,111 @@ export default function ResumeAnalyzerPage() {
                   })}
                 </div>
               </Card>
+
+              {/* View: Tailored ATS Resume & PDF Export */}
+              {previewMode === "tailored" && (
+                <Card>
+                  <CardHeader
+                    icon={<Download className="h-4 w-4" />}
+                    title={`Tailor Resume for ${effectiveTargetRole}`}
+                    subtitle="Generate a role-aligned summary and rewritten impact bullets, then export an ATS-clean PDF."
+                  />
+                  <CardContent className="space-y-4">
+                    <textarea
+                      rows={3}
+                      value={tailorJd}
+                      onChange={(e) => setTailorJd(e.target.value)}
+                      placeholder="Optional: Paste target job description text to inject specific role keywords..."
+                      className="w-full p-3 rounded-lg border border-slate-200 bg-white text-xs text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6D5DFB]/20 focus:border-[#6D5DFB]"
+                    />
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Button
+                        type="button"
+                        variant="primary"
+                        loading={tailoring}
+                        disabled={!selectedResume.analyzedAt}
+                        onClick={() => void handleTailorResume(selectedResume.id)}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        {tailoring ? "Tailoring Resume..." : "Generate Tailored Version"}
+                      </Button>
+
+                      {tailoredDraft && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() =>
+                            downloadTailoredResumePdf({
+                              candidateName:
+                                selectedResume.parsedData.contact.candidateName ||
+                                user?.name ||
+                                "Candidate",
+                              email: selectedResume.parsedData.contact.email || user?.email,
+                              location:
+                                selectedResume.parsedData.contact.location || user?.location,
+                              tailored: tailoredDraft,
+                            })
+                          }
+                        >
+                          <Download className="h-4 w-4" />
+                          Download ATS PDF
+                        </Button>
+                      )}
+                    </div>
+
+                    {tailoredDraft && (
+                      <div className="p-5 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] space-y-4">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D5DFB]">
+                            Tailored Headline
+                          </p>
+                          <p className="text-sm font-semibold text-[#172033] mt-0.5">
+                            {tailoredDraft.headline}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D5DFB]">
+                            Executive Summary
+                          </p>
+                          <p className="text-xs text-[#172033] leading-relaxed mt-1">
+                            {tailoredDraft.tailoredSummary}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D5DFB] mb-1.5">
+                            Prioritized Skills
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {tailoredDraft.highlightedSkills.map((sk) => (
+                              <Badge key={sk} tone="brand">
+                                {sk}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2.5">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D5DFB]">
+                            Rewritten Impact Bullets
+                          </p>
+                          {tailoredDraft.rewrittenBullets.map((b, i) => (
+                            <div
+                              key={i}
+                              className="p-3 rounded-lg bg-white border border-slate-200 space-y-1 text-xs"
+                            >
+                              <Badge tone="neutral">{b.section}</Badge>
+                              <p className="text-slate-400 line-through">{b.original}</p>
+                              <p className="text-[#172033] font-medium">{b.tailored}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* View 1: Analysis Report */}
               {previewMode === "report" && (

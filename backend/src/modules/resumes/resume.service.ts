@@ -5,6 +5,8 @@ import {
   ResumeDTO,
   ResumeFeedbackReportDTO,
   ResumeSectionEvaluationDTO,
+  TailorResumeInput,
+  TailoredResumeDTO,
 } from "@careerpilot/shared";
 import { prisma } from "../../config/prisma";
 import { aiServiceClient } from "../../clients/aiService.client";
@@ -287,6 +289,50 @@ export class ResumeService {
         await prisma.resume.update({ where: { id: next.id }, data: { isPrimary: true } });
       }
     }
+  }
+
+  async tailorResume(
+    userId: string,
+    resumeId: string,
+    input: TailorResumeInput
+  ): Promise<TailoredResumeDTO> {
+    const resume = await prisma.resume.findFirst({
+      where: { id: resumeId, userId },
+    });
+    if (!resume) {
+      throw new NotFoundError("Resume not found");
+    }
+    if (!resume.extractedText || resume.extractedText.trim().length < 20) {
+      throw new BadRequestError("Analyze this resume first before tailoring it to a target job.");
+    }
+
+    const [user, jobMatch] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { targetRole: true } }),
+      input.jobMatchId
+        ? prisma.jobMatch.findFirst({
+            where: { id: input.jobMatchId, userId },
+            select: { targetRole: true, jobDescription: true },
+          })
+        : Promise.resolve(null),
+    ]);
+
+    const resolvedRole =
+      input.targetRole || jobMatch?.targetRole || user?.targetRole || "Full Stack Developer";
+    const resolvedJd = input.jobDescription?.trim() || jobMatch?.jobDescription || null;
+
+    const aiTailored = await aiServiceClient.tailorResume({
+      userId,
+      resumeId: resume.id,
+      resumeText: resume.extractedText,
+      targetRole: resolvedRole,
+      jobDescription: resolvedJd,
+      existingSkills: resume.skills,
+    });
+
+    return {
+      ...aiTailored,
+      generatedAt: new Date().toISOString(),
+    };
   }
 }
 

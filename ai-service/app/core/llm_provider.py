@@ -1,13 +1,38 @@
 import base64
+import contextvars
 import json
 import re
-from typing import Type, TypeVar
+import time
+from typing import AsyncIterator, Dict, Optional, Type, TypeVar
 import httpx
 from fastapi import HTTPException, status
 from pydantic import BaseModel, ValidationError
 from app.core.config import settings
 
 T = TypeVar("T", bound=BaseModel)
+
+_llm_telemetry_ctx: contextvars.ContextVar[Optional[Dict[str, str]]] = contextvars.ContextVar(
+    "llm_telemetry_ctx", default=None
+)
+
+
+def reset_llm_telemetry() -> contextvars.Token:
+    return _llm_telemetry_ctx.set(None)
+
+
+def get_llm_telemetry() -> Optional[Dict[str, str]]:
+    return _llm_telemetry_ctx.get()
+
+
+def _record_telemetry(provider: str, model: str, latency_ms: int, fallback_used: bool) -> None:
+    _llm_telemetry_ctx.set(
+        {
+            "provider": provider,
+            "model": model,
+            "latency_ms": str(max(0, latency_ms)),
+            "fallback_used": "true" if fallback_used else "false",
+        }
+    )
 
 
 class LLMProviderUnavailableError(HTTPException):
@@ -75,7 +100,7 @@ class ModularLLMClient:
         errors: list[str] = []
         timeout_cfg = httpx.Timeout(30.0, connect=10.0)
         async with httpx.AsyncClient(timeout=timeout_cfg) as client:
-            for model in candidate_models:
+            for idx, model in enumerate(candidate_models):
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={settings.GEMINI_API_KEY}"
                 payload = {
                     "contents": [{"parts": [{"text": combined_prompt}]}],
@@ -84,6 +109,7 @@ class ModularLLMClient:
                         "temperature": 0.2,
                     },
                 }
+                started = time.perf_counter()
                 try:
                     resp = await client.post(url, json=payload)
                     if resp.status_code == 200:
@@ -92,6 +118,12 @@ class ModularLLMClient:
                         if candidates:
                             parts = candidates[0].get("content", {}).get("parts", [])
                             if parts and "text" in parts[0]:
+                                _record_telemetry(
+                                    "gemini",
+                                    model,
+                                    int((time.perf_counter() - started) * 1000),
+                                    idx > 0,
+                                )
                                 return str(parts[0]["text"])
                         errors.append(f"{model}: HTTP 200 without text candidate")
                     else:
@@ -113,6 +145,7 @@ class ModularLLMClient:
             )
 
         schema_json = json.dumps(schema_cls.model_json_schema(), indent=2)
+        started = time.perf_counter()
         async with httpx.AsyncClient(timeout=25.0) as client:
             resp = await client.post(
                 "https://api.openai.com/v1/chat/completions",
@@ -135,6 +168,12 @@ class ModularLLMClient:
                     f"OpenAI API returned HTTP {resp.status_code}: {resp.text[:200]}"
                 )
             data = resp.json()
+            _record_telemetry(
+                "openai",
+                settings.OPENAI_MODEL,
+                int((time.perf_counter() - started) * 1000),
+                False,
+            )
             return str(data["choices"][0]["message"]["content"])
 
     async def transcribe_audio_bytes(
@@ -193,6 +232,7 @@ class ModularLLMClient:
                         "generationConfig": {"temperature": 0.0},
                     }
                     try:
+                        started = time.perf_counter()
                         resp = await client.post(url, json=payload)
                         if resp.status_code == 200:
                             data = resp.json()
@@ -200,6 +240,12 @@ class ModularLLMClient:
                             if candidates:
                                 parts = candidates[0].get("content", {}).get("parts", [])
                                 if parts and "text" in parts[0]:
+                                    _record_telemetry(
+                                        "gemini-stt",
+                                        model,
+                                        int((time.perf_counter() - started) * 1000),
+                                        False,
+                                    )
                                     return str(parts[0]["text"]).strip()
                             return ""
                         errors.append(f"{model}: HTTP {resp.status_code}")
@@ -210,6 +256,85 @@ class ModularLLMClient:
             )
 
         raise LLMProviderUnavailableError(f"Unsupported LLM_PROVIDER '{settings.LLM_PROVIDER}' for audio STT.")
+
+    async def stream_text(self, system_prompt: str, user_prompt: str) -> AsyncIterator[str]:
+        """Streams plain text coaching tokens from Gemini SSE endpoint (or OpenAI fallback)."""
+        provider = settings.LLM_PROVIDER.lower().strip()
+        if provider == "gemini" and settings.GEMINI_API_KEY:
+            candidate_models = [settings.GEMINI_MODEL] + [
+                m.strip()
+                for m in settings.GEMINI_FALLBACK_MODELS.split(",")
+                if m.strip() and m.strip() != settings.GEMINI_MODEL
+            ]
+            for model in candidate_models:
+                url = (
+                    f"https://generativelanguage.googleapis.com/v1beta/models/{model}"
+                    f":streamGenerateContent?alt=sse&key={settings.GEMINI_API_KEY}"
+                )
+                payload = {
+                    "contents": [{"parts": [{"text": f"{system_prompt}\n\n{user_prompt}"}]}],
+                    "generationConfig": {"temperature": 0.35},
+                }
+                try:
+                    async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=8.0)) as client:
+                        async with client.stream("POST", url, json=payload) as resp:
+                            if resp.status_code != 200:
+                                continue
+                            yielded_any = False
+                            async for line in resp.aiter_lines():
+                                if not line.startswith("data:"):
+                                    continue
+                                raw_json = line[5:].strip()
+                                if not raw_json:
+                                    continue
+                                try:
+                                    chunk = json.loads(raw_json)
+                                    candidates = chunk.get("candidates", [])
+                                    if candidates:
+                                        parts = candidates[0].get("content", {}).get("parts", [])
+                                        if parts and "text" in parts[0]:
+                                            yielded_any = True
+                                            yield str(parts[0]["text"])
+                                except json.JSONDecodeError:
+                                    continue
+                            if yielded_any:
+                                return
+                except httpx.HTTPError:
+                    continue
+
+        if provider == "openai" and settings.OPENAI_API_KEY:
+            try:
+                async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=8.0)) as client:
+                    async with client.stream(
+                        "POST",
+                        "https://api.openai.com/v1/chat/completions",
+                        headers={"Authorization": f"Bearer {settings.OPENAI_API_KEY}"},
+                        json={
+                            "model": settings.OPENAI_MODEL,
+                            "stream": True,
+                            "temperature": 0.35,
+                            "messages": [
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": user_prompt},
+                            ],
+                        },
+                    ) as resp:
+                        if resp.status_code == 200:
+                            async for line in resp.aiter_lines():
+                                if not line.startswith("data:"):
+                                    continue
+                                raw_data = line[5:].strip()
+                                if raw_data == "[DONE]":
+                                    return
+                                try:
+                                    chunk = json.loads(raw_data)
+                                    delta = chunk.get("choices", [{}])[0].get("delta", {}).get("content")
+                                    if delta:
+                                        yield str(delta)
+                                except json.JSONDecodeError:
+                                    continue
+            except httpx.HTTPError:
+                return
 
 
 llm_client = ModularLLMClient()

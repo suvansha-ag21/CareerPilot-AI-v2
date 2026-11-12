@@ -10,14 +10,14 @@ A full-stack, AI-powered career development SaaS workspace combining a **Next.js
 - **Shared (`shared/`)**: End-to-end TypeScript DTOs, enums, design tokens, and Zod validation schemas shared between `frontend/` and `backend/`.
 
 ## Implemented Modules (All 8 Phases Complete)
-1. **Authentication & Candidate Profile**: JWT + rotated Refresh cookie family replay detection, Forgot/Reset Password, normalized Educations, Work Experiences, Projects, and Canonical Skills (`/profile`, `/settings`, `/dashboard`).
-2. **AI Resume Analyzer (`/resume`)**: PDF/DOCX magic-byte verification, layout/NER extraction, ATS scoring breakdown, ChromaDB vector indexing, bullet rewrites, and owner-authenticated PDF preview.
-3. **AI Job Description Matcher (`/matcher`)**: Hybrid ChromaDB Sentence-Transformer semantic similarity + Scikit-learn TF-IDF + canonical/transferable skill matching + AI tailoring recommendations.
-4. **AI Skill Gap Analyzer & Personalized Roadmap (`/skills`, `/roadmap`)**: Role readiness benchmarking, topological prerequisite study ordering, curated learning resources, and week-by-week sprint generation persisted in PostgreSQL.
-5. **AI Mock Interview System (`/interview`)**: 8 categories (`TECHNICAL`, `DSA`, `FULL_STACK`, `PYTHON`, `JAVA`, `SQL`, `PROJECT_BASED`, `HR`), 9-topic CS ChromaDB RAG retrieval, 5-criterion rubric grading, adaptive follow-up probes, and radar performance dossiers.
+1. **Authentication, 3-Step Onboarding & GitHub Analyzer**: JWT + rotated Refresh cookie family replay detection, Forgot/Reset Password, 3-step onboarding (`/onboarding`), normalized Educations/Work/Projects/Skills, and GitHub Repository Code Analyzer (`/profile`).
+2. **AI Resume Analyzer & Tailored ATS PDF Export (`/resume`)**: PDF/DOCX magic-byte verification, layout/NER extraction, ATS scoring breakdown, ChromaDB vector indexing, bullet rewrites, owner-authenticated PDF preview, role-tailored rewrite (`/api/resumes/:id/tailor`), and browser ATS PDF export.
+3. **AI Job Description Matcher (`/matcher`)**: Hybrid ChromaDB Sentence-Transformer semantic similarity + Scikit-learn TF-IDF + canonical/transferable skill matching + direct resume tailoring.
+4. **AI Skill Gap Analyzer & Personalized Roadmap (`/skills`, `/roadmap`)**: Role readiness benchmarking, topological prerequisite study ordering, curated learning resources, and week-by-week sprints (`30`–`180` days) persisted in PostgreSQL.
+5. **AI Mock Interview + Live Code/SQL Sandbox + System Design Canvas (`/interview`)**: 6 categories + 12 technical subcategories, 9-topic CS ChromaDB RAG retrieval, SSE streaming hints (`/hint-stream`), in-browser runnable JS/SQL sandbox & System Design topology canvas, codebase-grounded GitHub probes, 5-criterion rubric grading, and radar performance dossiers.
 6. **Voice-Based AI Interview (`/interview`)**: Explicit-consent browser `MediaRecorder` capture, Web Speech Synthesis question playback, server-side audio transcription + WPM/filler-word delivery analytics (`audioUrl` + `speechMetrics`).
-7. **Job Application Tracker & Deep Analytics (`/applications`, `/analytics`)**: Table & Kanban pipeline stages (`APPLIED` → `OFFER_RECEIVED`), interview date sync to Dashboard, score trendlines, funnel conversion rates, and recurring weak-topic hotspots.
-8. **Hardening & Deployment Ready**: Cross-user isolation checks (`404` on unowned resources), strict file/audio validation, Docker Compose (`docker-compose.yml`), and comprehensive API specs (`docs/API_SPEC.md`).
+7. **Daily Micro-Drills (`/drills`) & Application Tracker + AI Telemetry (`/applications`, `/analytics`)**: SM-2 spaced-repetition flashcards auto-seeded from weak interview topics, Table & Kanban pipeline stages (`APPLIED` -> `OFFER_RECEIVED`), score trendlines, funnel conversion rates, and live `AiTelemetryLog` latency/fallback observability.
+8. **Hardening & Automated Tests**: Cross-user isolation (`404` on unowned resources), Multer `413` size enforcement, backend `node:test` suite (`npm --workspace=backend test`), AI service `unittest` & golden LLM-as-a-Judge harness (`ai-service/tests/`), Docker Compose, and API specs (`docs/API_SPEC.md`).
 
 ## Local Development Setup
 1. Configure `.env` files in `backend/.env` and `ai-service/.env` (`DATABASE_URL`, `JWT_SECRET`, `INTERNAL_SERVICE_KEY`, `GEMINI_API_KEY`).

@@ -11,6 +11,7 @@ import {
   listResumesController,
   setPrimaryResumeController,
   syncResumeSkillsController,
+  tailorResumeController,
   uploadResumeController,
 } from "./resume.controller";
 
@@ -30,6 +31,7 @@ router.get("/", asyncHandler(listResumesController));
 router.get("/:id", asyncHandler(getResumeByIdController));
 router.get("/:id/file", asyncHandler(getResumeFileController));
 router.post("/:id/analyze", asyncHandler(analyzeResumeController));
+router.post("/:id/tailor", asyncHandler(tailorResumeController));
 router.patch("/:id/primary", asyncHandler(setPrimaryResumeController));
 router.post("/:id/sync-skills", asyncHandler(syncResumeSkillsController));
 router.delete("/:id", asyncHandler(deleteResumeController));

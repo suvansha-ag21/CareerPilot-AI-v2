@@ -1,10 +1,13 @@
+import json
 from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi.responses import StreamingResponse
 from app.core.security import verify_internal_key
 from app.schemas.interview_schema import (
     EvaluateAnswerRequest,
     EvaluateAnswerResponse,
     StartInterviewQuestionRequest,
     StartInterviewQuestionResponse,
+    StreamHintRequest,
     SummarizeInterviewRequest,
     SummarizeInterviewResponse,
     TranscribeAudioResponse,
@@ -12,6 +15,7 @@ from app.schemas.interview_schema import (
 from app.services.interview_engine import (
     evaluate_and_advance_interview,
     generate_opening_question,
+    stream_interviewer_hint,
     summarize_interview,
     transcribe_and_compute_metrics,
 )
@@ -69,3 +73,22 @@ async def transcribe_interview_audio(
         filename=audio.filename or "answer.webm",
         reported_duration_seconds=duration_seconds,
     )
+
+
+@router.post(
+    "/interviews/stream-hint",
+    dependencies=[Depends(verify_internal_key)],
+)
+async def stream_interview_hint_route(payload: StreamHintRequest) -> StreamingResponse:
+    async def event_generator():
+        async for token in stream_interviewer_hint(
+            category=payload.category,
+            difficulty=payload.difficulty,
+            target_role=payload.target_role,
+            question=payload.question,
+            topic_tag=payload.topic_tag,
+        ):
+            yield f"data: {json.dumps({'token': token})}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")

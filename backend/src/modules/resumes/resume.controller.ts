@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { AnalyzeResumeOptionsSchema } from "@careerpilot/shared";
+import { AnalyzeResumeOptionsSchema, TailorResumeSchema } from "@careerpilot/shared";
 import { BadRequestError, UnauthorizedError } from "../../utils/errors";
 import { resumeService } from "./resume.service";
 
@@ -66,6 +66,13 @@ export async function syncResumeSkillsController(req: Request, res: Response): P
   if (!req.user) throw new UnauthorizedError();
   const result = await resumeService.syncDetectedSkillsToProfile(req.user.id, String(req.params.id));
   res.status(200).json({ success: true, data: result });
+}
+
+export async function tailorResumeController(req: Request, res: Response): Promise<void> {
+  if (!req.user) throw new UnauthorizedError();
+  const parsed = TailorResumeSchema.parse(req.body ?? {});
+  const data = await resumeService.tailorResume(req.user.id, String(req.params.id), parsed);
+  res.status(200).json({ success: true, data });
 }
 
 export async function deleteResumeController(req: Request, res: Response): Promise<void> {

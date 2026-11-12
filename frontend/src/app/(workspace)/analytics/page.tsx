@@ -377,6 +377,119 @@ export default function DeepAnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Pipeline Observability & Telemetry */}
+      {data.aiTelemetry && (
+        <Card>
+          <CardHeader
+            icon={<Activity className="h-4 w-4" />}
+            title="AI Pipeline Observability &amp; Latency Telemetry"
+            subtitle="Real-time execution latency, model routing, fallback triggers, and schema pass rate logged in PostgreSQL"
+          />
+          <CardContent className="space-y-5">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="p-3.5 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                  Tracked AI Calls
+                </p>
+                <p className="text-xl font-bold text-[#172033] mt-1 tabular-nums">
+                  {data.aiTelemetry.totalCalls}
+                </p>
+              </div>
+              <div className="p-3.5 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                  Avg Latency
+                </p>
+                <p className="text-xl font-bold text-[#6D5DFB] mt-1 tabular-nums">
+                  {data.aiTelemetry.avgLatencyMs} ms
+                </p>
+              </div>
+              <div className="p-3.5 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                  Schema Pass Rate
+                </p>
+                <p className="text-xl font-bold text-emerald-700 mt-1 tabular-nums">
+                  {data.aiTelemetry.successRatePct}%
+                </p>
+              </div>
+              <div className="p-3.5 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                  Model Fallbacks
+                </p>
+                <p className="text-xl font-bold text-[#172033] mt-1 tabular-nums">
+                  {data.aiTelemetry.fallbackCount}
+                </p>
+              </div>
+            </div>
+
+            {data.aiTelemetry.byOperation.length > 0 && (
+              <div className="h-52 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={data.aiTelemetry.byOperation}
+                    margin={{ top: 8, right: 16, left: -10, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+                    <XAxis dataKey="operation" tick={{ fill: "#64748B", fontSize: 10 }} />
+                    <YAxis tick={{ fill: "#64748B", fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar
+                      dataKey="avgLatencyMs"
+                      name="Avg Latency (ms)"
+                      fill="#6D5DFB"
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={42}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {data.aiTelemetry.recentLogs.length > 0 ? (
+              <div className="overflow-x-auto border border-[#E2E8F0] rounded-xl">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                      <th className="py-2.5 px-4">Operation</th>
+                      <th className="py-2.5 px-3">Provider / Model</th>
+                      <th className="py-2.5 px-3">Latency</th>
+                      <th className="py-2.5 px-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {data.aiTelemetry.recentLogs.map((log) => (
+                      <tr key={log.id}>
+                        <td className="py-2 px-4 font-medium text-[#172033]">{log.operation}</td>
+                        <td className="py-2 px-3 text-[#64748B]">
+                          {log.provider} / {log.model}
+                          {log.fallbackUsed && (
+                            <Badge tone="warning" className="ml-2">
+                              Fallback
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="py-2 px-3 tabular-nums text-[#172033]">
+                          {log.latencyMs} ms
+                        </td>
+                        <td className="py-2 px-3">
+                          <Badge tone={log.success ? "success" : "danger"}>
+                            {log.success ? "OK" : log.errorCode || "ERR"}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-xs text-[#64748B]">
+                Run any AI evaluation (Resume, Match, Roadmap, Interview) to observe live model
+                telemetry here.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

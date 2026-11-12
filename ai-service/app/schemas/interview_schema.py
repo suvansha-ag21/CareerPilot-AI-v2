@@ -46,6 +46,14 @@ class InterviewSummaryLLM(BaseModel):
     next_recommendations: List[str] = Field(min_length=1, max_length=5)
 
 
+class InterviewSubmissionContextSchema(BaseModel):
+    codeLanguage: Optional[str] = None
+    codeSnippet: Optional[str] = None
+    executionOutput: Optional[str] = None
+    architectureNodes: Optional[List[str]] = None
+    architectureNotes: Optional[str] = None
+
+
 class StartInterviewQuestionRequest(BaseModel):
     user_id: str
     category: CategoryStr
@@ -56,6 +64,7 @@ class StartInterviewQuestionRequest(BaseModel):
     resume_id: Optional[str] = None
     resume_summary: Optional[str] = None
     projects_summary: Optional[str] = None
+    github_repo_context: Optional[str] = None
     skills_list: List[str] = Field(default_factory=list)
     target_job_description: Optional[str] = None
 
@@ -89,6 +98,8 @@ class EvaluateAnswerRequest(BaseModel):
     previous_qa: List[PreviousQAItem] = Field(default_factory=list)
     resume_id: Optional[str] = None
     resume_summary: Optional[str] = None
+    github_repo_context: Optional[str] = None
+    submission_context: Optional[InterviewSubmissionContextSchema] = None
     target_job_description: Optional[str] = None
 
 
@@ -145,3 +156,11 @@ class SpeechMetricsSchema(BaseModel):
 class TranscribeAudioResponse(BaseModel):
     transcript: str
     speech_metrics: SpeechMetricsSchema
+
+
+class StreamHintRequest(BaseModel):
+    category: CategoryStr
+    difficulty: DifficultyStr
+    target_role: str
+    question: str
+    topic_tag: str

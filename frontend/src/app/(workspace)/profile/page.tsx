@@ -15,6 +15,7 @@ import {
   AuthUserDTO,
   CAREER_ROLE_PRESETS,
   EducationInput,
+  GitHubRepoAnalysisDTO,
   ProficiencyLevel,
   ProjectInput,
   SkillCategory,
@@ -22,6 +23,7 @@ import {
   WorkExperienceInput,
 } from "@careerpilot/shared";
 import { apiRequest, ApiClientError } from "@/lib/api";
+import { projectsApi } from "@/services/advanced.service";
 import { useAuth } from "@/store/auth-context";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -48,6 +50,9 @@ export default function ProfilePage() {
   const [educations, setEducations] = useState<EducationInput[]>([]);
   const [workExperiences, setWorkExperiences] = useState<WorkExperienceInput[]>([]);
   const [projects, setProjects] = useState<ProjectInput[]>([]);
+  const [githubAnalyses, setGithubAnalyses] = useState<GitHubRepoAnalysisDTO[]>([]);
+  const [repoUrlInput, setRepoUrlInput] = useState("");
+  const [analyzingRepo, setAnalyzingRepo] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
@@ -74,7 +79,46 @@ export default function ProfilePage() {
       setWorkExperiences(user.workExperiences || []);
       setProjects(user.projects || []);
     }
+    projectsApi
+      .listGitHub()
+      .then(setGithubAnalyses)
+      .catch(() => {});
   }, [user]);
+
+  async function handleAnalyzeGitHubRepo() {
+    if (!repoUrlInput.trim()) return;
+    setErrorMsg(null);
+    setStatusMsg(null);
+    setAnalyzingRepo(true);
+    try {
+      const analyzed = await projectsApi.analyzeGitHub(repoUrlInput.trim());
+      setGithubAnalyses((prev) => [
+        analyzed,
+        ...prev.filter((item) => item.id !== analyzed.id),
+      ]);
+      setRepoUrlInput("");
+      setStatusMsg(
+        `Analyzed ${analyzed.owner}/${analyzed.repoName} — ready for Project-Based Mock Interviews.`
+      );
+    } catch (err) {
+      setErrorMsg(
+        err instanceof ApiClientError
+          ? err.message
+          : "Could not analyze GitHub repository. Make sure it is a public repo URL."
+      );
+    } finally {
+      setAnalyzingRepo(false);
+    }
+  }
+
+  async function handleDeleteGitHubRepo(id: string) {
+    try {
+      await projectsApi.deleteGitHub(id);
+      setGithubAnalyses((prev) => prev.filter((item) => item.id !== id));
+    } catch {
+      setErrorMsg("Unable to delete analyzed repository.");
+    }
+  }
 
   function addSkill() {
     const clean = skillName.trim();
@@ -601,6 +645,97 @@ export default function ProfilePage() {
           Save Candidate Profile
         </Button>
       </div>
+
+      {/* GitHub Repository & Architecture Code Analyzer */}
+      <Card>
+        <CardHeader
+          icon={<FolderGit2 className="h-4 w-4" />}
+          title="GitHub Repository Code Analyzer"
+          subtitle="Analyze any public GitHub repo to extract architecture highlights and ground Project-Based Mock Interviews in your actual codebase."
+        />
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="url"
+              value={repoUrlInput}
+              onChange={(e) => setRepoUrlInput(e.target.value)}
+              placeholder="https://github.com/username/repository"
+              className="flex-1 h-10 px-3 rounded-lg border border-[#E2E8F0] bg-white text-sm text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6D5DFB]/20 focus:border-[#6D5DFB]"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              loading={analyzingRepo}
+              onClick={() => void handleAnalyzeGitHubRepo()}
+            >
+              <FolderGit2 className="h-4 w-4" />
+              {analyzingRepo ? "Inspecting Repo..." : "Analyze Codebase"}
+            </Button>
+          </div>
+
+          {githubAnalyses.length > 0 ? (
+            <div className="space-y-3">
+              {githubAnalyses.map((repo) => (
+                <div
+                  key={repo.id}
+                  className="p-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]/70 space-y-2.5"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <a
+                          href={repo.repoUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm font-semibold text-[#172033] hover:text-[#6D5DFB]"
+                        >
+                          {repo.owner}/{repo.repoName}
+                        </a>
+                        {repo.primaryLanguage && <Badge tone="brand">{repo.primaryLanguage}</Badge>}
+                        <Badge tone="neutral">{repo.stars} stars</Badge>
+                      </div>
+                      <p className="text-xs text-[#64748B] mt-1 leading-relaxed">{repo.summary}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteGitHubRepo(repo.id)}
+                      className="text-slate-400 hover:text-rose-500 p-1"
+                      title="Delete analyzed repo"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {repo.detectedStack.map((tech) => (
+                      <Badge key={tech} tone="neutral">
+                        {tech}
+                      </Badge>
+                    ))}
+                  </div>
+
+                  {repo.interviewHooks.length > 0 && (
+                    <div className="pt-2 border-t border-slate-200/70 space-y-1">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D5DFB]">
+                        Code-Grounded Interview Probes
+                      </p>
+                      <ul className="space-y-1 text-xs text-[#172033]">
+                        {repo.interviewHooks.slice(0, 3).map((hook, i) => (
+                          <li key={i}>&bull; {hook}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-[#64748B]">
+              No public repositories analyzed yet. Add one above to unlock codebase-grounded interviews.
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </form>
   );
 }

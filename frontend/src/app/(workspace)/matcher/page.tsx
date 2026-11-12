@@ -6,6 +6,7 @@ import {
   AlertCircle,
   ArrowRight,
   CheckCircle2,
+  Download,
   FileText,
   FolderGit2,
   GitCompare,
@@ -30,8 +31,10 @@ import {
   JobMatchDTO,
   JobType,
   ResumeDTO,
+  TailoredResumeDTO,
 } from "@careerpilot/shared";
 import { ApiClientError } from "@/lib/api";
+import { downloadTailoredResumePdf } from "@/lib/pdfExport";
 import { useAuth } from "@/store/auth-context";
 import { resumeApi } from "@/services/resume.service";
 import { matcherApi } from "@/services/matcher.service";
@@ -60,6 +63,8 @@ export default function JobMatcherPage() {
   const [jdFile, setJdFile] = useState<File | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
+  const [tailoring, setTailoring] = useState(false);
+  const [tailoredResume, setTailoredResume] = useState<TailoredResumeDTO | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const loadInitial = useCallback(async () => {
@@ -459,7 +464,34 @@ export default function JobMatcherPage() {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        loading={tailoring}
+                        onClick={async () => {
+                          setErrorMsg(null);
+                          setTailoring(true);
+                          try {
+                            const tailored = await resumeApi.tailor(selectedMatch.resumeId, {
+                              jobMatchId: selectedMatch.id,
+                              targetRole: selectedMatch.targetRole,
+                            });
+                            setTailoredResume(tailored);
+                          } catch (err) {
+                            setErrorMsg(
+                              err instanceof ApiClientError
+                                ? err.message
+                                : "Could not generate tailored resume."
+                            );
+                          } finally {
+                            setTailoring(false);
+                          }
+                        }}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Tailor Resume
+                      </Button>
                       <Link href="/skills">
                         <Button size="sm" variant="secondary">
                           <Sparkles className="h-3.5 w-3.5" />
@@ -468,6 +500,37 @@ export default function JobMatcherPage() {
                       </Link>
                     </div>
                   </div>
+
+                  {tailoredResume && tailoredResume.resumeId === selectedMatch.resumeId && (
+                    <div className="p-4 rounded-xl bg-[#EEF2FF]/60 border border-[#6D5DFB]/25 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-semibold text-[#172033]">
+                            Tailored Resume Ready ({tailoredResume.targetRole})
+                          </p>
+                          <p className="text-[11px] text-[#64748B]">{tailoredResume.headline}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() =>
+                            downloadTailoredResumePdf({
+                              candidateName: user?.name || "Candidate",
+                              email: user?.email,
+                              location: user?.location,
+                              tailored: tailoredResume,
+                            })
+                          }
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Download ATS PDF
+                        </Button>
+                      </div>
+                      <p className="text-xs text-[#172033] leading-relaxed">
+                        {tailoredResume.tailoredSummary}
+                      </p>
+                    </div>
+                  )}
 
                   <div className="h-52 w-full pt-2">
                     <ResponsiveContainer width="100%" height="100%">

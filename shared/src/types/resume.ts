@@ -86,3 +86,18 @@ export interface ResumeDTO {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface TailoredResumeDTO {
+  resumeId: string;
+  targetRole: string;
+  headline: string;
+  tailoredSummary: string;
+  highlightedSkills: string[];
+  rewrittenBullets: Array<{
+    section: string;
+    original: string;
+    tailored: string;
+  }>;
+  atsKeywordsAdded: string[];
+  generatedAt: string;
+}

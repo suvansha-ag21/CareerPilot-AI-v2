@@ -12,6 +12,7 @@ import {
   Map,
   Briefcase,
   BarChart3,
+  Brain,
   UserCircle,
   Settings,
   LogOut,
@@ -48,6 +49,7 @@ const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
     title: "Execution",
     items: [
       { label: "Learning Roadmap", href: "/roadmap", icon: Map, status: "live" },
+      { label: "Daily Drills", href: "/drills", icon: Brain, status: "live" },
       { label: "Applications", href: "/applications", icon: Briefcase, status: "live" },
     ],
   },

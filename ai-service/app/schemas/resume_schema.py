@@ -104,3 +104,35 @@ class ResumeAnalyzeResponse(BaseModel):
 class VectorDeleteRequest(BaseModel):
     user_id: str
     resume_id: str
+
+
+class TailorResumeRequest(BaseModel):
+    resume_id: str
+    resume_text: str
+    target_role: str
+    job_description: Optional[str] = None
+    existing_skills: List[str] = Field(default_factory=list)
+
+
+class TailoredBulletItem(BaseModel):
+    section: str
+    original: str
+    tailored: str
+
+
+class TailoredResumeLLM(BaseModel):
+    headline: str
+    tailored_summary: str
+    highlighted_skills: List[str] = Field(default_factory=list)
+    rewritten_bullets: List[TailoredBulletItem] = Field(default_factory=list)
+    ats_keywords_added: List[str] = Field(default_factory=list)
+
+
+class TailorResumeResponse(BaseModel):
+    resumeId: str
+    targetRole: str
+    headline: str
+    tailoredSummary: str
+    highlightedSkills: List[str]
+    rewrittenBullets: List[TailoredBulletItem]
+    atsKeywordsAdded: List[str]

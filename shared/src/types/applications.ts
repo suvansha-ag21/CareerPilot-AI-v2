@@ -1,5 +1,6 @@
 import { ApplicationStatus, InterviewCategory, InterviewMode, JobType } from "../constants/enums";
 import { DashboardAnalyticsDTO } from "./index";
+import { AiTelemetrySummaryDTO } from "./advanced";
 
 export interface JobApplicationDTO {
   id: string;
@@ -70,4 +71,5 @@ export interface DetailedAnalyticsDTO {
     inProgressTasks: number;
     pendingTasks: number;
   };
+  aiTelemetry?: AiTelemetrySummaryDTO;
 }

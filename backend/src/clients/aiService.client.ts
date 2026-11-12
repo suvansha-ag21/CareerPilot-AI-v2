@@ -1,9 +1,11 @@
 import {
   CurrentCandidateSkillDTO,
+  GitHubRepoAnalysisDTO,
   InterviewCategory,
   InterviewCriteriaScoresDTO,
   InterviewDifficulty,
   InterviewFeedbackSummaryDTO,
+  InterviewSubmissionContextDTO,
   JobMatchRecommendationsDTO,
   LearningResourceDTO,
   ParsedResumeDataDTO,
@@ -13,9 +15,11 @@ import {
   SkillCategoryCoverageDTO,
   SkillRequirementBenchmarkDTO,
   SpeechMetricsDTO,
+  TailoredResumeDTO,
   TaskPriority,
 } from "@careerpilot/shared";
 import { env } from "../config/env";
+import { prisma } from "../config/prisma";
 import { AppError } from "../utils/errors";
 
 export interface AiHealthStatus {
@@ -149,6 +153,39 @@ class AiServiceClient {
     }
   }
 
+  private recordTelemetryFromResponse(params: {
+    operation: string;
+    userId?: string | null;
+    res?: Response;
+    startedAtMs: number;
+    success: boolean;
+    errorCode?: string;
+  }): void {
+    const headerLat = params.res?.headers.get("x-ai-latency-ms");
+    const parsedLat = headerLat ? Number.parseInt(headerLat, 10) : NaN;
+    const latencyMs = Number.isFinite(parsedLat)
+      ? Math.max(0, parsedLat)
+      : Math.max(0, Date.now() - params.startedAtMs);
+    const provider = params.res?.headers.get("x-ai-provider") || "local-ml";
+    const model = params.res?.headers.get("x-ai-model") || "deterministic";
+    const fallbackUsed = params.res?.headers.get("x-ai-fallback-used") === "true";
+
+    void prisma.aiTelemetryLog
+      .create({
+        data: {
+          userId: params.userId ?? null,
+          operation: params.operation,
+          provider,
+          model,
+          latencyMs,
+          fallbackUsed,
+          success: params.success,
+          errorCode: params.errorCode ?? null,
+        },
+      })
+      .catch(() => {});
+  }
+
   private async handleErrorResponse(res: Response, defaultMsg: string): Promise<never> {
     let detail = defaultMsg;
     try {
@@ -179,6 +216,7 @@ class AiServiceClient {
   }): Promise<AiResumeAnalyzeResponse> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 90000);
+    const startedAtMs = Date.now();
 
     try {
       const form = new FormData();
@@ -206,8 +244,24 @@ class AiServiceClient {
       });
 
       if (!res.ok) {
+        this.recordTelemetryFromResponse({
+          operation: "resume_analyze",
+          userId: params.userId,
+          res,
+          startedAtMs,
+          success: false,
+          errorCode: `HTTP_${res.status}`,
+        });
         await this.handleErrorResponse(res, "AI service returned an error during resume evaluation");
       }
+
+      this.recordTelemetryFromResponse({
+        operation: "resume_analyze",
+        userId: params.userId,
+        res,
+        startedAtMs,
+        success: true,
+      });
 
       const raw = (await res.json()) as {
         extracted_text: string;
@@ -253,6 +307,7 @@ class AiServiceClient {
   }): Promise<AiJobMatchResponse> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 90000);
+    const startedAtMs = Date.now();
 
     try {
       const form = new FormData();
@@ -284,8 +339,24 @@ class AiServiceClient {
       });
 
       if (!res.ok) {
+        this.recordTelemetryFromResponse({
+          operation: "jd_match",
+          userId: params.userId,
+          res,
+          startedAtMs,
+          success: false,
+          errorCode: `HTTP_${res.status}`,
+        });
         await this.handleErrorResponse(res, "AI service failed during JD compatibility evaluation");
       }
+
+      this.recordTelemetryFromResponse({
+        operation: "jd_match",
+        userId: params.userId,
+        res,
+        startedAtMs,
+        success: true,
+      });
 
       const raw = (await res.json()) as {
         target_role: string;
@@ -332,10 +403,12 @@ class AiServiceClient {
     path: string,
     payload: unknown,
     defaultErrorMsg: string,
-    timeoutMessage: string
+    timeoutMessage: string,
+    telemetryMeta?: { operation: string; userId?: string | null }
   ): Promise<T> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 90000);
+    const startedAtMs = Date.now();
 
     try {
       const res = await fetch(`${this.baseUrl}${path}`, {
@@ -349,12 +422,41 @@ class AiServiceClient {
       });
 
       if (!res.ok) {
+        if (telemetryMeta) {
+          this.recordTelemetryFromResponse({
+            operation: telemetryMeta.operation,
+            userId: telemetryMeta.userId,
+            res,
+            startedAtMs,
+            success: false,
+            errorCode: `HTTP_${res.status}`,
+          });
+        }
         await this.handleErrorResponse(res, defaultErrorMsg);
+      }
+
+      if (telemetryMeta) {
+        this.recordTelemetryFromResponse({
+          operation: telemetryMeta.operation,
+          userId: telemetryMeta.userId,
+          res,
+          startedAtMs,
+          success: true,
+        });
       }
 
       return (await res.json()) as T;
     } catch (err) {
       if (err instanceof AppError) throw err;
+      if (telemetryMeta) {
+        this.recordTelemetryFromResponse({
+          operation: telemetryMeta.operation,
+          userId: telemetryMeta.userId,
+          startedAtMs,
+          success: false,
+          errorCode: "UNREACHABLE_OR_TIMEOUT",
+        });
+      }
       throw new AppError(503, "AI_SERVICE_UNREACHABLE", timeoutMessage);
     } finally {
       clearTimeout(timer);
@@ -404,7 +506,8 @@ class AiServiceClient {
         job_match_partial_skills: params.jobMatchPartialSkills ?? [],
       },
       "AI service failed during skill gap evaluation",
-      "Python AI microservice is unreachable or timed out while analyzing skill gaps."
+      "Python AI microservice is unreachable or timed out while analyzing skill gaps.",
+      { operation: "skill_gap" }
     );
 
     return {
@@ -456,7 +559,8 @@ class AiServiceClient {
         resume_summary: params.resumeSummary ?? null,
       },
       "AI service failed during personalized roadmap generation",
-      "Python AI microservice is unreachable or timed out while generating roadmap."
+      "Python AI microservice is unreachable or timed out while generating roadmap.",
+      { operation: "roadmap_generate" }
     );
 
     return {
@@ -476,6 +580,7 @@ class AiServiceClient {
     resumeId?: string | null;
     resumeSummary?: string | null;
     projectsSummary?: string | null;
+    githubRepoContext?: string | null;
     skillsList: string[];
     targetJobDescription?: string | null;
   }): Promise<AiInterviewQuestionGenerated> {
@@ -495,11 +600,13 @@ class AiServiceClient {
         resume_id: params.resumeId ?? null,
         resume_summary: params.resumeSummary ?? null,
         projects_summary: params.projectsSummary ?? null,
+        github_repo_context: params.githubRepoContext ?? null,
         skills_list: params.skillsList,
         target_job_description: params.targetJobDescription ?? null,
       },
       "AI service failed while generating opening interview question",
-      "Python AI microservice timed out while preparing mock interview question."
+      "Python AI microservice timed out while preparing mock interview question.",
+      { operation: "interview_start", userId: params.userId }
     );
 
     return {
@@ -530,6 +637,8 @@ class AiServiceClient {
     }>;
     resumeId?: string | null;
     resumeSummary?: string | null;
+    githubRepoContext?: string | null;
+    submissionContext?: InterviewSubmissionContextDTO | null;
     targetJobDescription?: string | null;
   }): Promise<AiEvaluateAnswerResponse> {
     const raw = await this.postJsonInternal<{
@@ -565,10 +674,13 @@ class AiServiceClient {
         })),
         resume_id: params.resumeId ?? null,
         resume_summary: params.resumeSummary ?? null,
+        github_repo_context: params.githubRepoContext ?? null,
+        submission_context: params.submissionContext ?? null,
         target_job_description: params.targetJobDescription ?? null,
       },
       "AI service failed while grading mock interview response",
-      "Python AI microservice timed out while evaluating your interview answer."
+      "Python AI microservice timed out while evaluating your interview answer.",
+      { operation: "interview_evaluate", userId: params.userId }
     );
 
     return {
@@ -624,7 +736,8 @@ class AiServiceClient {
         })),
       },
       "AI service failed while generating interview summary report",
-      "Python AI microservice timed out while compiling final interview report."
+      "Python AI microservice timed out while compiling final interview report.",
+      { operation: "interview_summarize" }
     );
 
     return {
@@ -709,6 +822,97 @@ class AiServiceClient {
     } finally {
       clearTimeout(timer);
     }
+  }
+
+  async tailorResume(params: {
+    userId: string;
+    resumeId: string;
+    resumeText: string;
+    targetRole: string;
+    jobDescription?: string | null;
+    existingSkills: string[];
+  }): Promise<TailoredResumeDTO> {
+    return this.postJsonInternal<TailoredResumeDTO>(
+      "/internal/ai/resumes/tailor",
+      {
+        resume_id: params.resumeId,
+        resume_text: params.resumeText,
+        target_role: params.targetRole,
+        job_description: params.jobDescription ?? null,
+        existing_skills: params.existingSkills,
+      },
+      "AI service failed while tailoring resume bullets",
+      "Python AI microservice timed out while tailoring your resume.",
+      { operation: "resume_tailor", userId: params.userId }
+    );
+  }
+
+  async analyzeGitHubRepo(params: {
+    userId: string;
+    repoUrl: string;
+  }): Promise<Omit<GitHubRepoAnalysisDTO, "id" | "userId" | "createdAt" | "updatedAt">> {
+    return this.postJsonInternal<
+      Omit<GitHubRepoAnalysisDTO, "id" | "userId" | "createdAt" | "updatedAt">
+    >(
+      "/internal/ai/projects/analyze-github",
+      { repo_url: params.repoUrl },
+      "Failed to analyze GitHub repository architecture",
+      "AI microservice timed out while analyzing GitHub repository.",
+      { operation: "github_analyze", userId: params.userId }
+    );
+  }
+
+  async generateFlashcardDrills(params: {
+    userId: string;
+    targetRole: string;
+    topics: string[];
+    count: number;
+  }): Promise<{
+    drills: Array<{
+      topic: string;
+      question: string;
+      hint: string;
+      model_answer: string;
+    }>;
+  }> {
+    return this.postJsonInternal(
+      "/internal/ai/drills/generate",
+      {
+        target_role: params.targetRole,
+        topics: params.topics,
+        count: params.count,
+      },
+      "Failed to generate spaced-repetition flashcards",
+      "AI microservice timed out while generating micro-drills.",
+      { operation: "drills_generate", userId: params.userId }
+    );
+  }
+
+  async openInterviewHintStream(params: {
+    category: InterviewCategory;
+    difficulty: InterviewDifficulty;
+    targetRole: string;
+    question: string;
+    topicTag: string;
+  }): Promise<Response> {
+    const res = await fetch(`${this.baseUrl}/internal/ai/interviews/stream-hint`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Internal-Service-Key": env.INTERNAL_SERVICE_KEY,
+      },
+      body: JSON.stringify({
+        category: params.category,
+        difficulty: params.difficulty,
+        target_role: params.targetRole,
+        question: params.question,
+        topic_tag: params.topicTag,
+      }),
+    });
+    if (!res.ok) {
+      await this.handleErrorResponse(res, "Unable to stream coaching hint");
+    }
+    return res;
   }
 }
 

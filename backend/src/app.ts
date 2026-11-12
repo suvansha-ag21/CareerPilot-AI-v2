@@ -15,6 +15,8 @@ import skillsRoutes from "./modules/skills/skills.routes";
 import roadmapRoutes from "./modules/roadmap/roadmap.routes";
 import interviewsRoutes from "./modules/interviews/interviews.routes";
 import applicationsRoutes from "./modules/applications/applications.routes";
+import projectsRoutes from "./modules/projects/projects.routes";
+import drillsRoutes from "./modules/drills/drills.routes";
 
 const app = express();
 
@@ -47,6 +49,8 @@ app.use("/api/roadmaps", roadmapRoutes);
 app.use("/api/interviews", interviewsRoutes);
 app.use("/api/applications", applicationsRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/projects", projectsRoutes);
+app.use("/api/drills", drillsRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({

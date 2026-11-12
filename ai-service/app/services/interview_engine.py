@@ -77,6 +77,7 @@ async def generate_opening_question(
         f"Target Role: {payload.target_role} ({payload.years_experience} yrs experience)\n"
         f"Candidate Skills: {', '.join(payload.skills_list[:20]) or 'General CS'}\n"
         f"Candidate Projects: {payload.projects_summary or 'None specified'}\n"
+        f"GitHub Repository Architecture Context:\n{(payload.github_repo_context or '')[:1200] or 'None'}\n"
         f"Resume RAG Context:\n{resume_block[:1500] or 'No resume attached'}\n"
         f"Target JD Context:\n{(payload.target_job_description or '')[:800]}\n"
         f"CS Knowledge Base Reference:\n{rag_block}\n\n"
@@ -139,16 +140,35 @@ async def evaluate_and_advance_interview(
         "Grade the candidate strictly against the CS Knowledge Base reference and reference model answer. "
         "Weak, off-topic, or superficial 1-line answers must score low (0-35). Thorough, accurate, concrete answers score 80-95."
     )
+    submission_extra = ""
+    if payload.submission_context:
+        sc = payload.submission_context
+        parts = []
+        if sc.codeSnippet:
+            parts.append(
+                f"Submitted Code ({sc.codeLanguage or 'code'}):\n```{sc.codeLanguage or ''}\n{sc.codeSnippet[:4000]}\n```"
+            )
+        if sc.executionOutput:
+            parts.append(f"Sandbox Execution Output:\n{sc.executionOutput[:1500]}")
+        if sc.architectureNodes:
+            parts.append(f"System Design Architecture Components: {' -> '.join(sc.architectureNodes)}")
+        if sc.architectureNotes:
+            parts.append(f"System Design Scaling/Trade-off Notes:\n{sc.architectureNotes[:1500]}")
+        if parts:
+            submission_extra = "\n\n" + "\n\n".join(parts)
+
     user_prompt = (
         f"Category: {payload.category} | Difficulty: {payload.difficulty} | Role: {payload.target_role}\n"
         f"Current Topic: {payload.current_topic_tag} | Was Follow-up: {payload.current_is_follow_up}\n"
         f"Question Asked:\n{payload.current_question}\n\n"
         f"Reference Model Answer:\n{payload.current_model_answer}\n\n"
         f"CS Knowledge Base Ground Truth:\n{rag_block}\n\n"
-        f"Candidate Answer:\n{payload.user_answer}\n\n"
+        f"Candidate Answer:\n{payload.user_answer}{submission_extra}\n\n"
         f"Prior Conversation Context:\n{prior_history or 'Opening question'}\n"
+        f"GitHub Project Context: {(payload.github_repo_context or '')[:800]}\n"
         f"Resume Context: {(resume_block or payload.resume_summary or '')[:900]}\n\n"
         "Evaluate the candidate on all 5 numeric criteria (0-100): technicalAccuracy, depthOfUnderstanding, completeness, clarityAndStructure, practicalExamples. "
+        "If code/SQL or system design architecture was provided, explicitly critique code correctness, complexity/edge cases, or architecture bottlenecks/SPOFs.\n"
         "Provide crisp, direct feedback citing specific strengths or missing concepts.\n"
         f"{next_instruction}"
     )
@@ -328,4 +348,28 @@ async def transcribe_and_compute_metrics(
             deliveryFeedback=delivery_note,
         ),
     )
+
+
+async def stream_interviewer_hint(
+    category: str, difficulty: str, target_role: str, question: str, topic_tag: str
+):
+    system_prompt = (
+        "You are a supportive Principal Interview Coach giving a brief 2-3 sentence structural hint "
+        "WITHOUT revealing the final answer. Suggest how the candidate should frame trade-offs or edge cases."
+    )
+    user_prompt = (
+        f"Role: {target_role} | Category: {category} ({difficulty}) | Topic: {topic_tag}\n"
+        f"Question: {question}\n"
+        "Stream a crisp 2-3 sentence coaching hint to help the candidate structure their response."
+    )
+    yielded = False
+    async for chunk in llm_client.stream_text(system_prompt=system_prompt, user_prompt=user_prompt):
+        if chunk:
+            yielded = True
+            yield chunk
+    if not yielded:
+        yield (
+            f"Frame your {topic_tag} answer in 3 parts: core mechanism or invariant, "
+            "time/space or scalability trade-offs, and one concrete production example or edge case."
+        )
 

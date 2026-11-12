@@ -14,6 +14,9 @@ from app.schemas.resume_schema import (
     ResumeFeedbackReport,
     ResumeLLMExtractionAndCritique,
     SectionEvaluation,
+    TailoredResumeLLM,
+    TailorResumeRequest,
+    TailorResumeResponse,
 )
 from app.utils.skill_taxonomy import extract_canonical_skills, get_expected_skills_for_role
 
@@ -197,4 +200,37 @@ async def analyze_resume_pipeline(
         estimated_score=metrics["estimated_score"],
         section_scores=section_scores,
         feedback=feedback,
+    )
+
+
+async def tailor_resume_for_role(payload: TailorResumeRequest) -> TailorResumeResponse:
+    system_prompt = (
+        "You are an Executive Engineering Resume Strategist. Rewrite the candidate's professional "
+        "headline, summary, and top experience/project bullets strictly using truthful facts from "
+        "their resume so they align cleanly with the target role and job description. Do not invent "
+        "fake employers, degrees, or fabricated metrics."
+    )
+    user_prompt = (
+        f"Target Role: {payload.target_role}\n"
+        f"Candidate Existing Skills: {', '.join(payload.existing_skills[:25]) or 'Extracted from resume'}\n"
+        f"Target Job Description:\n{(payload.job_description or 'General industry benchmark for target role')[:4000]}\n\n"
+        f"<untrusted_resume_document>\n{payload.resume_text[:10000]}\n</untrusted_resume_document>\n\n"
+        "Return a crisp tailored headline, a 3-sentence tailored_summary, up to 12 highlighted_skills ordered by relevance, "
+        "3-5 rewritten_bullets (section, original, tailored), and up to 10 ats_keywords_added naturally supported by their background."
+    )
+
+    llm_out = await llm_client.generate_structured(
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        schema_cls=TailoredResumeLLM,
+    )
+
+    return TailorResumeResponse(
+        resumeId=payload.resume_id,
+        targetRole=payload.target_role,
+        headline=llm_out.headline.strip(),
+        tailoredSummary=llm_out.tailored_summary.strip(),
+        highlightedSkills=llm_out.highlighted_skills[:14],
+        rewrittenBullets=llm_out.rewritten_bullets[:6],
+        atsKeywordsAdded=llm_out.ats_keywords_added[:12],
     )

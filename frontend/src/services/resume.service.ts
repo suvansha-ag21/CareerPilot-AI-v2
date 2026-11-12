@@ -1,4 +1,9 @@
-import { AnalyzeResumeOptionsInput, ResumeDTO } from "@careerpilot/shared";
+import {
+  AnalyzeResumeOptionsInput,
+  ResumeDTO,
+  TailorResumeInput,
+  TailoredResumeDTO,
+} from "@careerpilot/shared";
 import { apiFetchBlob, apiRequest } from "@/lib/api";
 
 export const resumeApi = {
@@ -40,4 +45,10 @@ export const resumeApi = {
     }),
 
   fetchFileBlob: (id: string) => apiFetchBlob(`/resumes/${id}/file`),
+
+  tailor: (id: string, input: TailorResumeInput) =>
+    apiRequest<TailoredResumeDTO>(`/resumes/${id}/tailor`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
 };

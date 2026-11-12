@@ -7,6 +7,7 @@ import {
   InterviewQuestionDTO,
   InterviewSessionDTO,
   InterviewStatus,
+  InterviewSubmissionContextDTO,
   SpeechMetricsDTO,
   StartInterviewInput,
   SubmitInterviewAnswerInput,
@@ -34,6 +35,7 @@ function mapInterviewToDTO(row: InterviewWithQuestions): InterviewSessionDTO {
     userAnswer: q.userAnswer,
     audioUrl: q.audioUrl,
     speechMetrics: q.speechMetrics as unknown as SpeechMetricsDTO | null,
+    submissionContext: q.submissionContext as unknown as InterviewSubmissionContextDTO | null,
     modelAnswer: q.modelAnswer,
     score: q.score !== null ? Math.round(q.score * 10) / 10 : null,
     criteriaScores: q.criteriaScores as unknown as InterviewCriteriaScoresDTO | null,
@@ -49,6 +51,7 @@ function mapInterviewToDTO(row: InterviewWithQuestions): InterviewSessionDTO {
     id: row.id,
     userId: row.userId,
     resumeId: row.resumeId,
+    githubRepoId: row.githubRepoId,
     category: row.category as InterviewCategory,
     targetRole: row.targetRole,
     subcategories: row.subcategories ?? [],
@@ -95,7 +98,7 @@ export class InterviewsService {
     userId: string,
     input: StartInterviewInput
   ): Promise<InterviewSessionDTO> {
-    const [user, resume] = await Promise.all([
+    const [user, resume, githubRepo] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
         include: {
@@ -113,6 +116,11 @@ export class InterviewsService {
             orderBy: [{ isPrimary: "desc" }, { createdAt: "desc" }],
             select: { id: true, extractedText: true },
           }),
+      input.githubRepoId
+        ? prisma.gitHubRepoAnalysis.findFirst({
+            where: { id: input.githubRepoId, userId },
+          })
+        : Promise.resolve(null),
     ]);
 
     if (!user) {
@@ -121,6 +129,13 @@ export class InterviewsService {
     if (input.resumeId && !resume) {
       throw new NotFoundError("Selected resume not found");
     }
+    if (input.githubRepoId && !githubRepo) {
+      throw new NotFoundError("Selected GitHub repository analysis not found");
+    }
+
+    const githubRepoContext = githubRepo
+      ? `${githubRepo.owner}/${githubRepo.repoName} (${githubRepo.primaryLanguage || "Code"}): ${githubRepo.summary} | Stack: ${githubRepo.detectedStack.join(", ")} | Architecture Highlights: ${githubRepo.architectureHighlights.join("; ")} | Suggested Probes: ${githubRepo.interviewHooks.join("; ")}`
+      : null;
 
     const projectsSummary =
       user.projects
@@ -141,6 +156,7 @@ export class InterviewsService {
       resumeId: resume?.id ?? null,
       resumeSummary: resume?.extractedText ? resume.extractedText.slice(0, 1500) : null,
       projectsSummary,
+      githubRepoContext,
       skillsList,
       targetJobDescription: input.targetJobDescription ?? null,
     });
@@ -149,6 +165,7 @@ export class InterviewsService {
       data: {
         userId,
         resumeId: resume?.id ?? null,
+        githubRepoId: githubRepo?.id ?? null,
         category: input.category,
         targetRole: chosenRole,
         subcategories: chosenSubcats,
@@ -228,6 +245,23 @@ export class InterviewsService {
       include: { questions: true },
     });
 
+    // Automatically seed spaced-repetition flashcard drills from low-scoring questions
+    const lowQuestions = questions.filter((q) => (q.score ?? 100) < 65).slice(0, 3);
+    if (lowQuestions.length > 0) {
+      await prisma.flashcardDrill
+        .createMany({
+          data: lowQuestions.map((q) => ({
+            userId: completed.userId,
+            topic: q.topicTag,
+            question: q.question,
+            hint: `Target ${completed.targetRole || params.targetRole} (${q.topicTag})`,
+            modelAnswer: q.modelAnswer,
+            source: "INTERVIEW_WEAK_TOPIC",
+          })),
+        })
+        .catch(() => {});
+    }
+
     return mapInterviewToDTO(completed);
   }
 
@@ -243,6 +277,7 @@ export class InterviewsService {
         where: { id: interviewId, userId },
         include: {
           resume: { select: { extractedText: true } },
+          githubRepo: true,
           questions: { orderBy: { questionOrder: "asc" } },
         },
       }),
@@ -292,6 +327,10 @@ export class InterviewsService {
       resumeSummary: interview.resume?.extractedText
         ? interview.resume.extractedText.slice(0, 1200)
         : null,
+      githubRepoContext: interview.githubRepo
+        ? `${interview.githubRepo.owner}/${interview.githubRepo.repoName}: ${interview.githubRepo.summary} | Stack: ${interview.githubRepo.detectedStack.join(", ")}`
+        : null,
+      submissionContext: input.submissionContext ?? null,
       targetJobDescription: interview.targetJobDescription,
     });
 
@@ -304,6 +343,11 @@ export class InterviewsService {
           ...(input.speechMetrics
             ? {
                 speechMetrics: input.speechMetrics as unknown as Prisma.InputJsonValue,
+              }
+            : {}),
+          ...(input.submissionContext
+            ? {
+                submissionContext: input.submissionContext as unknown as Prisma.InputJsonValue,
               }
             : {}),
           score: evalRes.score,
@@ -464,6 +508,37 @@ export class InterviewsService {
       }
     }
     return { deleted: true };
+  }
+
+  async openHintStream(
+    userId: string,
+    interviewId: string,
+    questionId?: string
+  ): Promise<globalThis.Response> {
+    const interview = await prisma.interview.findFirst({
+      where: { id: interviewId, userId },
+      include: { questions: { orderBy: { questionOrder: "asc" } } },
+    });
+    if (!interview) {
+      throw new NotFoundError("Interview session not found");
+    }
+
+    const q =
+      (questionId ? interview.questions.find((item) => item.id === questionId) : null) ||
+      interview.questions.find((item) => item.userAnswer === null) ||
+      interview.questions[interview.questions.length - 1];
+
+    if (!q) {
+      throw new NotFoundError("No question available in this interview session");
+    }
+
+    return aiServiceClient.openInterviewHintStream({
+      category: interview.category as InterviewCategory,
+      difficulty: interview.difficulty as InterviewDifficulty,
+      targetRole: interview.targetRole || "Full Stack Developer",
+      question: q.question,
+      topicTag: q.topicTag,
+    });
   }
 }
 

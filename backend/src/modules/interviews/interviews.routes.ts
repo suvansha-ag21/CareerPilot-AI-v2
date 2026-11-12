@@ -11,6 +11,7 @@ import {
   getInterviewByIdController,
   listInterviewsController,
   startInterviewController,
+  streamHintController,
   submitInterviewAnswerController,
   submitVoiceAnswerController,
   transcribeAudioController,
@@ -49,6 +50,7 @@ router.post(
   audioUpload.single("audio"),
   asyncHandler(submitVoiceAnswerController)
 );
+router.post("/:id/hint-stream", asyncHandler(streamHintController));
 router.post("/:id/complete", asyncHandler(completeInterviewController));
 router.delete("/:id", asyncHandler(deleteInterviewController));
 

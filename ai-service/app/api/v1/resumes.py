@@ -1,8 +1,13 @@
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from app.core.security import verify_internal_key
 from app.rag.vector_store import vector_store
-from app.schemas.resume_schema import ResumeAnalyzeResponse, VectorDeleteRequest
-from app.services.resume_analyzer import analyze_resume_pipeline
+from app.schemas.resume_schema import (
+    ResumeAnalyzeResponse,
+    TailorResumeRequest,
+    TailorResumeResponse,
+    VectorDeleteRequest,
+)
+from app.services.resume_analyzer import analyze_resume_pipeline, tailor_resume_for_role
 
 router = APIRouter(tags=["Resumes"])
 
@@ -37,3 +42,12 @@ async def parse_and_evaluate_resume(
 async def delete_resume_vectors(payload: VectorDeleteRequest) -> dict[str, bool]:
     vector_store.delete_resume_chunks(user_id=payload.user_id, resume_id=payload.resume_id)
     return {"deleted": True}
+
+
+@router.post(
+    "/resumes/tailor",
+    response_model=TailorResumeResponse,
+    dependencies=[Depends(verify_internal_key)],
+)
+async def tailor_resume_route(payload: TailorResumeRequest) -> TailorResumeResponse:
+    return await tailor_resume_for_role(payload)

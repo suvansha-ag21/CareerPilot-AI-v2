@@ -15,6 +15,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/skills": "AI Skill Gap Analyzer",
   "/interview": "AI Mock & Voice Interview",
   "/roadmap": "Personalized Learning Roadmap",
+  "/drills": "Daily Micro-Drills",
   "/applications": "Job Application Tracker",
   "/analytics": "Career Analytics",
   "/profile": "Candidate Profile",

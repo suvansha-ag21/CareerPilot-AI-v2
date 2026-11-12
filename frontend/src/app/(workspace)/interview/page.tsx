@@ -33,6 +33,7 @@ import {
 } from "recharts";
 import {
   CAREER_ROLE_PRESETS,
+  GitHubRepoAnalysisDTO,
   InterviewCategory,
   InterviewDifficulty,
   InterviewMode,
@@ -46,6 +47,9 @@ import { useAuth } from "@/store/auth-context";
 import { ApiClientError } from "@/lib/api";
 import { interviewApi } from "@/services/interview.service";
 import { resumeApi } from "@/services/resume.service";
+import { projectsApi } from "@/services/advanced.service";
+import { CodeSqlSandbox, SandboxLanguage } from "@/components/interview/CodeSqlSandbox";
+import { SystemDesignCanvas } from "@/components/interview/SystemDesignCanvas";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -76,6 +80,7 @@ export default function MockInterviewPage() {
   const { user } = useAuth();
   const [sessions, setSessions] = useState<InterviewSessionDTO[]>([]);
   const [resumes, setResumes] = useState<ResumeDTO[]>([]);
+  const [githubRepos, setGithubRepos] = useState<GitHubRepoAnalysisDTO[]>([]);
   const [activeSession, setActiveSession] = useState<InterviewSessionDTO | null>(null);
   const [loadingInit, setLoadingInit] = useState(true);
 
@@ -91,11 +96,20 @@ export default function MockInterviewPage() {
   const [questionLimit, setQuestionLimit] = useState<number>(5);
   const [durationMinutes, setDurationMinutes] = useState<number>(30);
   const [resumeId, setResumeId] = useState<string>("");
+  const [githubRepoId, setGithubRepoId] = useState<string>("");
   const [targetJobDescription, setTargetJobDescription] = useState<string>("");
 
   // Room & evaluation states
   const [starting, setStarting] = useState(false);
   const [answerText, setAnswerText] = useState("");
+  const [workspaceTab, setWorkspaceTab] = useState<"written" | "code" | "design">("written");
+  const [sandboxLang, setSandboxLang] = useState<SandboxLanguage>("javascript");
+  const [sandboxCode, setSandboxCode] = useState("");
+  const [sandboxOutput, setSandboxOutput] = useState<string | undefined>(undefined);
+  const [designNodes, setDesignNodes] = useState<string[]>([]);
+  const [designNotes, setDesignNotes] = useState("");
+  const [streamingHint, setStreamingHint] = useState("");
+  const [hintLoading, setHintLoading] = useState(false);
   const [speechMetrics, setSpeechMetrics] = useState<SpeechMetricsDTO | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSec, setRecordingSec] = useState(0);
@@ -115,8 +129,13 @@ export default function MockInterviewPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [sList, rList] = await Promise.all([interviewApi.list(), resumeApi.list()]);
+      const [sList, rList, repoList] = await Promise.all([
+        interviewApi.list(),
+        resumeApi.list(),
+        projectsApi.listGitHub().catch(() => [] as GitHubRepoAnalysisDTO[]),
+      ]);
       setSessions(sList);
+      setGithubRepos(repoList);
       const analyzed = rList.filter((r) => Boolean(r.analyzedAt));
       setResumes(analyzed);
       const primary = analyzed.find((r) => r.isPrimary) || analyzed[0];
@@ -194,11 +213,17 @@ export default function MockInterviewPage() {
         durationMinutes,
         questionLimit,
         resumeId: resumeId || undefined,
+        githubRepoId: githubRepoId || undefined,
         targetJobDescription: targetJobDescription.trim() || undefined,
       });
       setSessions((prev) => [created, ...prev]);
       setActiveSession(created);
       setAnswerText("");
+      setStreamingHint("");
+      setSandboxCode("");
+      setSandboxOutput(undefined);
+      setDesignNodes([]);
+      setDesignNotes("");
       setSpeechMetrics(null);
       setRecordedBlob(null);
     } catch (err) {
@@ -359,15 +384,41 @@ export default function MockInterviewPage() {
 
     setErrorMsg(null);
     setSubmitting(true);
+    const hasCode = Boolean(sandboxCode.trim());
+    const hasDesign = designNodes.length > 0 || Boolean(designNotes.trim());
     try {
       const updated = await interviewApi.submitAnswer(activeSession.id, {
         questionId: currentQuestion.id,
         answerText: answerText.trim(),
         ...(speechMetrics ? { speechMetrics } : {}),
+        ...(hasCode || hasDesign
+          ? {
+              submissionContext: {
+                ...(hasCode
+                  ? {
+                      codeLanguage: sandboxLang,
+                      codeSnippet: sandboxCode,
+                      executionOutput: sandboxOutput,
+                    }
+                  : {}),
+                ...(hasDesign
+                  ? {
+                      architectureNodes: designNodes,
+                      architectureNotes: designNotes.trim() || undefined,
+                    }
+                  : {}),
+              },
+            }
+          : {}),
       });
       setActiveSession(updated);
       setSessions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
       setAnswerText("");
+      setStreamingHint("");
+      setSandboxCode("");
+      setSandboxOutput(undefined);
+      setDesignNodes([]);
+      setDesignNotes("");
       setSpeechMetrics(null);
       setRecordedBlob(null);
     } catch (err) {
@@ -510,6 +561,31 @@ export default function MockInterviewPage() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
+                    onClick={async () => {
+                      if (!activeSession || !pendingQuestion) return;
+                      setStreamingHint("");
+                      setHintLoading(true);
+                      try {
+                        await interviewApi.streamHint(
+                          activeSession.id,
+                          pendingQuestion.id,
+                          (token) => setStreamingHint((prev) => prev + token)
+                        );
+                      } catch {
+                        setErrorMsg("Unable to stream coaching hint.");
+                      } finally {
+                        setHintLoading(false);
+                      }
+                    }}
+                    disabled={hintLoading}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:border-[#6D5DFB]/40 text-[11px] font-medium text-[#6D5DFB] transition-colors"
+                    title="Stream structured framing hint"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {hintLoading ? "Streaming..." : "Stream Hint"}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleSpeakQuestion(pendingQuestion.question)}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:border-[#6D5DFB]/40 text-[11px] font-medium text-[#172033] transition-colors"
                     title="Speak question aloud using Text-to-Speech"
@@ -543,6 +619,58 @@ export default function MockInterviewPage() {
                   {pendingQuestion.question}
                 </p>
               </div>
+
+              {(streamingHint || hintLoading) && (
+                <div className="p-3.5 rounded-xl bg-[#EEF2FF]/70 border border-[#6D5DFB]/25 text-xs text-[#172033] leading-relaxed">
+                  <span className="font-semibold text-[#6D5DFB]">Live Coaching Hint: </span>
+                  {streamingHint || "Streaming framing guidance..."}
+                </div>
+              )}
+
+              {/* Answer Mode Switcher: Prose / Voice | Live Code & SQL Sandbox | System Design Canvas */}
+              <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 pb-2">
+                {[
+                  { id: "written", label: "Written / Voice Answer" },
+                  { id: "code", label: "Code & SQL Sandbox" },
+                  { id: "design", label: "System Design Canvas" },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setWorkspaceTab(tab.id as "written" | "code" | "design")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      workspaceTab === tab.id
+                        ? "bg-[#6D5DFB] text-white"
+                        : "bg-slate-100 text-[#64748B] hover:text-[#172033]"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {workspaceTab === "code" && (
+                <CodeSqlSandbox
+                  language={sandboxLang}
+                  code={sandboxCode}
+                  onChange={({ language: l, code: c, output }) => {
+                    setSandboxLang(l);
+                    setSandboxCode(c);
+                    if (output !== undefined) setSandboxOutput(output);
+                  }}
+                />
+              )}
+
+              {workspaceTab === "design" && (
+                <SystemDesignCanvas
+                  nodes={designNodes}
+                  notes={designNotes}
+                  onChange={({ nodes: n, notes: nt }) => {
+                    setDesignNodes(n);
+                    setDesignNotes(nt);
+                  }}
+                />
+              )}
 
               {activeSession.mode === InterviewMode.VOICE && (
                 <div className="p-4 rounded-xl border border-[#6D5DFB]/25 bg-[#EEF2FF]/45 space-y-3">
@@ -1152,6 +1280,26 @@ export default function MockInterviewPage() {
                   ))}
                 </select>
               </div>
+
+              {githubRepos.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-[#172033]">
+                    Attach Analyzed GitHub Repository (Optional Codebase Deep-Dive)
+                  </label>
+                  <select
+                    value={githubRepoId}
+                    onChange={(e) => setGithubRepoId(e.target.value)}
+                    className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-[#172033]"
+                  >
+                    <option value="">None</option>
+                    {githubRepos.map((repo) => (
+                      <option key={repo.id} value={repo.id}>
+                        {repo.owner}/{repo.repoName} ({repo.primaryLanguage || "Code"})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="block text-xs font-medium text-[#172033]">
