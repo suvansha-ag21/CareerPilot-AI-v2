@@ -373,10 +373,13 @@ export default function JobMatcherPage() {
                 )}
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+                <p className="text-xs text-[#64748B]">
+                  We compare both exact keywords and related tools between your resume and this job.
+                </p>
                 <Button type="submit" size="lg" loading={submitting}>
                   <GitCompare className="h-4 w-4" />
-                  Run Semantic Compatibility Match
+                  Check Job Compatibility
                 </Button>
               </div>
             </form>
@@ -577,7 +580,7 @@ export default function JobMatcherPage() {
                 <Card>
                   <CardHeader
                     title="Matching Skills"
-                    subtitle={`${selectedMatch.matchingSkills.length} verified`}
+                    subtitle={`${selectedMatch.matchingSkills.length} found directly in your resume`}
                   />
                   <CardContent className="flex flex-wrap gap-1.5">
                     {selectedMatch.matchingSkills.length > 0 ? (
@@ -595,8 +598,8 @@ export default function JobMatcherPage() {
 
                 <Card>
                   <CardHeader
-                    title="Partial Overlap"
-                    subtitle={`${selectedMatch.partialSkills.length} transferable`}
+                    title="Related / Transferable"
+                    subtitle={`${selectedMatch.partialSkills.length} close to what the job asks for`}
                   />
                   <CardContent className="flex flex-wrap gap-1.5">
                     {selectedMatch.partialSkills.length > 0 ? (
@@ -614,7 +617,7 @@ export default function JobMatcherPage() {
                 <Card>
                   <CardHeader
                     title="Missing Skills"
-                    subtitle={`${selectedMatch.missingSkills.length} gaps`}
+                    subtitle={`${selectedMatch.missingSkills.length} gaps to highlight or learn`}
                   />
                   <CardContent className="flex flex-wrap gap-1.5">
                     {selectedMatch.missingSkills.length > 0 ? (

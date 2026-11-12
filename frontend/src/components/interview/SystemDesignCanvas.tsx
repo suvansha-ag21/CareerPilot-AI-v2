@@ -38,14 +38,19 @@ export function SystemDesignCanvas({
   return (
     <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Layers className="h-4 w-4 text-[#6D5DFB]" />
-          <span className="text-xs font-semibold text-[#172033]">
-            System Design Architecture Canvas
-          </span>
+        <div>
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-[#6D5DFB]" />
+            <span className="text-xs font-semibold text-[#172033]">
+              System Design Architecture Canvas
+            </span>
+          </div>
+          <p className="text-[11px] text-[#64748B] mt-0.5">
+            Click any component below to add or remove it from your request flow.
+          </p>
         </div>
         <span className="text-[11px] text-[#64748B]">
-          {nodes.length} component(s) in pipeline
+          {nodes.length} component(s) selected
         </span>
       </div>
 

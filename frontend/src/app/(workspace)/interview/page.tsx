@@ -582,7 +582,7 @@ export default function MockInterviewPage() {
                     title="Stream structured framing hint"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
-                    {hintLoading ? "Streaming..." : "Stream Hint"}
+                    {hintLoading ? "Getting hint..." : "Get a Quick Hint"}
                   </button>
                   <button
                     type="button"
@@ -622,18 +622,23 @@ export default function MockInterviewPage() {
 
               {(streamingHint || hintLoading) && (
                 <div className="p-3.5 rounded-xl bg-[#EEF2FF]/70 border border-[#6D5DFB]/25 text-xs text-[#172033] leading-relaxed">
-                  <span className="font-semibold text-[#6D5DFB]">Live Coaching Hint: </span>
-                  {streamingHint || "Streaming framing guidance..."}
+                  <span className="font-semibold text-[#6D5DFB]">Quick Hint: </span>
+                  {streamingHint || "Preparing a helpful hint..."}
                 </div>
               )}
 
               {/* Answer Mode Switcher: Prose / Voice | Live Code & SQL Sandbox | System Design Canvas */}
-              <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 pb-2">
-                {[
-                  { id: "written", label: "Written / Voice Answer" },
-                  { id: "code", label: "Code & SQL Sandbox" },
-                  { id: "design", label: "System Design Canvas" },
-                ].map((tab) => (
+              <div className="space-y-2 border-b border-slate-100 pb-2.5">
+                <p className="text-[11px] text-[#64748B]">
+                  Choose how you want to answer — type/speak below, or switch to Code &amp; SQL /
+                  System Design if the question asks for code or architecture.
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {[
+                    { id: "written", label: "Written / Voice Answer" },
+                    { id: "code", label: "Code & SQL Sandbox" },
+                    { id: "design", label: "System Design Canvas" },
+                  ].map((tab) => (
                   <button
                     key={tab.id}
                     type="button"
@@ -647,6 +652,7 @@ export default function MockInterviewPage() {
                     {tab.label}
                   </button>
                 ))}
+                </div>
               </div>
 
               {workspaceTab === "code" && (
@@ -678,11 +684,11 @@ export default function MockInterviewPage() {
                     <div className="space-y-0.5">
                       <p className="text-xs font-semibold text-[#172033] flex items-center gap-1.5">
                         <Mic className="h-3.5 w-3.5 text-[#6D5DFB]" />
-                        Explicit-Consent Voice Recorder &amp; Speech Analytics
+                        Voice Answer Recorder (With Your Permission)
                       </p>
                       <p className="text-[11px] text-[#64748B]">
-                        Click Record to speak your answer, then review transcript &amp; WPM or
-                        submit directly.
+                        Click Record to speak your answer out loud, then review your transcript &amp;
+                        speaking speed (words per minute) before submitting.
                       </p>
                     </div>
 

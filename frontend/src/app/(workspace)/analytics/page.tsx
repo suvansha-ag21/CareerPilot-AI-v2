@@ -378,19 +378,19 @@ export default function DeepAnalyticsPage() {
         </Card>
       </div>
 
-      {/* AI Pipeline Observability & Telemetry */}
+      {/* AI Speed & Reliability */}
       {data.aiTelemetry && (
         <Card>
           <CardHeader
             icon={<Activity className="h-4 w-4" />}
-            title="AI Pipeline Observability &amp; Latency Telemetry"
-            subtitle="Real-time execution latency, model routing, fallback triggers, and schema pass rate logged in PostgreSQL"
+            title="AI Assistant Speed &amp; Reliability"
+            subtitle="Live response times, check completion rate, and backup model status for your AI requests"
           />
           <CardContent className="space-y-5">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="p-3.5 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                  Tracked AI Calls
+                  AI Requests Run
                 </p>
                 <p className="text-xl font-bold text-[#172033] mt-1 tabular-nums">
                   {data.aiTelemetry.totalCalls}
@@ -398,7 +398,7 @@ export default function DeepAnalyticsPage() {
               </div>
               <div className="p-3.5 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                  Avg Latency
+                  Average Wait Time
                 </p>
                 <p className="text-xl font-bold text-[#6D5DFB] mt-1 tabular-nums">
                   {data.aiTelemetry.avgLatencyMs} ms
@@ -406,7 +406,7 @@ export default function DeepAnalyticsPage() {
               </div>
               <div className="p-3.5 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                  Schema Pass Rate
+                  Successful Checks
                 </p>
                 <p className="text-xl font-bold text-emerald-700 mt-1 tabular-nums">
                   {data.aiTelemetry.successRatePct}%
@@ -414,7 +414,7 @@ export default function DeepAnalyticsPage() {
               </div>
               <div className="p-3.5 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                  Model Fallbacks
+                  Backup AI Used
                 </p>
                 <p className="text-xl font-bold text-[#172033] mt-1 tabular-nums">
                   {data.aiTelemetry.fallbackCount}
@@ -435,7 +435,7 @@ export default function DeepAnalyticsPage() {
                     <Tooltip />
                     <Bar
                       dataKey="avgLatencyMs"
-                      name="Avg Latency (ms)"
+                      name="Response Time (ms)"
                       fill="#6D5DFB"
                       radius={[6, 6, 0, 0]}
                       maxBarSize={42}
@@ -450,9 +450,9 @@ export default function DeepAnalyticsPage() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
-                      <th className="py-2.5 px-4">Operation</th>
-                      <th className="py-2.5 px-3">Provider / Model</th>
-                      <th className="py-2.5 px-3">Latency</th>
+                      <th className="py-2.5 px-4">Feature Used</th>
+                      <th className="py-2.5 px-3">AI Engine</th>
+                      <th className="py-2.5 px-3">Response Time</th>
                       <th className="py-2.5 px-3">Status</th>
                     </tr>
                   </thead>

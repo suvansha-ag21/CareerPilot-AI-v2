@@ -6,6 +6,7 @@ import {
   Activity,
   AlertCircle,
   ArrowRight,
+  Brain,
   Briefcase,
   Calendar,
   CheckCircle2,
@@ -233,17 +234,23 @@ export default function UserDashboardPage() {
                 <p className="text-xs font-semibold text-[#172033]">Placement Readiness</p>
                 <p className="text-[11px] text-[#64748B]">
                   {data?.readinessScore !== null && data?.readinessScore !== undefined
-                    ? "Weighted composite index"
-                    : "Complete resume or roadmap"}
+                    ? "Combines your resume, interviews & study tasks"
+                    : "Upload a resume or start your roadmap"}
                 </p>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5">
+              <Link href="/drills">
+                <Button variant="outline">
+                  <Brain className="h-4 w-4 text-[#6D5DFB]" />
+                  Flashcards
+                </Button>
+              </Link>
               <Link href="/skills">
                 <Button variant="outline">
                   <Sparkles className="h-4 w-4 text-[#6D5DFB]" />
-                  Skill Audit
+                  Skill Check
                 </Button>
               </Link>
               <Link href="/resume">

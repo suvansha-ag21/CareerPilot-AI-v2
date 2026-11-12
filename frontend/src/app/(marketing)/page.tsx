@@ -113,60 +113,60 @@ const FEATURES = [
   },
   {
     icon: GitCompare,
-    title: "Smart Job Description Matcher",
+    title: "Smart Job Matcher",
     href: "/matcher",
     description:
-      "Compare your resume against any job posting using semantic embeddings, keyword alignment, and transferable skill graphs.",
-    flow: "Resume + Job Description -> Hybrid Semantic & TF-IDF -> Matching / Partial / Missing Breakdown",
+      "Compare your resume against any job posting to see matching, related, and missing skills instantly.",
+    flow: "Resume + Job Post -> Meaning & Keyword Check -> Matching / Related / Missing Skills",
   },
   {
     icon: Sparkles,
     title: "Skill Gap Intelligence",
     href: "/skills",
     description:
-      "Benchmark your skills against target hiring roles with dependency-ordered beginner, intermediate, and advanced learning paths.",
-    flow: "Profile + Resume + JD -> Topological Prerequisite Order -> Prioritized Skill Gap Plan",
+      "Compare your skills against target roles with an easy step-by-step order from beginner basics to advanced topics.",
+    flow: "Profile + Resume + Job -> Step-by-Step Study Order -> Prioritized Skill Gap Plan",
   },
   {
     icon: Mic,
     title: "Code, Voice & System Design Interviews",
     href: "/interview",
     description:
-      "Practice live JS/SQL coding, interactive system design topologies, or voice interviews with WPM pacing & GitHub repo probes.",
-    flow: "Code / Voice / Topology Input -> 5-Criterion Rubric + Follow-Ups -> Radar Dossier + Weak-Topic Drills",
+      "Practice live JS/SQL coding, build system diagrams, or answer by voice with speaking pace tips & GitHub project questions.",
+    flow: "Written, Voice, Code, or Diagram -> 5-Part Rubric + Follow-Ups -> Score Breakdown & Practice Cards",
   },
   {
     icon: Map,
-    title: "Personalized Roadmap & Daily Drills",
+    title: "Personalized Roadmap & Daily Flashcards",
     href: "/roadmap",
     description:
-      "Turn skill gaps into 30–180 day execution sprints synced with SM-2 spaced-repetition active-recall flashcards.",
-    flow: "Open Gaps + Study Pace -> Weekly Sprint Tasks + SM-2 Flashcards -> Live Readiness Sync",
+      "Turn skill gaps into a 30–180 day weekly study plan synced with smart flashcards that come back right before you forget.",
+    flow: "Skill Gaps + Study Time -> Weekly Tasks + Smart Flashcards -> Live Readiness Sync",
   },
   {
     icon: Briefcase,
-    title: "Application Hub & AI Telemetry",
+    title: "Application Hub & Progress Insights",
     href: "/analytics",
     description:
-      "Track applications in Table/Kanban views while monitoring conversion velocity, score progression, and real-time AI latency.",
-    flow: "Pipeline Stages + Model Logs -> Conversion Funnel + Latency Trace -> Actionable Career Telemetry",
+      "Track applications in Table or Kanban views while watching your conversion rates, score trends, and AI response speed.",
+    flow: "Job Pipeline + Activity -> Progress Funnel & AI Speed -> Clear Next Steps",
   },
 ];
 
 const HOW_IT_WORKS = [
   {
     step: "01",
-    title: "3-Step Onboarding & GitHub Sync",
+    title: "3-Step Setup & GitHub Import",
     description:
-      "Set your education, career goals, resume, and analyze public GitHub repositories so interviews probe your real code.",
+      "Pick your education, career goals, resume, and optional public GitHub repos so interviews reflect your real projects.",
     href: "/onboarding",
     cta: "Start Onboarding",
   },
   {
     step: "02",
-    title: "Match JDs & Tailor ATS Resumes",
+    title: "Check Job Fit & Tailor Resume",
     description:
-      "Measure compatibility against real postings, close missing keywords, and export a role-tailored ATS PDF in one click.",
+      "Measure compatibility against real job postings, add missing keywords, and download a clean ATS-friendly PDF.",
     href: "/matcher",
     cta: "Open Job Matcher",
   },
@@ -174,17 +174,17 @@ const HOW_IT_WORKS = [
     step: "03",
     title: "Practice Code, SQL, Voice & Design",
     description:
-      "Run code & SQL queries, sketch system architectures, stream coaching hints, and get graded on 5 calibrated criteria.",
+      "Run code & SQL queries, build architecture diagrams, request quick hints, and get graded across 5 clear areas.",
     href: "/interview",
     cta: "Enter Interview Studio",
   },
   {
     step: "04",
-    title: "Drill Weak Topics & Track Offers",
+    title: "Review Flashcards & Track Offers",
     description:
-      "Review auto-generated SM-2 flashcards daily, complete weekly roadmap sprints, and manage applications to offer.",
+      "Practice auto-created flashcards daily, check off weekly roadmap tasks, and manage applications up to your offer.",
     href: "/drills",
-    cta: "Open Daily Drills",
+    cta: "Open Daily Flashcards",
   },
 ];
 
@@ -193,19 +193,19 @@ const ENGINE_PILLARS = [
     icon: Code2,
     title: "In-Browser Code & SQL Execution",
     detail:
-      "Run JavaScript in an isolated Web Worker and execute relational SQL queries live inside mock interviews.",
+      "Run JavaScript in a safe browser sandbox and execute SQL queries live during mock interviews.",
   },
   {
     icon: Target,
-    title: "Codebase-Grounded GitHub Probes",
+    title: "Questions Based on Your GitHub",
     detail:
-      "Inspects public repositories, dependency manifests, and READMEs to ask architecture questions on your real work.",
+      "Reads public repositories, dependencies, and READMEs so interview questions reflect projects you actually built.",
   },
   {
     icon: TrendingUp,
-    title: "Speech Pacing & Telemetry Logs",
+    title: "Speaking Pace & Health Monitor",
     detail:
-      "Tracks voice speaking speed (WPM), filler words, and per-request AI latency and fallback telemetry.",
+      "Measures speaking speed (words per minute), filler words, and live AI response times.",
   },
   {
     icon: BarChart3,
@@ -218,7 +218,7 @@ const ENGINE_PILLARS = [
 export default function LandingPage() {
   const { user } = useAuth();
   const [heroRoleIdx, setHeroRoleIdx] = useState(0);
-  const [playgroundTab, setPlaygroundTab] = useState<PlaygroundTab>("sandbox");
+  const [playgroundTab, setPlaygroundTab] = useState<PlaygroundTab>("roles");
   const [sandboxLang, setSandboxLang] = useState<SandboxLanguage>("sql");
   const [sandboxCode, setSandboxCode] = useState("");
   const [designNodes, setDesignNodes] = useState<string[]>([
@@ -285,16 +285,16 @@ export default function LandingPage() {
 
           <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-[#64748B]">
             <a href="#playground" className="hover:text-[#172033] transition-colors">
-              Interactive Lab
+              Interactive Tools
             </a>
             <a href="#features" className="hover:text-[#172033] transition-colors">
               Features
             </a>
             <a href="#how-it-works" className="hover:text-[#172033] transition-colors">
-              Workflow
+              How It Works
             </a>
             <a href="#why-careerpilot" className="hover:text-[#172033] transition-colors">
-              Architecture
+              Why CareerPilot
             </a>
           </nav>
 
@@ -368,8 +368,8 @@ export default function LandingPage() {
             transition={{ duration: 0.4, delay: 0.1 }}
             className="text-base sm:text-lg text-[#64748B] max-w-2xl mx-auto leading-relaxed"
           >
-            Run live Code &amp; SQL queries, design scalable architectures, analyze your resume, and
-            practice voice interviews—try the live tools below right now.
+            Explore target tech roles, run live Code &amp; SQL, sketch system diagrams, and practice
+            interview flashcards right below—no setup required.
           </motion.p>
 
           <motion.div
@@ -386,7 +386,7 @@ export default function LandingPage() {
             </Link>
             <a href="#playground" className="w-full sm:w-auto">
               <Button variant="outline" size="lg" className="w-full sm:w-auto px-7">
-                Try Interactive Sandbox
+                Explore Live Tools
               </Button>
             </a>
           </motion.div>
@@ -430,12 +430,12 @@ export default function LandingPage() {
                   <div className="space-y-1.5 text-xs">
                     {(
                       [
-                        { id: "sandbox", label: "Code & SQL Runner", icon: Code2 },
-                        { id: "design", label: "System Design Canvas", icon: Layers },
-                        { id: "roles", label: "Career Role Explorer", icon: Target },
+                        { id: "roles", label: "Explore Career Roles", icon: Target },
+                        { id: "sandbox", label: "Code & SQL Practice", icon: Code2 },
+                        { id: "design", label: "Architecture Builder", icon: Layers },
                         {
                           id: "workspace",
-                          label: user ? "My Live Telemetry" : "CS Flashcard Drill",
+                          label: user ? "My Live Progress" : "Practice Flashcards",
                           icon: Brain,
                         },
                       ] as const
@@ -644,10 +644,10 @@ export default function LandingPage() {
                         <>
                           <div>
                             <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D5DFB]">
-                              Live Authenticated Workspace
+                              Your Live Workspace
                             </p>
                             <h3 className="text-base font-semibold text-[#172033]">
-                              Real telemetry fetched directly from your account
+                              Real progress fetched directly from your account
                             </h3>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -788,7 +788,7 @@ export default function LandingPage() {
               Platform Capabilities
             </p>
             <h2 className="text-3xl font-semibold text-[#172033] tracking-tight mt-2">
-              Click any module to inspect its real-time AI pipeline
+              Click any tool to see how it helps you prepare
             </h2>
           </div>
 
@@ -920,21 +920,21 @@ export default function LandingPage() {
               Built for real engineering depth, never generic chat advice
             </h2>
             <p className="text-sm text-slate-400 leading-relaxed">
-              Every module produces structured, inspectable outputs: runnable code &amp; SQL checks,
-              system topology critiques, GitHub codebase probes, and PostgreSQL telemetry logs.
+              Every tool produces clear, practical outputs: runnable code &amp; SQL checks, system
+              architecture feedback, questions based on your GitHub projects, and live progress logs.
             </p>
             <ul className="space-y-2.5 pt-2 text-sm text-slate-300">
               <li className="flex items-center gap-2.5">
                 <CheckCircle2 className="h-4 w-4 text-[#8B7CFF] shrink-0" />
-                Private per-user workspace with zero preloaded mock metrics
+                Private per-user workspace with zero preloaded fake metrics
               </li>
               <li className="flex items-center gap-2.5">
                 <CheckCircle2 className="h-4 w-4 text-[#8B7CFF] shrink-0" />
-                Real-time coaching hint streaming &amp; voice delivery analytics
+                Live step-by-step coaching hints &amp; speaking speed feedback
               </li>
               <li className="flex items-center gap-2.5">
                 <CheckCircle2 className="h-4 w-4 text-[#8B7CFF] shrink-0" />
-                SM-2 spaced-repetition active recall fed directly from weak interview topics
+                Smart flashcards automatically created from your weak interview topics
               </li>
             </ul>
           </div>

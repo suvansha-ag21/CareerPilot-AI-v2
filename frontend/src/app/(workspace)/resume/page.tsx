@@ -315,6 +315,15 @@ export default function ResumeAnalyzerPage() {
                 <option value={ResumeAnalysisType.TECHNICAL_SKILLS}>Technical Skills Analysis</option>
                 <option value={ResumeAnalysisType.PROJECT_EVALUATION}>Project Evaluation</option>
               </select>
+              <p className="text-[11px] text-[#64748B]">
+                {analysisType === ResumeAnalysisType.ATS_COMPATIBILITY
+                  ? "Checks formatting, section headers, and recruiter screening keywords."
+                  : analysisType === ResumeAnalysisType.TECHNICAL_SKILLS
+                  ? "Audits your programming languages, tools, and missing role skills."
+                  : analysisType === ResumeAnalysisType.PROJECT_EVALUATION
+                  ? "Evaluates impact, metrics, and technical depth in your project bullets."
+                  : "Full review: ATS readability, technical skills, projects, and action tips."}
+              </p>
             </div>
           </div>
 
@@ -524,10 +533,11 @@ export default function ResumeAnalyzerPage() {
                       <Button
                         variant="secondary"
                         size="sm"
+                        title="Add skills found in this resume to your profile so Skill Gap & Interviews stay up to date"
                         onClick={() => void handleSyncSkills(selectedResume.id)}
                       >
                         <Wrench className="h-3.5 w-3.5" />
-                        Sync Skills to Profile
+                        Save Skills to Profile
                       </Button>
                     )}
                   </div>

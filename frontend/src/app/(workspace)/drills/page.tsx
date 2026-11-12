@@ -198,8 +198,8 @@ export default function DailyDrillsPage() {
       <Card>
         <CardHeader
           icon={<Sparkles className="h-4 w-4" />}
-          title="Spaced-Repetition Weak-Topic Micro-Drills"
-          subtitle="Active-recall flashcards scheduled with SM-2 intervals from your interview weak topics and JD skill gaps"
+          title="Smart Review Flashcards"
+          subtitle="Quick question-and-answer cards from your weak interview topics — reviews automatically come back right before you forget"
         />
         <CardContent>
           <form onSubmit={handleGenerate} className="flex flex-col sm:flex-row gap-3">
@@ -207,12 +207,12 @@ export default function DailyDrillsPage() {
               type="text"
               value={customTopicsText}
               onChange={(e) => setCustomTopicsText(e.target.value)}
-              placeholder="Optional topics (comma-separated, e.g. MVCC, Redis Caching, System Design) — leave blank to auto-pull weak topics"
+              placeholder="Optional topics (e.g. React Hooks, SQL Joins, Caching) — leave blank to auto-pick your weak areas"
               className="flex-1 h-10 px-3.5 rounded-lg border border-slate-200 bg-white text-sm text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6D5DFB]/20 focus:border-[#6D5DFB]"
             />
             <Button type="submit" variant="primary" loading={generating} className="shrink-0">
               <RefreshCw className="h-4 w-4" />
-              {generating ? "Generating..." : "Generate 6 Drills"}
+              {generating ? "Generating..." : "Create 6 Study Cards"}
             </Button>
           </form>
         </CardContent>
@@ -260,7 +260,7 @@ export default function DailyDrillsPage() {
                         : `Next in ${activeCard.intervalDays}d`}
                     </Badge>
                     <span className="text-[11px] text-[#64748B] tabular-nums">
-                      Streak: {activeCard.repetitions} &bull; Ease: {activeCard.easeFactor}x
+                      Correct Streak: {activeCard.repetitions}
                       {sessionReviewed > 0 ? ` • Reviewed ${sessionReviewed} today` : ""}
                     </span>
                   </div>
@@ -316,7 +316,7 @@ export default function DailyDrillsPage() {
                 ) : (
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-[#64748B]">
-                      Rate recall (keys 1–4) — SM-2 schedules your next review automatically:
+                      How well did you remember? (You can press keys 1–4 — we schedule your next review automatically):
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                       <Button
@@ -326,7 +326,7 @@ export default function DailyDrillsPage() {
                         onClick={() => void handleReview(activeCard.id, 1)}
                         className="border-rose-200 text-rose-700 hover:bg-rose-50"
                       >
-                        1. Again (1d)
+                        1. Forgot (Tomorrow)
                       </Button>
                       <Button
                         type="button"
@@ -335,7 +335,7 @@ export default function DailyDrillsPage() {
                         onClick={() => void handleReview(activeCard.id, 2)}
                         className="border-amber-200 text-amber-800 hover:bg-amber-50"
                       >
-                        2. Hard
+                        2. Tricky
                       </Button>
                       <Button
                         type="button"
@@ -343,7 +343,7 @@ export default function DailyDrillsPage() {
                         disabled={reviewingId === activeCard.id}
                         onClick={() => void handleReview(activeCard.id, 3)}
                       >
-                        3. Good
+                        3. Remembered
                       </Button>
                       <Button
                         type="button"
@@ -370,8 +370,8 @@ export default function DailyDrillsPage() {
             <Brain className="h-8 w-8 text-slate-300 mx-auto" />
             <h3 className="text-base font-semibold text-[#172033]">No flashcard drills yet</h3>
             <p className="text-xs text-[#64748B] max-w-md mx-auto">
-              Complete a Mock Interview to auto-generate weak-topic cards, or click &ldquo;Generate
-              6 Drills&rdquo; above.
+              Complete a Mock Interview to auto-create flashcards for topics you missed, or click
+              &ldquo;Create 6 Study Cards&rdquo; above.
             </p>
           </CardContent>
         </Card>

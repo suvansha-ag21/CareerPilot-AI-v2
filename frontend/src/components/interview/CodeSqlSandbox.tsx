@@ -356,14 +356,19 @@ export function CodeSqlSandbox({
   return (
     <div className="rounded-xl border border-slate-800 bg-[#0F172A] text-slate-100 overflow-hidden">
       <div className="px-4 py-2.5 bg-[#111827] border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          {language === "sql" ? (
-            <Database className="h-4 w-4 text-[#8B7CFF]" />
-          ) : (
-            <Code2 className="h-4 w-4 text-[#8B7CFF]" />
-          )}
-          <span className="text-xs font-semibold text-white">Live Code &amp; SQL Sandbox</span>
-          <Badge tone="brand">Attaches to AI Grade</Badge>
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            {language === "sql" ? (
+              <Database className="h-4 w-4 text-[#8B7CFF]" />
+            ) : (
+              <Code2 className="h-4 w-4 text-[#8B7CFF]" />
+            )}
+            <span className="text-xs font-semibold text-white">Live Code &amp; SQL Sandbox</span>
+            <Badge tone="brand">Included in AI Feedback</Badge>
+          </div>
+          <p className="text-[11px] text-slate-400">
+            Switch between SQL or JavaScript and click Run to see live output right below.
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
