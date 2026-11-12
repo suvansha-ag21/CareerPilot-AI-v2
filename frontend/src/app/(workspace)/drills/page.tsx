@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertCircle,
   Brain,
@@ -30,6 +31,7 @@ export default function DailyDrillsPage() {
   const [customTopicsText, setCustomTopicsText] = useState("");
   const [showHint, setShowHint] = useState(false);
   const [flipped, setFlipped] = useState(false);
+  const [sessionReviewed, setSessionReviewed] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
@@ -47,6 +49,26 @@ export default function DailyDrillsPage() {
   useEffect(() => {
     void loadDrills();
   }, [loadDrills]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        !activeCard
+      ) {
+        return;
+      }
+      if (e.code === "Space") {
+        e.preventDefault();
+        setFlipped((v) => !v);
+      } else if (flipped && ["1", "2", "3", "4"].includes(e.key)) {
+        void handleReview(activeCard.id, Number(e.key) as 1 | 2 | 3 | 4);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
 
   const nowMs = Date.now();
   const dueDrills = drills.filter((d) => new Date(d.nextReviewAt).getTime() <= nowMs);
@@ -99,6 +121,7 @@ export default function DailyDrillsPage() {
       });
       setFlipped(false);
       setShowHint(false);
+      setSessionReviewed((c) => c + 1);
     } catch (err) {
       setErrorMsg(err instanceof ApiClientError ? err.message : "Unable to record review rating.");
     } finally {
@@ -218,114 +241,129 @@ export default function DailyDrillsPage() {
           </CardContent>
         </Card>
       ) : activeCard ? (
-        <Card className="border-[#6D5DFB]/25">
-          <CardContent className="p-6 sm:p-8 space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Badge tone="brand">{activeCard.topic}</Badge>
-                <Badge tone={new Date(activeCard.nextReviewAt).getTime() <= nowMs ? "warning" : "success"}>
-                  {new Date(activeCard.nextReviewAt).getTime() <= nowMs
-                    ? "Due for Review"
-                    : `Next in ${activeCard.intervalDays}d`}
-                </Badge>
-                <span className="text-[11px] text-[#64748B] tabular-nums">
-                  Streak: {activeCard.repetitions} &bull; Ease: {activeCard.easeFactor}x
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => void handleDelete(activeCard.id)}
-                className="text-slate-400 hover:text-rose-500 p-1"
-                title="Delete card"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="p-5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-3">
-              <p className="text-base font-semibold text-[#172033] leading-relaxed">
-                {activeCard.question}
-              </p>
-
-              {showHint && activeCard.hint && (
-                <p className="text-xs text-[#6D5DFB] bg-[#EEF2FF] px-3 py-2 rounded-lg">
-                  <strong>Hint:</strong> {activeCard.hint}
-                </p>
-              )}
-
-              {flipped && (
-                <div className="pt-3 border-t border-slate-200 space-y-1.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">
-                    Reference Answer
-                  </p>
-                  <p className="text-sm text-[#172033] leading-relaxed">
-                    {activeCard.modelAnswer}
-                  </p>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeCard.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Card className="border-[#6D5DFB]/25">
+              <CardContent className="p-6 sm:p-8 space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge tone="brand">{activeCard.topic}</Badge>
+                    <Badge tone={new Date(activeCard.nextReviewAt).getTime() <= nowMs ? "warning" : "success"}>
+                      {new Date(activeCard.nextReviewAt).getTime() <= nowMs
+                        ? "Due for Review"
+                        : `Next in ${activeCard.intervalDays}d`}
+                    </Badge>
+                    <span className="text-[11px] text-[#64748B] tabular-nums">
+                      Streak: {activeCard.repetitions} &bull; Ease: {activeCard.easeFactor}x
+                      {sessionReviewed > 0 ? ` • Reviewed ${sessionReviewed} today` : ""}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void handleDelete(activeCard.id)}
+                    className="text-slate-400 hover:text-rose-500 p-1"
+                    title="Delete card"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
-              )}
-            </div>
 
-            {!flipped ? (
-              <div className="flex flex-wrap items-center gap-3">
-                <Button type="button" variant="primary" onClick={() => setFlipped(true)}>
-                  <Eye className="h-4 w-4" />
-                  Reveal Answer
-                </Button>
-                {activeCard.hint && !showHint && (
-                  <Button type="button" variant="outline" onClick={() => setShowHint(true)}>
-                    Show Hint
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-[#64748B]">
-                  How confidently did you recall this? (SM-2 schedules your next review automatically)
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={reviewingId === activeCard.id}
-                    onClick={() => void handleReview(activeCard.id, 1)}
-                    className="border-rose-200 text-rose-700 hover:bg-rose-50"
-                  >
-                    Again (1d)
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={reviewingId === activeCard.id}
-                    onClick={() => void handleReview(activeCard.id, 2)}
-                    className="border-amber-200 text-amber-800 hover:bg-amber-50"
-                  >
-                    Hard
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={reviewingId === activeCard.id}
-                    onClick={() => void handleReview(activeCard.id, 3)}
-                  >
-                    Good
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    disabled={reviewingId === activeCard.id}
-                    onClick={() => void handleReview(activeCard.id, 4)}
-                  >
-                    {reviewingId === activeCard.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "Easy"
+                <div className="p-5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-3">
+                  <p className="text-base font-semibold text-[#172033] leading-relaxed">
+                    {activeCard.question}
+                  </p>
+
+                  {showHint && activeCard.hint && (
+                    <p className="text-xs text-[#6D5DFB] bg-[#EEF2FF] px-3 py-2 rounded-lg">
+                      <strong>Hint:</strong> {activeCard.hint}
+                    </p>
+                  )}
+
+                  {flipped && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="pt-3 border-t border-slate-200 space-y-1.5"
+                    >
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">
+                        Reference Answer
+                      </p>
+                      <p className="text-sm text-[#172033] leading-relaxed">
+                        {activeCard.modelAnswer}
+                      </p>
+                    </motion.div>
+                  )}
+                </div>
+
+                {!flipped ? (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button type="button" variant="primary" onClick={() => setFlipped(true)}>
+                      <Eye className="h-4 w-4" />
+                      Reveal Answer (Space)
+                    </Button>
+                    {activeCard.hint && !showHint && (
+                      <Button type="button" variant="outline" onClick={() => setShowHint(true)}>
+                        Show Hint
+                      </Button>
                     )}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-[#64748B]">
+                      Rate recall (keys 1–4) — SM-2 schedules your next review automatically:
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={reviewingId === activeCard.id}
+                        onClick={() => void handleReview(activeCard.id, 1)}
+                        className="border-rose-200 text-rose-700 hover:bg-rose-50"
+                      >
+                        1. Again (1d)
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={reviewingId === activeCard.id}
+                        onClick={() => void handleReview(activeCard.id, 2)}
+                        className="border-amber-200 text-amber-800 hover:bg-amber-50"
+                      >
+                        2. Hard
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={reviewingId === activeCard.id}
+                        onClick={() => void handleReview(activeCard.id, 3)}
+                      >
+                        3. Good
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        disabled={reviewingId === activeCard.id}
+                        onClick={() => void handleReview(activeCard.id, 4)}
+                      >
+                        {reviewingId === activeCard.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "4. Easy"
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </AnimatePresence>
       ) : (
         <Card>
           <CardContent className="p-10 text-center space-y-3">

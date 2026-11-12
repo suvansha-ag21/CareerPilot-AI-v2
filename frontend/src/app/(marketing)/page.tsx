@@ -2,18 +2,22 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   BarChart3,
+  Brain,
   Briefcase,
   CheckCircle2,
+  Code2,
   Compass,
+  Eye,
   FileSearch,
   GitCompare,
   Layers,
   Map,
   Mic,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
   Target,
@@ -24,106 +28,223 @@ import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/store/auth-context";
 import { Button } from "@/components/ui/Button";
 import { ProgressRing } from "@/components/ui/ProgressRing";
+import { CodeSqlSandbox, SandboxLanguage } from "@/components/interview/CodeSqlSandbox";
+import { SystemDesignCanvas } from "@/components/interview/SystemDesignCanvas";
 
-type PreviewTab = "overview" | "resume" | "matcher" | "interview";
+type PlaygroundTab = "sandbox" | "design" | "roles" | "workspace";
+
+const HERO_ROLES = [
+  "Full Stack SDEs",
+  "AI / ML Engineers",
+  "Backend Architects",
+  "Data Scientists",
+];
+
+const ROLE_BLUEPRINTS: Array<{
+  role: string;
+  stack: string[];
+  interviewFocus: string[];
+  summary: string;
+}> = [
+  {
+    role: "Full Stack Developer",
+    stack: ["TypeScript", "React / Next.js", "Node.js", "PostgreSQL", "REST APIs", "Docker"],
+    interviewFocus: ["API Pagination & Auth", "SQL Indexing & Joins", "State & Caching", "System Design"],
+    summary: "Balances frontend responsiveness, relational schema design, and scalable backend APIs.",
+  },
+  {
+    role: "AI / ML Engineer",
+    stack: ["Python", "PyTorch", "FastAPI", "Vector Databases", "NLP / LLMs", "Scikit-learn"],
+    interviewFocus: ["RAG & Chunking Trade-offs", "Embeddings & Cosine Sim", "Model Latency & Fallbacks", "Evaluation Harnesses"],
+    summary: "Focuses on structured LLM pipelines, retrieval accuracy, observability telemetry, and Python services.",
+  },
+  {
+    role: "Software Engineer (SDE)",
+    stack: ["Data Structures & Algorithms", "OOP", "Java / Python", "DBMS", "Operating Systems", "Git"],
+    interviewFocus: ["Trees, Graphs & DP", "Concurrency & Locks", "ACID & Isolation Levels", "Complexity Bounds"],
+    summary: "Emphasizes strong CS fundamentals, clean coding under constraints, and algorithmic efficiency.",
+  },
+  {
+    role: "Backend Developer",
+    stack: ["Node.js / Java", "PostgreSQL", "Redis", "System Design", "CI/CD", "Docker"],
+    interviewFocus: ["Database Sharding & MVCC", "Rate Limiting & Queues", "Caching Invalidation", "Zero-Downtime Deploys"],
+    summary: "Centers on throughput, reliability, concurrency control, and fault-tolerant service design.",
+  },
+  {
+    role: "Data Scientist",
+    stack: ["Python", "SQL", "Scikit-learn", "Machine Learning", "Statistics", "Feature Engineering"],
+    interviewFocus: ["Bias-Variance & Metrics", "Window Functions in SQL", "Experiment Design", "Data Leakage Guards"],
+    summary: "Combines statistical rigor, SQL analytical querying, and reproducible ML modeling.",
+  },
+];
+
+const CONCEPT_DRILL_DECK = [
+  {
+    topic: "DBMS • MVCC",
+    question: "How does PostgreSQL MVCC ensure readers never block concurrent writers?",
+    hint: "Think about row tuple transaction IDs (xmin/xmax) and snapshot isolation.",
+    answer:
+      "PostgreSQL keeps multiple versioned row tuples tagged with xmin/xmax transaction IDs. Each reader views a consistent point-in-time snapshot without taking read locks against writers, while VACUUM reclaims dead tuples asynchronously.",
+  },
+  {
+    topic: "Caching • Redis",
+    question: "What is the thundering herd (cache stampede) problem, and how do you mitigate it?",
+    hint: "Consider what happens when a hot key expires under high concurrent traffic.",
+    answer:
+      "When a high-traffic key expires simultaneously for many requests, all miss and hit the primary database at once. Mitigate via singleflight/mutex coalescing, jittered TTLs, or probabilistic early refresh.",
+  },
+  {
+    topic: "DSA • Hashing",
+    question: "Why can hash table lookup degrade from O(1) to O(n), and how do modern runtimes guard against it?",
+    hint: "Think about bucket collisions and balanced tree fallbacks.",
+    answer:
+      "Adversarial or poor hash functions can map many keys to the same bucket, forming a long chain. Guard against this using randomized hash seeds, low load-factor resizing, and treeifying oversized buckets (O(log n) in Java HashMap).",
+  },
+];
 
 const FEATURES = [
   {
     icon: FileSearch,
     title: "AI Resume Analyzer",
+    href: "/resume",
     description:
-      "Upload PDF or DOCX resumes to uncover ATS readiness scores, extract key skills, spot missing keywords, and upgrade weak bullet points.",
+      "Upload PDF or DOCX resumes to uncover ATS readiness scores, extract skills, spot missing keywords, and tailor PDF exports.",
+    flow: "PDF / DOCX Upload -> Layout & Skill Parsing -> Section Rubric + Tailored ATS PDF Export",
   },
   {
     icon: GitCompare,
     title: "Smart Job Description Matcher",
+    href: "/matcher",
     description:
-      "Compare your resume against any job posting to measure compatibility, aligned strengths, transferable experience, and exact gaps.",
+      "Compare your resume against any job posting using semantic embeddings, keyword alignment, and transferable skill graphs.",
+    flow: "Resume + Job Description -> Hybrid Semantic & TF-IDF -> Matching / Partial / Missing Breakdown",
   },
   {
     icon: Sparkles,
     title: "Skill Gap Intelligence",
+    href: "/skills",
     description:
-      "Benchmark your skill set against target hiring roles with dependency-ordered beginner, intermediate, and advanced learning priorities.",
+      "Benchmark your skills against target hiring roles with dependency-ordered beginner, intermediate, and advanced learning paths.",
+    flow: "Profile + Resume + JD -> Topological Prerequisite Order -> Prioritized Skill Gap Plan",
   },
   {
     icon: Mic,
-    title: "Mock & Voice Interviews",
+    title: "Code, Voice & System Design Interviews",
+    href: "/interview",
     description:
-      "Practice technical, coding, SQL, behavioral, and project deep-dive interviews via text or live microphone with paced delivery analytics.",
+      "Practice live JS/SQL coding, interactive system design topologies, or voice interviews with WPM pacing & GitHub repo probes.",
+    flow: "Code / Voice / Topology Input -> 5-Criterion Rubric + Follow-Ups -> Radar Dossier + Weak-Topic Drills",
   },
   {
     icon: Map,
-    title: "Personalized Learning Roadmap",
+    title: "Personalized Roadmap & Daily Drills",
+    href: "/roadmap",
     description:
-      "Turn your open skill gaps into structured week-by-week and day-by-day execution plans with curated study links and live progress tracking.",
+      "Turn skill gaps into 30–180 day execution sprints synced with SM-2 spaced-repetition active-recall flashcards.",
+    flow: "Open Gaps + Study Pace -> Weekly Sprint Tasks + SM-2 Flashcards -> Live Readiness Sync",
   },
   {
     icon: Briefcase,
-    title: "Application & Analytics Hub",
+    title: "Application Hub & AI Telemetry",
+    href: "/analytics",
     description:
-      "Track applications from applied to offer across table or board views while monitoring score progression and conversion velocity.",
+      "Track applications in Table/Kanban views while monitoring conversion velocity, score progression, and real-time AI latency.",
+    flow: "Pipeline Stages + Model Logs -> Conversion Funnel + Latency Trace -> Actionable Career Telemetry",
   },
 ];
 
 const HOW_IT_WORKS = [
   {
     step: "01",
-    title: "Build Your Profile & Upload Resume",
+    title: "3-Step Onboarding & GitHub Sync",
     description:
-      "Add your education, projects, and upload your PDF or DOCX resume for instant ATS evaluation.",
+      "Set your education, career goals, resume, and analyze public GitHub repositories so interviews probe your real code.",
+    href: "/onboarding",
+    cta: "Start Onboarding",
   },
   {
     step: "02",
-    title: "Match Target Job Descriptions",
+    title: "Match JDs & Tailor ATS Resumes",
     description:
-      "Paste or upload any job posting to reveal compatibility scores and critical skill gaps.",
+      "Measure compatibility against real postings, close missing keywords, and export a role-tailored ATS PDF in one click.",
+    href: "/matcher",
+    cta: "Open Job Matcher",
   },
   {
     step: "03",
-    title: "Practice Voice & Text Interviews",
+    title: "Practice Code, SQL, Voice & Design",
     description:
-      "Answer role-tailored technical and behavioral prompts with adaptive follow-ups and clear rubric feedback.",
+      "Run code & SQL queries, sketch system architectures, stream coaching hints, and get graded on 5 calibrated criteria.",
+    href: "/interview",
+    cta: "Enter Interview Studio",
   },
   {
     step: "04",
-    title: "Follow Roadmap & Land Offers",
+    title: "Drill Weak Topics & Track Offers",
     description:
-      "Complete weekly study sprints and track every interview date and application milestone in one workspace.",
+      "Review auto-generated SM-2 flashcards daily, complete weekly roadmap sprints, and manage applications to offer.",
+    href: "/drills",
+    cta: "Open Daily Drills",
   },
 ];
 
 const ENGINE_PILLARS = [
   {
-    icon: Layers,
-    title: "Section-by-Section Resume Audits",
+    icon: Code2,
+    title: "In-Browser Code & SQL Execution",
     detail:
-      "Evaluates contact clarity, technical summary, project impact, and role keywords cleanly.",
+      "Run JavaScript in an isolated Web Worker and execute relational SQL queries live inside mock interviews.",
   },
   {
     icon: Target,
-    title: "Role-Calibrated Question Bank",
+    title: "Codebase-Grounded GitHub Probes",
     detail:
-      "Covers Data Structures, Databases, OS, Networking, OOP, Java, Python, SQL, and HR scenarios.",
+      "Inspects public repositories, dependency manifests, and READMEs to ask architecture questions on your real work.",
   },
   {
     icon: TrendingUp,
-    title: "Speech & Pacing Insights",
+    title: "Speech Pacing & Telemetry Logs",
     detail:
-      "Measures speaking speed (WPM), clarity, and filler-word habits during live voice interviews.",
+      "Tracks voice speaking speed (WPM), filler words, and per-request AI latency and fallback telemetry.",
   },
   {
     icon: BarChart3,
     title: "Transparent 5-Criterion Scoring",
     detail:
-      "Grades technical accuracy, depth, completeness, clarity, and practical examples without guesswork.",
+      "Grades technical accuracy, depth, completeness, clarity, and practical examples without arbitrary scores.",
   },
 ];
 
 export default function LandingPage() {
   const { user } = useAuth();
-  const [previewTab, setPreviewTab] = useState<PreviewTab>("overview");
+  const [heroRoleIdx, setHeroRoleIdx] = useState(0);
+  const [playgroundTab, setPlaygroundTab] = useState<PlaygroundTab>("sandbox");
+  const [sandboxLang, setSandboxLang] = useState<SandboxLanguage>("sql");
+  const [sandboxCode, setSandboxCode] = useState("");
+  const [designNodes, setDesignNodes] = useState<string[]>([
+    "Client / CDN",
+    "Load Balancer",
+    "API Gateway",
+    "Redis Cache",
+    "PostgreSQL Primary",
+  ]);
+  const [designNotes, setDesignNotes] = useState(
+    "Read-through cache with 60s TTL + read replica scaling for analytics queries."
+  );
+  const [selectedRoleIdx, setSelectedRoleIdx] = useState(0);
+  const [drillIdx, setDrillIdx] = useState(0);
+  const [showDrillHint, setShowDrillHint] = useState(false);
+  const [drillFlipped, setDrillFlipped] = useState(false);
+  const [activeFeatureIdx, setActiveFeatureIdx] = useState(0);
+  const [activeStepIdx, setActiveStepIdx] = useState(0);
   const [liveDashboard, setLiveDashboard] = useState<DashboardAnalyticsDTO | null>(null);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setHeroRoleIdx((prev) => (prev + 1) % HERO_ROLES.length);
+    }, 2600);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -143,13 +264,18 @@ export default function LandingPage() {
     };
   }, [user]);
 
+  const activeRoleBlueprint = ROLE_BLUEPRINTS[selectedRoleIdx];
+  const activeDrill = CONCEPT_DRILL_DECK[drillIdx];
+  const activeFeature = FEATURES[activeFeatureIdx];
+  const activeStep = HOW_IT_WORKS[activeStepIdx];
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#172033]">
       {/* 1. Sticky Navbar */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-[#E2E8F0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-[#6D5DFB] flex items-center justify-center shadow-sm">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="h-8 w-8 rounded-lg bg-[#6D5DFB] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
               <Compass className="h-4 w-4 text-white" />
             </div>
             <span className="text-base font-semibold tracking-tight text-[#172033]">
@@ -158,14 +284,17 @@ export default function LandingPage() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-[#64748B]">
+            <a href="#playground" className="hover:text-[#172033] transition-colors">
+              Interactive Lab
+            </a>
             <a href="#features" className="hover:text-[#172033] transition-colors">
               Features
             </a>
             <a href="#how-it-works" className="hover:text-[#172033] transition-colors">
-              How It Works
+              Workflow
             </a>
             <a href="#why-careerpilot" className="hover:text-[#172033] transition-colors">
-              Scoring &amp; AI
+              Architecture
             </a>
           </nav>
 
@@ -197,9 +326,9 @@ export default function LandingPage() {
       </header>
 
       {/* 2. Hero Section */}
-      <section className="relative pt-16 pb-16 sm:pt-24 sm:pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden bg-hero-glow">
+      <section className="relative pt-14 pb-16 sm:pt-20 sm:pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden bg-hero-glow">
         <div className="absolute inset-0 bg-grid-slate opacity-60 pointer-events-none [mask-image:linear-gradient(to_bottom,white,transparent)]" />
-        <div className="relative max-w-4xl mx-auto text-center space-y-6">
+        <div className="relative max-w-4xl mx-auto text-center space-y-5">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -207,17 +336,30 @@ export default function LandingPage() {
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EEF2FF] border border-[#6D5DFB]/20 text-xs font-medium text-[#6D5DFB]"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            AI-Powered Career &amp; Interview Intelligence Platform
+            AI-Powered Career &amp; Interview Intelligence
           </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.05 }}
-            className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-[#172033] leading-[1.1]"
+            className="text-4xl sm:text-5xl lg:text-[54px] font-semibold tracking-tight text-[#172033] leading-[1.12]"
           >
-            Your Career. Your Potential.{" "}
-            <span className="text-[#6D5DFB]">Powered by AI.</span>
+            Interview &amp; Career Prep Built for{" "}
+            <span className="inline-block min-w-[260px] text-[#6D5DFB]">
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={HERO_ROLES[heroRoleIdx]}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.25 }}
+                  className="inline-block"
+                >
+                  {HERO_ROLES[heroRoleIdx]}
+                </motion.span>
+              </AnimatePresence>
+            </span>
           </motion.h1>
 
           <motion.p
@@ -226,36 +368,37 @@ export default function LandingPage() {
             transition={{ duration: 0.4, delay: 0.1 }}
             className="text-base sm:text-lg text-[#64748B] max-w-2xl mx-auto leading-relaxed"
           >
-            Analyze your resume, close critical skill gaps, practice voice and text interviews, and
-            turn your preparation into real job offers.
+            Run live Code &amp; SQL queries, design scalable architectures, analyze your resume, and
+            practice voice interviews—try the live tools below right now.
           </motion.p>
 
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.15 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2"
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1"
           >
             <Link href={user ? "/dashboard" : "/register"}>
               <Button size="lg" className="w-full sm:w-auto px-7">
-                {user ? "Go to Workspace" : "Get Started Free"}
+                {user ? "Go to Workspace" : "Launch Free Workspace"}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <a href="#features" className="w-full sm:w-auto">
+            <a href="#playground" className="w-full sm:w-auto">
               <Button variant="outline" size="lg" className="w-full sm:w-auto px-7">
-                Explore Features
+                Try Interactive Sandbox
               </Button>
             </a>
           </motion.div>
         </div>
 
-        {/* 3. Live Workspace / Module Overview (Zero Static Data) */}
+        {/* 3. Interactive Hands-On Sandbox (Zero Fake Numbers) */}
         <motion.div
+          id="playground"
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="relative max-w-6xl mx-auto mt-14"
+          className="relative max-w-6xl mx-auto mt-12"
         >
           <div className="rounded-2xl border border-[#E2E8F0] bg-white shadow-elevated overflow-hidden">
             {/* Browser Top Chrome */}
@@ -266,327 +409,501 @@ export default function LandingPage() {
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
               </div>
               <span className="text-[11px] font-medium text-[#64748B]">
-                CareerPilot AI — {user ? "Your Live Workspace" : "Module Architecture"}
+                CareerPilot AI — Interactive Engineering Lab
               </span>
               <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#6D5DFB]">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                {user ? "Live Telemetry" : "Zero-Baseline Start"}
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                {user ? "Signed In • Live Workspace" : "Try Live Tools"}
               </span>
             </div>
 
-            {/* Interactive Split Workspace Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-12 min-h-[340px]">
-              {/* Dark Sidebar Mini Navigation (#111827) */}
-              <div className="hidden md:flex md:col-span-3 bg-[#111827] text-slate-300 p-5 flex-col justify-between">
+            <div className="grid grid-cols-1 md:grid-cols-12 min-h-[420px]">
+              {/* Dark Sidebar Switcher */}
+              <div className="md:col-span-3 bg-[#111827] text-slate-300 p-5 flex flex-col justify-between gap-4">
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-white font-semibold text-sm">
                     <div className="h-6 w-6 rounded bg-[#6D5DFB] flex items-center justify-center">
                       <Compass className="h-3.5 w-3.5 text-white" />
                     </div>
-                    CareerPilot AI
+                    Interactive Lab
                   </div>
-                  <div className="space-y-1 text-xs">
+                  <div className="space-y-1.5 text-xs">
                     {(
                       [
-                        { id: "overview", label: "Overview Dashboard" },
-                        { id: "resume", label: "Resume Analyzer" },
-                        { id: "matcher", label: "Job Description Match" },
-                        { id: "interview", label: "Voice & Mock Interview" },
+                        { id: "sandbox", label: "Code & SQL Runner", icon: Code2 },
+                        { id: "design", label: "System Design Canvas", icon: Layers },
+                        { id: "roles", label: "Career Role Explorer", icon: Target },
+                        {
+                          id: "workspace",
+                          label: user ? "My Live Telemetry" : "CS Flashcard Drill",
+                          icon: Brain,
+                        },
                       ] as const
-                    ).map((tab) => (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => setPreviewTab(tab.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between ${
-                          previewTab === tab.id
-                            ? "bg-[#6D5DFB]/25 text-white border border-[#6D5DFB]/40 font-medium"
-                            : "text-slate-400 hover:text-white hover:bg-slate-800/70"
-                        }`}
-                      >
-                        <span>{tab.label}</span>
-                        {previewTab === tab.id && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                        )}
-                      </button>
-                    ))}
+                    ).map((tab) => {
+                      const Icon = tab.icon;
+                      const active = playgroundTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => setPlaygroundTab(tab.id)}
+                          className={`w-full text-left px-3 py-2.5 rounded-lg transition-all flex items-center justify-between ${
+                            active
+                              ? "bg-[#6D5DFB] text-white font-medium shadow-sm"
+                              : "text-slate-400 hover:text-white hover:bg-slate-800/80"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <Icon className="h-3.5 w-3.5" />
+                            {tab.label}
+                          </span>
+                          {active && <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
-                <div className="text-[11px] text-slate-400 border-t border-slate-800 pt-3">
-                  {user?.targetRole ? `Track: ${user.targetRole}` : "Personalized Career Track"}
-                </div>
-              </div>
 
-              {/* Light Workspace Canvas (#F8FAFC) */}
-              <div className="md:col-span-9 bg-[#F8FAFC] p-6 space-y-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D5DFB]">
-                      {user ? "Live Account Data" : "Real-Data Workspace"}
-                    </p>
-                    <h3 className="text-base font-semibold text-[#172033]">
-                      {previewTab === "overview" && "Placement Readiness & Progress"}
-                      {previewTab === "resume" && "Resume ATS Score & Bullet Upgrades"}
-                      {previewTab === "matcher" && "Job Compatibility Breakdown"}
-                      {previewTab === "interview" && "Voice & Technical Rubric Report"}
-                    </h3>
-                  </div>
-
-                  {/* Mobile tab pills */}
-                  <div className="flex md:hidden flex-wrap gap-1.5">
-                    {(["overview", "resume", "matcher", "interview"] as const).map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setPreviewTab(t)}
-                        className={`px-2.5 py-1 rounded-md text-[11px] font-medium capitalize ${
-                          previewTab === t
-                            ? "bg-[#6D5DFB] text-white"
-                            : "bg-white border border-slate-200 text-slate-600"
-                        }`}
-                      >
-                        {t}
-                      </button>
-                    ))}
-                  </div>
-
-                  {user?.targetRole && (
-                    <span className="hidden md:inline-flex px-3 py-1 rounded-full bg-white border border-[#E2E8F0] text-xs font-medium text-[#172033]">
-                      Target: {user.targetRole}
-                    </span>
-                  )}
-                </div>
-
-                {previewTab === "overview" && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 flex items-center gap-3.5">
-                      <ProgressRing
-                        value={user ? liveDashboard?.readinessScore ?? null : null}
-                        size={64}
-                        strokeWidth={6}
-                        label="Ready"
-                      />
-                      <div>
-                        <p className="text-xs text-[#64748B]">Placement Readiness</p>
-                        <p className="text-sm font-semibold text-[#172033] mt-0.5">
-                          {user && liveDashboard?.readinessScore !== null && liveDashboard?.readinessScore !== undefined
-                            ? `${liveDashboard.readinessScore}% Computed`
-                            : "Starts at 0"}
-                        </p>
-                        <p className="text-[11px] text-[#64748B] font-medium">
-                          {user
-                            ? `${liveDashboard?.skillsCount ?? 0} verified skills`
-                            : "Computed from your uploads"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2">
-                      <p className="text-xs text-[#64748B]">Latest Resume Score</p>
-                      <p className="text-2xl font-bold text-[#172033] tabular-nums">
-                        {user && liveDashboard?.latestResumeScore !== null && liveDashboard?.latestResumeScore !== undefined
-                          ? `${liveDashboard.latestResumeScore}%`
-                          : "—"}
-                      </p>
-                      <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                        <div
-                          className="h-full bg-emerald-500 rounded-full transition-all"
-                          style={{
-                            width: `${user ? liveDashboard?.latestResumeScore ?? 0 : 0}%`,
-                          }}
-                        />
-                      </div>
-                      <p className="text-[11px] text-[#64748B]">
-                        {user ? "From your latest resume audit" : "Upload PDF or DOCX to evaluate"}
-                      </p>
-                    </div>
-                    <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2">
-                      <p className="text-xs text-[#64748B]">Active Study Sprint</p>
-                      <p className="text-2xl font-bold text-[#172033] tabular-nums">
-                        {user && liveDashboard?.roadmapProgressPct !== null && liveDashboard?.roadmapProgressPct !== undefined
-                          ? `${liveDashboard.roadmapProgressPct}%`
-                          : "—"}
-                      </p>
-                      <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                        <div
-                          className="h-full bg-[#6D5DFB] rounded-full transition-all"
-                          style={{
-                            width: `${user ? liveDashboard?.roadmapProgressPct ?? 0 : 0}%`,
-                          }}
-                        />
-                      </div>
-                      <p className="text-[11px] text-[#6D5DFB] font-medium">
-                        {user ? "Synced with your roadmap tasks" : "Generated from your skill gaps"}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {previewTab === "resume" && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2">
-                      <p className="text-xs font-semibold text-[#172033]">Section-Wise Resume Audit</p>
-                      <p className="text-xs text-[#64748B] leading-relaxed">
-                        Evaluates your uploaded resume across Contact Clarity, Technical Skills,
-                        Project Impact, Education, Experience, and Formatting—with tailored
-                        recommendations for ATS Compatibility, Skills, or Full Audits.
-                      </p>
-                    </div>
-                    <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2">
-                      <p className="text-xs font-semibold text-[#6D5DFB]">Actionable Bullet Rewrites</p>
-                      <p className="text-xs text-[#64748B] leading-relaxed">
-                        Detects weak bullet descriptions directly from your document, suggests
-                        stronger engineering rewrites, surfaces missing target-role keywords, and
-                        syncs verified skills to your profile.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {previewTab === "matcher" && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 flex items-center gap-4">
-                      <ProgressRing
-                        value={user ? liveDashboard?.latestJobMatchScore ?? null : null}
-                        size={68}
-                        strokeWidth={7}
-                        color="#16A34A"
-                        label="Match"
-                      />
-                      <div className="space-y-1">
-                        <p className="text-xs font-semibold text-[#172033]">
-                          {user && liveDashboard?.latestJobMatchScore !== null && liveDashboard?.latestJobMatchScore !== undefined
-                            ? `Latest Match: ${liveDashboard.latestJobMatchScore}%`
-                            : "Semantic Job Description Match"}
-                        </p>
-                        <p className="text-[11px] text-[#64748B]">
-                          Combines semantic similarity, skill graph alignment, and experience level
-                          checks against pasted or uploaded JDs.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2">
-                      <p className="text-xs font-semibold text-[#172033]">Structured Fit Output</p>
-                      <p className="text-xs text-[#64748B] leading-relaxed">
-                        Separates exact Matching Skills, Partially Matching Skills, Missing
-                        Requirements, and Relevant Resume Projects for Internship, Full-time,
-                        Remote, Hybrid, and On-site roles.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {previewTab === "interview" && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-semibold text-[#172033]">Voice &amp; Delivery Analytics</p>
-                        <span className="px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#6D5DFB] text-[10px] font-semibold">
-                          {user
-                            ? `${liveDashboard?.totalMockInterviews ?? 0} Session(s)`
-                            : "Voice + Text Modes"}
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#64748B] leading-relaxed">
-                        Supports Technical, HR, DSA, Project-Based, Behavioral, and Mixed interviews
-                        with real speech transcription, speaking speed (WPM), and filler-word counts.
-                      </p>
-                    </div>
-                    <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-2">
-                      <p className="text-xs font-semibold text-[#6D5DFB]">5-Criterion Rubric</p>
-                      <p className="text-xs text-[#64748B] leading-relaxed">
-                        {user && liveDashboard?.averageInterviewScore !== null && liveDashboard?.averageInterviewScore !== undefined
-                          ? `Your average completed interview score: ${liveDashboard.averageInterviewScore}%. `
-                          : ""}
-                        Every answer is graded across Technical Accuracy, Depth, Completeness,
-                        Clarity, and Practical Examples alongside a model answer.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="space-y-0.5">
-                    <p className="text-xs font-semibold text-[#172033]">
-                      100% Real-Data Guarantee
-                    </p>
-                    <p className="text-xs text-[#64748B]">
-                      Every new account starts cleanly at zero—no preloaded fake numbers, no mock
-                      evaluations.
-                    </p>
-                  </div>
-                  <Link href={user ? "/dashboard" : "/register"} className="shrink-0">
-                    <Button size="sm" variant="secondary">
-                      {user ? "Open Live Dashboard" : "Create Free Workspace"}
+                <div className="text-[11px] text-slate-400 border-t border-slate-800 pt-3 space-y-2">
+                  <p>
+                    {user?.targetRole
+                      ? `Your Track: ${user.targetRole}`
+                      : "New accounts start cleanly at 0% with zero preloaded scores."}
+                  </p>
+                  <Link href={user ? "/interview" : "/register"} className="block">
+                    <Button size="sm" variant="secondary" className="w-full">
+                      {user ? "Open Full Interview Studio" : "Create Free Account"}
                     </Button>
                   </Link>
                 </div>
+              </div>
+
+              {/* Interactive Canvas Body */}
+              <div className="md:col-span-9 bg-[#F8FAFC] p-5 sm:p-6">
+                <AnimatePresence mode="wait">
+                  {playgroundTab === "sandbox" && (
+                    <motion.div
+                      key="sandbox"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.18 }}
+                      className="space-y-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D5DFB]">
+                            Real In-Browser Execution
+                          </p>
+                          <h3 className="text-base font-semibold text-[#172033]">
+                            Edit JavaScript or SQL &amp; click Run to execute live
+                          </h3>
+                        </div>
+                        <span className="text-[11px] text-[#64748B]">
+                          Tables: employees, departments, orders
+                        </span>
+                      </div>
+
+                      <CodeSqlSandbox
+                        language={sandboxLang}
+                        code={sandboxCode}
+                        onChange={({ language, code }) => {
+                          setSandboxLang(language);
+                          setSandboxCode(code);
+                        }}
+                      />
+                    </motion.div>
+                  )}
+
+                  {playgroundTab === "design" && (
+                    <motion.div
+                      key="design"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.18 }}
+                      className="space-y-3"
+                    >
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D5DFB]">
+                          Interactive Architecture Builder
+                        </p>
+                        <h3 className="text-base font-semibold text-[#172033]">
+                          Toggle infrastructure blocks to construct a scalable topology
+                        </h3>
+                      </div>
+
+                      <SystemDesignCanvas
+                        nodes={designNodes}
+                        notes={designNotes}
+                        onChange={({ nodes, notes }) => {
+                          setDesignNodes(nodes);
+                          setDesignNotes(notes);
+                        }}
+                      />
+                    </motion.div>
+                  )}
+
+                  {playgroundTab === "roles" && (
+                    <motion.div
+                      key="roles"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.18 }}
+                      className="space-y-4"
+                    >
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D5DFB]">
+                          Interactive Role Blueprints
+                        </p>
+                        <h3 className="text-base font-semibold text-[#172033]">
+                          Click any engineering role to inspect its benchmark stack &amp; interview focus
+                        </h3>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {ROLE_BLUEPRINTS.map((item, idx) => (
+                          <button
+                            key={item.role}
+                            type="button"
+                            onClick={() => setSelectedRoleIdx(idx)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                              selectedRoleIdx === idx
+                                ? "bg-[#6D5DFB] text-white border-[#6D5DFB] shadow-sm"
+                                : "bg-white text-[#172033] border-slate-200 hover:border-[#6D5DFB]/40"
+                            }`}
+                          >
+                            {item.role}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div>
+                            <h4 className="text-sm font-semibold text-[#172033]">
+                              {activeRoleBlueprint.role}
+                            </h4>
+                            <p className="text-xs text-[#64748B] mt-0.5">
+                              {activeRoleBlueprint.summary}
+                            </p>
+                          </div>
+                          <Link href={user ? "/skills" : "/register"} className="shrink-0">
+                            <Button size="sm" variant="primary">
+                              Benchmark My Skills
+                              <ArrowRight className="h-3.5 w-3.5" />
+                            </Button>
+                          </Link>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                          <div className="space-y-2">
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                              Core Benchmark Stack
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {activeRoleBlueprint.stack.map((sk) => (
+                                <span
+                                  key={sk}
+                                  className="px-2.5 py-1 rounded-md bg-[#EEF2FF] text-[#6D5DFB] text-xs font-medium"
+                                >
+                                  {sk}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+                              Interview Focus Areas
+                            </p>
+                            <ul className="space-y-1 text-xs text-[#172033]">
+                              {activeRoleBlueprint.interviewFocus.map((topic) => (
+                                <li key={topic} className="flex items-center gap-2">
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                                  {topic}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {playgroundTab === "workspace" && (
+                    <motion.div
+                      key="workspace"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.18 }}
+                      className="space-y-4"
+                    >
+                      {user ? (
+                        <>
+                          <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D5DFB]">
+                              Live Authenticated Workspace
+                            </p>
+                            <h3 className="text-base font-semibold text-[#172033]">
+                              Real telemetry fetched directly from your account
+                            </h3>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 flex items-center gap-3.5">
+                              <ProgressRing
+                                value={liveDashboard?.readinessScore ?? null}
+                                size={64}
+                                strokeWidth={6}
+                                label="Ready"
+                              />
+                              <div>
+                                <p className="text-xs text-[#64748B]">Readiness</p>
+                                <p className="text-sm font-semibold text-[#172033]">
+                                  {liveDashboard?.readinessScore !== null &&
+                                  liveDashboard?.readinessScore !== undefined
+                                    ? `${liveDashboard.readinessScore}%`
+                                    : "Not assessed"}
+                                </p>
+                                <p className="text-[11px] text-[#64748B]">
+                                  {liveDashboard?.skillsCount ?? 0} verified skills
+                                </p>
+                              </div>
+                            </div>
+                            <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-1.5">
+                              <p className="text-xs text-[#64748B]">Latest Resume Score</p>
+                              <p className="text-2xl font-bold text-[#172033] tabular-nums">
+                                {liveDashboard?.latestResumeScore !== null &&
+                                liveDashboard?.latestResumeScore !== undefined
+                                  ? `${liveDashboard.latestResumeScore}%`
+                                  : "—"}
+                              </p>
+                              <Link href="/resume" className="text-xs text-[#6D5DFB] hover:underline">
+                                Open Resume AI &rarr;
+                              </Link>
+                            </div>
+                            <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-1.5">
+                              <p className="text-xs text-[#64748B]">Interview Average</p>
+                              <p className="text-2xl font-bold text-[#172033] tabular-nums">
+                                {liveDashboard?.averageInterviewScore !== null &&
+                                liveDashboard?.averageInterviewScore !== undefined
+                                  ? `${liveDashboard.averageInterviewScore}%`
+                                  : "—"}
+                              </p>
+                              <Link href="/drills" className="text-xs text-[#6D5DFB] hover:underline">
+                                Practice Daily Drills &rarr;
+                              </Link>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D5DFB]">
+                                Interactive Active-Recall Preview
+                              </p>
+                              <h3 className="text-base font-semibold text-[#172033]">
+                                Test yourself on an engineering interview flashcard
+                              </h3>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setDrillIdx((prev) => (prev + 1) % CONCEPT_DRILL_DECK.length);
+                                setDrillFlipped(false);
+                                setShowDrillHint(false);
+                              }}
+                            >
+                              <RefreshCw className="h-3.5 w-3.5" />
+                              Next Concept ({drillIdx + 1}/{CONCEPT_DRILL_DECK.length})
+                            </Button>
+                          </div>
+
+                          <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 space-y-4">
+                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#6D5DFB] text-xs font-semibold">
+                              {activeDrill.topic}
+                            </span>
+                            <p className="text-sm font-semibold text-[#172033] leading-relaxed">
+                              {activeDrill.question}
+                            </p>
+
+                            {showDrillHint && (
+                              <p className="text-xs text-[#6D5DFB] bg-[#EEF2FF]/70 px-3 py-2 rounded-lg">
+                                <strong>Hint:</strong> {activeDrill.hint}
+                              </p>
+                            )}
+
+                            {drillFlipped && (
+                              <div className="p-3.5 rounded-lg bg-emerald-50/70 border border-emerald-200 text-xs text-[#172033] leading-relaxed">
+                                <strong className="text-emerald-800 block mb-1">Model Answer:</strong>
+                                {activeDrill.answer}
+                              </div>
+                            )}
+
+                            <div className="flex flex-wrap items-center gap-2.5">
+                              <Button
+                                size="sm"
+                                variant="primary"
+                                onClick={() => setDrillFlipped((v) => !v)}
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                                {drillFlipped ? "Hide Answer" : "Flip Answer"}
+                              </Button>
+                              {!showDrillHint && !drillFlipped && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setShowDrillHint(true)}
+                                >
+                                  Show Hint
+                                </Button>
+                              )}
+                              <Link href="/register" className="ml-auto">
+                                <Button size="sm" variant="secondary">
+                                  Save My Personal Deck
+                                  <ArrowRight className="h-3.5 w-3.5" />
+                                </Button>
+                              </Link>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </div>
         </motion.div>
       </section>
 
-      {/* 4. Features Grid */}
+      {/* 4. Interactive Features Grid */}
       <section id="features" className="py-20 bg-white border-y border-[#E2E8F0] px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="max-w-2xl mb-12">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-wider text-[#6D5DFB]">
               Platform Capabilities
             </p>
             <h2 className="text-3xl font-semibold text-[#172033] tracking-tight mt-2">
-              Six tightly integrated career intelligence modules
+              Click any module to inspect its real-time AI pipeline
             </h2>
-            <p className="text-sm text-[#64748B] mt-2 leading-relaxed">
-              Every tool shares your profile context—what you learn from a resume review or mock
-              interview directly shapes your skill gaps and study roadmap.
-            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {FEATURES.map((feat) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {FEATURES.map((feat, idx) => {
               const Icon = feat.icon;
+              const active = activeFeatureIdx === idx;
               return (
-                <div
+                <button
                   key={feat.title}
-                  className="p-6 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]/50 hover:bg-white hover:shadow-card transition-all duration-150"
+                  type="button"
+                  onClick={() => setActiveFeatureIdx(idx)}
+                  className={`text-left p-6 rounded-xl border transition-all duration-150 hover:-translate-y-0.5 ${
+                    active
+                      ? "bg-[#EEF2FF]/60 border-[#6D5DFB] shadow-card ring-1 ring-[#6D5DFB]"
+                      : "border-[#E2E8F0] bg-[#F8FAFC]/50 hover:bg-white hover:shadow-card"
+                  }`}
                 >
-                  <div className="h-10 w-10 rounded-lg bg-[#EEF2FF] text-[#6D5DFB] flex items-center justify-center mb-4">
+                  <div
+                    className={`h-10 w-10 rounded-lg flex items-center justify-center mb-4 transition-colors ${
+                      active ? "bg-[#6D5DFB] text-white" : "bg-[#EEF2FF] text-[#6D5DFB]"
+                    }`}
+                  >
                     <Icon className="h-5 w-5" />
                   </div>
                   <h3 className="text-base font-semibold text-[#172033]">{feat.title}</h3>
                   <p className="text-sm text-[#64748B] mt-2 leading-relaxed">{feat.description}</p>
-                </div>
+                </button>
               );
             })}
+          </div>
+
+          <div className="p-5 rounded-xl bg-[#111827] text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#8B7CFF]">
+                Selected Pipeline • {activeFeature.title}
+              </p>
+              <p className="text-sm font-medium text-slate-200">{activeFeature.flow}</p>
+            </div>
+            <Link href={user ? activeFeature.href : "/register"} className="shrink-0">
+              <Button size="sm" variant="primary">
+                {user ? `Open ${activeFeature.title}` : "Try Module Free"}
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* 5. How It Works */}
+      {/* 5. Interactive Step-by-Step Workflow */}
       <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="max-w-2xl mb-12">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#6D5DFB]">
-              Workflow
-            </p>
-            <h2 className="text-3xl font-semibold text-[#172033] tracking-tight mt-2">
-              From raw resume to confident offer execution
-            </h2>
+        <div className="max-w-7xl mx-auto space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#6D5DFB]">
+                Interactive Workflow
+              </p>
+              <h2 className="text-3xl font-semibold text-[#172033] tracking-tight mt-2">
+                Click through the 4-stage preparation loop
+              </h2>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setActiveStepIdx((prev) => (prev + 1) % HOW_IT_WORKS.length)}
+            >
+              Next Stage ({activeStepIdx + 1}/4)
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {HOW_IT_WORKS.map((item) => (
-              <div
-                key={item.step}
-                className="bg-white border border-[#E2E8F0] rounded-xl p-6 space-y-3 shadow-card"
-              >
-                <span className="inline-block text-xs font-semibold text-[#6D5DFB] bg-[#EEF2FF] px-2.5 py-1 rounded-md tabular-nums">
-                  STEP {item.step}
-                </span>
-                <h3 className="text-sm font-semibold text-[#172033]">{item.title}</h3>
-                <p className="text-xs text-[#64748B] leading-relaxed">{item.description}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {HOW_IT_WORKS.map((item, idx) => {
+              const active = activeStepIdx === idx;
+              return (
+                <button
+                  key={item.step}
+                  type="button"
+                  onClick={() => setActiveStepIdx(idx)}
+                  className={`text-left rounded-xl p-6 space-y-3 border transition-all ${
+                    active
+                      ? "bg-white border-[#6D5DFB] ring-1 ring-[#6D5DFB] shadow-elevated"
+                      : "bg-white/70 border-[#E2E8F0] hover:bg-white shadow-card"
+                  }`}
+                >
+                  <span
+                    className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-md tabular-nums ${
+                      active ? "bg-[#6D5DFB] text-white" : "text-[#6D5DFB] bg-[#EEF2FF]"
+                    }`}
+                  >
+                    STEP {item.step}
+                  </span>
+                  <h3 className="text-sm font-semibold text-[#172033]">{item.title}</h3>
+                  <p className="text-xs text-[#64748B] leading-relaxed">{item.description}</p>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="p-5 rounded-xl bg-white border border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-card">
+            <div className="flex items-center gap-3">
+              <span className="h-8 w-8 rounded-lg bg-[#EEF2FF] text-[#6D5DFB] font-bold text-xs flex items-center justify-center">
+                {activeStep.step}
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-[#172033]">{activeStep.title}</p>
+                <p className="text-xs text-[#64748B]">{activeStep.description}</p>
               </div>
-            ))}
+            </div>
+            <Link href={user ? activeStep.href : "/register"} className="shrink-0">
+              <Button size="sm" variant="secondary">
+                {user ? activeStep.cta : "Get Started"}
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -600,24 +917,24 @@ export default function LandingPage() {
               Precision Career Intelligence
             </span>
             <h2 className="text-3xl font-semibold tracking-tight leading-tight">
-              Structured evaluation, never generic chatbot advice
+              Built for real engineering depth, never generic chat advice
             </h2>
             <p className="text-sm text-slate-400 leading-relaxed">
-              Instead of superficial chat responses, CareerPilot AI evaluates your real resume
-              structure, target job requirements, and interview depth using transparent rubrics.
+              Every module produces structured, inspectable outputs: runnable code &amp; SQL checks,
+              system topology critiques, GitHub codebase probes, and PostgreSQL telemetry logs.
             </p>
             <ul className="space-y-2.5 pt-2 text-sm text-slate-300">
               <li className="flex items-center gap-2.5">
                 <CheckCircle2 className="h-4 w-4 text-[#8B7CFF] shrink-0" />
-                Private per-user workspace with isolated resume &amp; session storage
+                Private per-user workspace with zero preloaded mock metrics
               </li>
               <li className="flex items-center gap-2.5">
                 <CheckCircle2 className="h-4 w-4 text-[#8B7CFF] shrink-0" />
-                Explicit-consent microphone controls and clear scoring methodology
+                Real-time coaching hint streaming &amp; voice delivery analytics
               </li>
               <li className="flex items-center gap-2.5">
                 <CheckCircle2 className="h-4 w-4 text-[#8B7CFF] shrink-0" />
-                Adaptive follow-up interviews anchored in core computer science topics
+                SM-2 spaced-repetition active recall fed directly from weak interview topics
               </li>
             </ul>
           </div>
@@ -628,7 +945,7 @@ export default function LandingPage() {
               return (
                 <div
                   key={pillar.title}
-                  className="p-5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2.5"
+                  className="p-5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-[#6D5DFB]/60 transition-colors space-y-2.5"
                 >
                   <div className="h-9 w-9 rounded-lg bg-[#6D5DFB]/20 text-[#8B7CFF] flex items-center justify-center">
                     <Icon className="h-4 w-4" />
@@ -650,8 +967,8 @@ export default function LandingPage() {
               Ready to measure and close your skill gaps?
             </h2>
             <p className="text-sm text-[#64748B]">
-              Create your CareerPilot AI workspace in seconds and start preparing with clear,
-              actionable feedback.
+              Create your CareerPilot AI workspace in seconds and practice with live code, SQL,
+              architecture, and voice interviews.
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -665,7 +982,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 9. Footer */}
+      {/* 8. Footer */}
       <footer className="border-t border-[#E2E8F0] bg-white py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#64748B]">
           <div className="flex items-center gap-2 font-medium text-[#172033]">
