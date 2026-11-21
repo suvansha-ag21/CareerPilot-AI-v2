@@ -1,184 +1,121 @@
-# CareerPilot AI — AI-Powered Career & Technical Interview SaaS
+# CareerPilot AI
 
-[![CI Pipeline](https://github.com/careerpilot-ai/careerpilot-ai/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![Next.js](https://img.shields.io/badge/Next.js-14.2%20App%20Router-black.svg)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com/)
-[![Python](https://img.shields.io/badge/Python-3.11-3776AB.svg)](https://www.python.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-336791.svg)](https://www.postgresql.org/)
-[![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector%20Store-orange.svg)](https://www.trychroma.com/)
-[![Docker](https://img.shields.io/badge/Docker-Multi--Stage-2496ED.svg)](https://www.docker.com/)
+[![CI](https://github.com/suvansha-ag21/CareerPilot-AI-v2/actions/workflows/ci.yml/badge.svg)](https://github.com/suvansha-ag21/CareerPilot-AI-v2/actions/workflows/ci.yml)
+[![Java 21](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
+[![Spring Boot 3.3](https://img.shields.io/badge/Spring%20Boot-3.3-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Next.js 14](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org/)
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
+[![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED.svg)](https://www.docker.com/)
 
-A production-grade, AI-powered career intelligence and technical interview platform engineered with a **Next.js 14** frontend, an enterprise **Spring Boot 3 (Java 21)** REST API gateway backed by **PostgreSQL 18**, and a dedicated **Python + FastAPI** AI/ML microservice with **ChromaDB RAG**, **Sentence Transformers (`BAAI/bge-small-en-v1.5`)**, and multi-LLM orchestration with Server-Sent Events (SSE) streaming.
+CareerPilot AI is a career-preparation platform that helps job seekers turn their resume and target roles into a focused interview-preparation plan. It brings resume feedback, job-description matching, skill-gap analysis, personalized roadmaps, mock interviews, and progress tracking into one application.
 
-> 📚 **Interview & Portfolio Playbook**: See [PORTFOLIO_PRESENTATION_GUIDE.md](PORTFOLIO_PRESENTATION_GUIDE.md) for ready-to-use resume bullet points, 60-second elevator pitch, and answers to top technical interview questions for **Full Stack**, **Java / Spring Boot**, **AI / ML**, and **DevOps** roles.
+The project is a full-stack monorepo: a **Next.js and TypeScript** web app, a **Spring Boot and Java** API, and a **FastAPI and Python** service for AI workflows. PostgreSQL stores application data; ChromaDB supports vector search for retrieval-augmented generation (RAG).
 
----
+## What you can do
 
-## Architecture Overview
+- **Analyze a resume:** extract skills, review resume sections, and get targeted improvement suggestions.
+- **Compare a resume with a job description:** see matching, related, and missing skills.
+- **Plan what to learn:** review skill gaps and generate a role-focused learning roadmap.
+- **Practice interviews:** work through technical and behavioral interview sessions, get coaching hints, and review feedback.
+- **Use interview practice tools:** run JavaScript in a browser Web Worker, try SQL exercises, and build system-design diagrams.
+- **Track preparation:** manage job applications, review spaced-repetition drills, and view progress analytics.
 
-```
-                          ┌────────────────────────────────────────────────────────┐
-                          │            Client Layer (Next.js 14 App Router)        │
-                          │  - In-Browser Web Worker Code Sandbox (JS)             │
-                          │  - In-Browser Relational SQL Evaluator                 │
-                          │  - Interactive System Design Topology Canvas (DAG)     │
-                          │  - Client-Side ATS PDF Generator & Audio Recorder      │
-                          └───────────────────────────┬────────────────────────────┘
-                                                      │  HTTPS / REST / SSE (Port 3000 -> 5000)
-                                                      ▼
-                          ┌────────────────────────────────────────────────────────┐
-                          │          API Gateway (Spring Boot 3.3.5 / Java 21)     │
-                          │  - Spring Security 6 + JJWT Stateless Token Auth      │
-                          │  - Spring Data JPA + Hibernate 6 with JSONB Mappings   │
-                          │  - Reactive WebClient AI Service Microservice Client   │
-                          │  - HikariCP Connection Pooling & Health Actuators      │
-                          └─────────────┬───────────────────────────┬──────────────┘
-                                        │                           │ Internal HMAC Auth (:8000)
-                                        │ Spring Data JPA           ▼
-                                        │              ┌───────────────────────────┐
-                                        ▼              │   AI Microservice (FastAPI│
-    ┌──────────────────────────────────────────────┐   │   - ChromaDB RAG Engine   │
-    │         PostgreSQL 18 Database (:5433)       │   │   - bge-small-en-v1.5     │
-    │  - Normalized Users, Resumes, Matches        │   │   - Hybrid TF-IDF Matcher │
-    │  - Roadmaps, Sprint Tasks, Interviews        │   │   - SSE Hint Streaming    │
-    │  - SM-2 Flashcards & AiTelemetryLog          │   │   - Speech Pacing (WPM)   │
-    └──────────────────────────────────────────────┘   └─────────────┬─────────────┘
-                                                                     │
-                                                       ┌─────────────┴─────────────┐
-                                                       │ LLM Providers & Fallbacks │
-                                                       │ - Gemini 2.5 Flash        │
-                                                       │ - OpenAI GPT-4o-mini      │
-                                                       └───────────────────────────┘
+## How it works
+
+```mermaid
+flowchart LR
+    Browser["Next.js 14<br/>TypeScript"] -->|"REST / JSON"| API["Spring Boot 3<br/>Java 21 API"]
+    API --> DB[("PostgreSQL 16")]
+    API -->|"Internal HTTP"| AI["FastAPI<br/>Python 3.11"]
+    AI --> Vector[("ChromaDB")]
+    AI --> Models["Gemini / OpenAI<br/>provider configuration"]
 ```
 
----
+The Spring Boot API handles application requests and persistence. It calls the Python service for AI tasks such as resume analysis, job matching, skill-gap analysis, and interview assistance. The AI service uses a Sentence Transformers embedding model and ChromaDB for retrieval, with Gemini or OpenAI configured as the language-model provider.
 
-## Multi-Track Engineering Highlights
+## Technical highlights
 
-### 1. Full Stack Software Engineering (SDE)
-- **Monorepo Architecture**: Clean separation into `shared/`, `backend/`, and `frontend/` sharing validated Zod schemas, TypeScript types, and response contracts end-to-end.
-- **In-Browser Sandboxed Code Execution**: JavaScript runs inside an isolated HTML5 Web Worker with overridden `console.log` capture and a 2000ms termination timer to prevent DOM freezing and infinite loops.
-- **Interactive Relational SQL Engine**: In-memory SQL engine parsing `SELECT`, `WHERE`, `JOIN`, `ORDER BY`, and `LIMIT` against initialized tables (`employees`, `departments`, `orders`).
-- **Interactive System Design Canvas**: Drag-and-drop microservice topologies where candidates visually connect Load Balancers, API Gateways, Caching layers, and Databases.
-- **Security Hardening**: Anti-tamper magic-byte verification for PDF/DOCX uploads, JWT access tokens with rotated `HttpOnly` refresh token family replay protection, and CORS/Helmet guards.
+- **Service separation:** Java/Spring Boot for the main API and Python/FastAPI for AI and NLP workflows.
+- **Hybrid job matching:** combines semantic similarity with TF-IDF keyword analysis and skill classification.
+- **RAG for interview assistance:** retrieves context from a computer-science knowledge base stored in ChromaDB.
+- **Streaming coaching hints:** uses Server-Sent Events (SSE) to deliver interview hints as they are generated.
+- **In-browser practice tools:** runs JavaScript in a Web Worker and provides SQL and system-design exercises in the frontend.
+- **Shared TypeScript contracts:** the `shared/` workspace contains types and schemas used by the frontend.
+- **Local orchestration and CI:** Docker Compose starts the services together; GitHub Actions checks backend packaging, frontend types, Python tests, and Docker image builds.
 
-### 2. AI / Machine Learning Engineering
-- **RAG (Retrieval-Augmented Generation)**: ChromaDB vector store pre-indexed with a 9-topic Computer Science Knowledge Base (`DBMS`, `OOP`, `DSA`, `System Design`, `Networking`, `OS`, etc.) embedded using `BAAI/bge-small-en-v1.5`.
-- **Hybrid Job Description Matcher**: Combines semantic cosine similarity embeddings with Scikit-learn TF-IDF n-gram keyword extraction and a canonical skill ontology to classify skills into *Matching*, *Related*, and *Missing*.
-- **Low-Latency SSE Hint Streaming**: Server-Sent Events (`/hint-stream`) provide real-time token streaming for coaching hints during live mock interviews.
-- **Speech Delivery Analytics**: Server-side audio transcription calculating candidate speaking pace (Words Per Minute), filler-word density, and response structure.
-- **AI Observability & Graceful Fallbacks**: Tracks model latency (ms), provider usage, schema pass rate, and fallback counts in PostgreSQL `AiTelemetryLog`.
+## Technology
 
-### 3. DevOps & Cloud Platform
-- **Multi-Stage Docker Builds**: Production Dockerfiles for `backend/`, `frontend/`, and `ai-service/` reducing image sizes by >60% via build artifact extraction.
-- **Multi-Container Orchestration**: `docker-compose.yml` defining networks, persistent volumes for PostgreSQL & ChromaDB, environment variable injection, and automated database health checks.
-- **Automated GitHub Actions CI/CD Pipeline**: Multi-job workflow (`.github/workflows/ci.yml`) enforcing:
-  1. Monorepo TypeScript compilation across `shared/`, `backend/`, and `frontend/`.
-  2. Backend unit tests via `node:test`.
-  3. Python 3.11 environment validation and `unittest` suites.
-  4. Parallel Docker container image builds.
+| Area | Technologies |
+| --- | --- |
+| Frontend | Next.js 14, React 18, TypeScript, Tailwind CSS |
+| API | Java 21, Spring Boot 3.3, Spring Security, Spring Data JPA |
+| AI service | Python 3.11, FastAPI, Pydantic, scikit-learn, Sentence Transformers |
+| Data | PostgreSQL 16, ChromaDB |
+| Infrastructure | Docker, Docker Compose, GitHub Actions |
 
----
-
-## Project Structure
-
-```text
-careerpilot-ai/
-├── .github/workflows/ci.yml       # GitHub Actions CI/CD Pipeline
-├── PORTFOLIO_PRESENTATION_GUIDE.md# Resume bullet points & technical interview prep
-├── docker-compose.yml             # Multi-service container orchestration
-├── .env.example                   # Unified environment variable template
-├── shared/                        # End-to-end TypeScript DTOs, Enums & Zod Schemas
-├── backend/                       # Spring Boot 3.3.5 REST API Gateway (Java 21)
-│   ├── src/main/java/             # Spring Security, JPA Repositories, Controllers
-│   ├── src/main/resources/        # application.yml config
-│   ├── pom.xml & mvnw             # Maven build configuration & wrapper
-│   └── Dockerfile                 # Eclipse Temurin 21 production Docker build
-├── ai-service/                    # Python FastAPI AI / ML Microservice
-│   ├── app/                       # RAG, LLM providers, ChromaDB, audio & NLP
-│   ├── tests/                     # Unit test suites & LLM evaluation harness
-│   └── Dockerfile                 # Python 3.11 slim Docker build
-├── database/                      # Database migrations, Prisma schemas, & seeds
-│   ├── prisma/schema.prisma       # 15+ normalized relational models
-│   └── prisma/seed.ts             # Canonical skills & benchmark tracks seed
-└── frontend/                      # Next.js 14 App Router Web Application
-    ├── src/app/(marketing)/       # Dynamic landing page with interactive lab
-    ├── src/app/(workspace)/       # Dashboard, Resume, Matcher, Interviews, Drills
-    ├── src/components/interview/  # Web Worker Sandbox & System Design Canvas
-    └── Dockerfile                 # Next.js standalone production build
-```
-
----
-
-## Quick Start (Local Development)
+## Run locally with Docker Compose
 
 ### Prerequisites
-- Java JDK >= 21
-- Node.js >= 20.x and npm >= 10.x
-- Python >= 3.11
-- PostgreSQL 16+ or Docker
 
-### 1. Clone & Install Dependencies
-```bash
-git clone https://github.com/your-username/careerpilot-ai.git
-cd careerpilot-ai
-npm install
+- Git
+- Docker Desktop (or Docker Engine with the Compose plugin)
+- An API key for Gemini or OpenAI for provider-backed AI generation
+
+### Start the application
+
+Clone the repository and create environment files:
+
+```powershell
+git clone https://github.com/suvansha-ag21/CareerPilot-AI-v2.git
+cd CareerPilot-AI-v2
+Copy-Item .env.example .env
+Copy-Item .env.example ai-service\.env
 ```
 
-### 2. Configure Environment Variables
-Copy `.env.example` to the service directories:
-```bash
-cp .env.example backend/.env
-cp .env.example ai-service/.env
-```
+Set `INTERNAL_SERVICE_KEY` to the **same value** in both `.env` files. Add your provider key (for example, `GEMINI_API_KEY`) to `ai-service/.env`. Replace sample secrets with strong values for any non-local deployment, and never commit real credentials.
 
-### 3. Run via Docker Compose (Recommended)
-```bash
+Build and start the services:
+
+```powershell
 docker compose up --build
 ```
-- Web Application: **http://localhost:3000**
-- API Gateway: **http://localhost:5000**
-- AI Service Docs: **http://localhost:8000/internal/ai/docs**
 
----
+| Service | Local address |
+| --- | --- |
+| Web application | <http://localhost:3000> |
+| Spring Boot API | <http://localhost:5000> |
+| API health check | <http://localhost:5000/api/health> |
+| FastAPI service | <http://localhost:8000> |
+| ChromaDB | <http://localhost:8001> |
 
-### 4. Running Services Individually
+Stop the containers with `Ctrl+C`, or run `docker compose down` in another terminal. PostgreSQL data is kept in a named Docker volume.
+
+## Development and tests
+
+The repository also includes npm scripts for common build and test tasks:
 
 ```bash
-# Build shared types
-npm run build:shared
-
-# Database migrations
-npx --workspace=database prisma migrate deploy
-
-# Run All Typechecks
+npm ci
+npm run build
 npm run typecheck
-
-# Run Unit Tests
+npm run test:backend
+npm run test:ai
 npm run test:all
 ```
 
----
+For these commands, install Node.js 20 or newer, Java 21, and Python 3.11. The test scripts use the Maven wrapper for the backend and Python `unittest` for the AI service.
 
-## Live Endpoints & Routes
+## Repository layout
 
-| Module | Route / Endpoint | Description |
-| :--- | :--- | :--- |
-| **Homepage** | `http://localhost:3000/` | Split hero with personalized laptop preview & Interactive Lab |
-| **Dashboard** | `http://localhost:3000/dashboard` | Placement readiness score, target tracks & progress |
-| **Resume AI** | `http://localhost:3000/resume` | ATS scoring, bullet point rewrites & tailored PDF export |
-| **Job Matcher** | `http://localhost:3000/matcher` | Hybrid semantic + TF-IDF job description compatibility |
-| **Skill Audit** | `http://localhost:3000/skills` | Topological prerequisite ordering from beginner to advanced |
-| **Interview Studio** | `http://localhost:3000/interview` | JS Web Worker, SQL Sandbox, Design Canvas, & SSE hints |
-| **Smart Flashcards** | `http://localhost:3000/drills` | SM-2 spaced repetition scheduled from weak topics |
-| **Applications** | `http://localhost:3000/applications` | Table & Kanban pipeline tracking |
-| **AI Telemetry** | `http://localhost:3000/analytics` | Real-time AI response latency & fallback observability |
-| **Health Probe** | `http://localhost:5000/api/health` | Gateway, Database, and AI Microservice health status |
+```text
+.
+├── frontend/       Next.js application and interview-practice UI
+├── backend/        Spring Boot API, security, and persistence
+├── ai-service/     FastAPI endpoints, NLP, RAG, and AI workflows
+├── shared/         Shared TypeScript types and schemas
+├── database/       Database-related schemas, seeds, and vector data
+├── docs/           API specification
+└── .github/        GitHub Actions workflow
+```
 
----
-
-## License
-MIT License. Created for high-impact technical career development.
+For deeper project walkthroughs and interview talking points, see the [portfolio presentation guide](PORTFOLIO_PRESENTATION_GUIDE.md). For endpoint details, see the [API specification](docs/API_SPEC.md).
