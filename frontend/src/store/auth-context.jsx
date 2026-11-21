@@ -58,7 +58,7 @@ export function AuthProvider({ children }) {
         }
     }, []);
     const refreshProfile = useCallback(async () => {
-        const profileUser = await apiRequest("/profile", { method: "GET" });
+        const profileUser = await apiRequest("/auth/me", { method: "GET" });
         setUser(profileUser);
     }, []);
     const setUserDirect = useCallback((nextUser) => {

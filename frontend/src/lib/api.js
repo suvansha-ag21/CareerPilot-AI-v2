@@ -1,7 +1,7 @@
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1"
-    ? `${window.location.origin}/api`
+    ? "https://careerpilot-ai-v2-zkuo.onrender.com/api"
     : "http://localhost:5000/api");
 
 let accessToken = null;
@@ -95,7 +95,10 @@ export async function apiRequest(path, options = {}) {
     const payload = (await response.json());
     if (!response.ok || !payload.success) {
         const err = !payload.success ? payload.error : undefined;
-        throw new ApiClientError(response.status, err?.code ?? "REQUEST_FAILED", err?.message ?? "Request failed", err?.details);
+        const message = typeof err === "string"
+            ? err
+            : err?.message ?? payload.message ?? payload.detail ?? "Request failed";
+        throw new ApiClientError(response.status, err?.code ?? "REQUEST_FAILED", message, err?.details);
     }
     return payload.data;
 }

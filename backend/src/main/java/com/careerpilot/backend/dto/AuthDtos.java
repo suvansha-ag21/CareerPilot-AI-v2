@@ -60,10 +60,16 @@ public class AuthDtos {
         private String role;
         private String targetRole;
         private int yearsExperience;
+        private String profileImage;
+        private String headline;
         private String location;
         private String githubUrl;
         private String linkedinUrl;
         private Map<String, Object> careerPreferences;
+        private List<Map<String, Object>> skills;
+        private List<Map<String, Object>> educations;
+        private List<Map<String, Object>> workExperiences;
+        private List<Map<String, Object>> projects;
 
         public UserDto() {}
 
@@ -79,6 +85,10 @@ public class AuthDtos {
         public void setTargetRole(String targetRole) { this.targetRole = targetRole; }
         public int getYearsExperience() { return yearsExperience; }
         public void setYearsExperience(int yearsExperience) { this.yearsExperience = yearsExperience; }
+        public String getProfileImage() { return profileImage; }
+        public void setProfileImage(String profileImage) { this.profileImage = profileImage; }
+        public String getHeadline() { return headline; }
+        public void setHeadline(String headline) { this.headline = headline; }
         public String getLocation() { return location; }
         public void setLocation(String location) { this.location = location; }
         public String getGithubUrl() { return githubUrl; }
@@ -87,6 +97,14 @@ public class AuthDtos {
         public void setLinkedinUrl(String linkedinUrl) { this.linkedinUrl = linkedinUrl; }
         public Map<String, Object> getCareerPreferences() { return careerPreferences; }
         public void setCareerPreferences(Map<String, Object> careerPreferences) { this.careerPreferences = careerPreferences; }
+        public List<Map<String, Object>> getSkills() { return skills; }
+        public void setSkills(List<Map<String, Object>> skills) { this.skills = skills; }
+        public List<Map<String, Object>> getEducations() { return educations; }
+        public void setEducations(List<Map<String, Object>> educations) { this.educations = educations; }
+        public List<Map<String, Object>> getWorkExperiences() { return workExperiences; }
+        public void setWorkExperiences(List<Map<String, Object>> workExperiences) { this.workExperiences = workExperiences; }
+        public List<Map<String, Object>> getProjects() { return projects; }
+        public void setProjects(List<Map<String, Object>> projects) { this.projects = projects; }
     }
 
     public static class AuthResponse {

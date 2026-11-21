@@ -4,6 +4,22 @@ This guide walks you through deploying **CareerPilot AI** to a single **Linux Cl
 
 ---
 
+## Deploying the Frontend to Vercel and Backend to Render
+
+For a split deployment, configure the frontend and backend to use each other's public URLs:
+
+1. In Vercel, set `NEXT_PUBLIC_API_URL` to `https://careerpilot-ai-v2-zkuo.onrender.com/api` (or your backend's public URL followed by `/api`), then redeploy the frontend. The frontend has this Render URL as its production fallback, but setting the variable explicitly is recommended.
+2. In Render, set `APP_FRONTEND_URL` to `https://career-pilot-ai-v2-azure.vercel.app` (or your Vercel site's origin, with no trailing slash). Deploy the latest backend code so its CORS configuration includes the Vercel origin.
+3. Create a second Render Web Service from this repository for the Python AI service. Set its **Root Directory** to `ai-service`, use the Docker runtime, and configure `INTERNAL_SERVICE_KEY`, `LLM_PROVIDER`, and the selected provider key (for example `GEMINI_API_KEY`).
+4. In the backend Render service, set `APP_AI_SERVICE_BASE_URL` to the AI service's public base URL (without `/internal/ai`) and set the same `INTERNAL_SERVICE_KEY` value on both services. The backend's default AI URL is localhost and cannot reach a separate Render service.
+5. Verify `https://careerpilot-ai-v2-zkuo.onrender.com/api/health`. The backend should report the database as `ok` and its `aiService.healthy` value as `true`.
+
+The backend root URL (`/`) is not a web page. Use `/api/health` to verify it.
+
+> **Full Application API Migration Complete.** All endpoints used by the frontend UI (auth & password recovery, profile, resumes, job matches, roadmaps, skills inventory, applications, drills, GitHub projects, and detailed analytics) have been migrated to the Spring Boot backend with JPA persistence and verified with tests.
+
+---
+
 ## Architecture in Production
 
 ```text

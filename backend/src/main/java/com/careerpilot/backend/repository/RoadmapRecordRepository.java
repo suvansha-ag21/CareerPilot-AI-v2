@@ -1,0 +1,14 @@
+package com.careerpilot.backend.repository;
+
+import com.careerpilot.backend.entity.RoadmapRecord;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+public interface RoadmapRecordRepository extends JpaRepository<RoadmapRecord, UUID> {
+    List<RoadmapRecord> findAllByUserIdOrderByCreatedAtDesc(UUID userId);
+    Optional<RoadmapRecord> findByIdAndUserId(UUID id, UUID userId);
+    long countByUserId(UUID userId);
+}

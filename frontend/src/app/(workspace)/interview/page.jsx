@@ -79,7 +79,7 @@ export default function MockInterviewPage() {
             const [sList, rList, repoList] = await Promise.all([
                 interviewApi.list(),
                 resumeApi.list(),
-                projectsApi.listGitHub().catch(() => []),
+                projectsApi.listGitHub(),
             ]);
             setSessions(sList);
             setGithubRepos(repoList);

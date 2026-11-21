@@ -49,8 +49,14 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/api/health/**",
-                    "/api/auth/**",
+                    "/api/auth/login",
+                    "/api/auth/register",
+                    "/api/auth/refresh",
+                    "/api/auth/logout",
+                    "/api/auth/forgot-password",
+                    "/api/auth/reset-password",
                     "/api/matcher/analyze-public",
+                    "/api/job-matches/analyze-public",
                     "/actuator/health",
                     "/actuator/health/**",
                     "/error"

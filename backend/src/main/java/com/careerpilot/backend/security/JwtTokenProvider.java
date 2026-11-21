@@ -15,13 +15,19 @@ import java.util.UUID;
 public class JwtTokenProvider {
 
     private final SecretKey accessKey;
+    private final SecretKey refreshKey;
     private final long accessExpirationMs;
+    private final long refreshExpirationMs;
 
     public JwtTokenProvider(
             @Value("${app.jwt.access-secret}") String accessSecret,
-            @Value("${app.jwt.access-expiration-ms:900000}") long accessExpirationMs) {
+            @Value("${app.jwt.refresh-secret}") String refreshSecret,
+            @Value("${app.jwt.access-expiration-ms:900000}") long accessExpirationMs,
+            @Value("${app.jwt.refresh-expiration-days:7}") long refreshExpirationDays) {
         this.accessKey = Keys.hmacShaKeyFor(accessSecret.getBytes(StandardCharsets.UTF_8));
+        this.refreshKey = Keys.hmacShaKeyFor(refreshSecret.getBytes(StandardCharsets.UTF_8));
         this.accessExpirationMs = accessExpirationMs;
+        this.refreshExpirationMs = refreshExpirationDays * 24 * 60 * 60 * 1000;
     }
 
     public String generateAccessToken(UUID userId, String email, String role) {
@@ -35,6 +41,18 @@ public class JwtTokenProvider {
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(accessKey)
+                .compact();
+    }
+
+    public String generateRefreshToken(UUID userId) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + refreshExpirationMs);
+        return Jwts.builder()
+                .subject(userId.toString())
+                .claim("type", "refresh")
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(refreshKey)
                 .compact();
     }
 
@@ -55,5 +73,19 @@ public class JwtTokenProvider {
     public String getEmailFromToken(String token) {
         Claims claims = Jwts.parser().verifyWith(accessKey).build().parseSignedClaims(token).getPayload();
         return claims.get("email", String.class);
+    }
+
+    public boolean validateRefreshToken(String token) {
+        try {
+            Claims claims = Jwts.parser().verifyWith(refreshKey).build().parseSignedClaims(token).getPayload();
+            return "refresh".equals(claims.get("type", String.class));
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    public UUID getUserIdFromRefreshToken(String token) {
+        Claims claims = Jwts.parser().verifyWith(refreshKey).build().parseSignedClaims(token).getPayload();
+        return UUID.fromString(claims.getSubject());
     }
 }
