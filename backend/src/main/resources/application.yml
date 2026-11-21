@@ -1,4 +1,3 @@
-
 server:
   port: ${PORT:5000}
 
@@ -29,3 +28,12 @@ app:
     base-url: ${APP_AI_SERVICE_BASE_URL:http://127.0.0.1:8000}
     internal-key: ${INTERNAL_SERVICE_KEY}
   frontend-url: ${APP_FRONTEND_URL}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
