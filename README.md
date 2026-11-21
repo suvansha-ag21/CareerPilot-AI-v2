@@ -1,18 +1,19 @@
 # CareerPilot AI — AI-Powered Career & Technical Interview SaaS
 
 [![CI Pipeline](https://github.com/careerpilot-ai/careerpilot-ai/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
+[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Next.js](https://img.shields.io/badge/Next.js-14.2%20App%20Router-black.svg)](https://nextjs.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-22.x-green.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com/)
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB.svg)](https://www.python.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-336791.svg)](https://www.postgresql.org/)
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector%20Store-orange.svg)](https://www.trychroma.com/)
 [![Docker](https://img.shields.io/badge/Docker-Multi--Stage-2496ED.svg)](https://www.docker.com/)
 
-A production-grade, AI-powered career intelligence and technical interview platform engineered with a **Next.js 14** frontend, an **Express.js + TypeScript** API gateway backed by **PostgreSQL 18 & Prisma ORM**, and a dedicated **Python + FastAPI** AI/ML microservice with **ChromaDB RAG**, **Sentence Transformers (`BAAI/bge-small-en-v1.5`)**, and multi-LLM orchestration with Server-Sent Events (SSE) streaming.
+A production-grade, AI-powered career intelligence and technical interview platform engineered with a **Next.js 14** frontend, an enterprise **Spring Boot 3 (Java 21)** REST API gateway backed by **PostgreSQL 18**, and a dedicated **Python + FastAPI** AI/ML microservice with **ChromaDB RAG**, **Sentence Transformers (`BAAI/bge-small-en-v1.5`)**, and multi-LLM orchestration with Server-Sent Events (SSE) streaming.
 
-> 📚 **Interview & Portfolio Playbook**: See [PORTFOLIO_PRESENTATION_GUIDE.md](PORTFOLIO_PRESENTATION_GUIDE.md) for ready-to-use resume bullet points, 60-second elevator pitch, and answers to top technical interview questions for **Full Stack**, **AI / ML**, and **DevOps** roles.
+> 📚 **Interview & Portfolio Playbook**: See [PORTFOLIO_PRESENTATION_GUIDE.md](PORTFOLIO_PRESENTATION_GUIDE.md) for ready-to-use resume bullet points, 60-second elevator pitch, and answers to top technical interview questions for **Full Stack**, **Java / Spring Boot**, **AI / ML**, and **DevOps** roles.
 
 ---
 
@@ -26,21 +27,21 @@ A production-grade, AI-powered career intelligence and technical interview platf
                           │  - Interactive System Design Topology Canvas (DAG)     │
                           │  - Client-Side ATS PDF Generator & Audio Recorder      │
                           └───────────────────────────┬────────────────────────────┘
-                                                      │  HTTPS / REST / SSE
+                                                      │  HTTPS / REST / SSE (Port 3000 -> 5000)
                                                       ▼
                           ┌────────────────────────────────────────────────────────┐
-                          │          API Gateway (Express.js + TypeScript)         │
-                          │  - JWT + Rotated HttpOnly Cookie Authentication        │
-                          │  - Anti-Tamper Magic-Byte PDF/DOCX Validation          │
-                          │  - Zod DTO Validation & Rate Limiting                  │
-                          │  - PostgreSQL Telemetry & Observability Logger         │
+                          │          API Gateway (Spring Boot 3.3.5 / Java 21)     │
+                          │  - Spring Security 6 + JJWT Stateless Token Auth      │
+                          │  - Spring Data JPA + Hibernate 6 with JSONB Mappings   │
+                          │  - Reactive WebClient AI Service Microservice Client   │
+                          │  - HikariCP Connection Pooling & Health Actuators      │
                           └─────────────┬───────────────────────────┬──────────────┘
-                                        │                           │ Internal HMAC Auth
-                                        │ Prisma ORM                ▼
+                                        │                           │ Internal HMAC Auth (:8000)
+                                        │ Spring Data JPA           ▼
                                         │              ┌───────────────────────────┐
                                         ▼              │   AI Microservice (FastAPI│
     ┌──────────────────────────────────────────────┐   │   - ChromaDB RAG Engine   │
-    │         PostgreSQL 18 Database               │   │   - bge-small-en-v1.5     │
+    │         PostgreSQL 18 Database (:5433)       │   │   - bge-small-en-v1.5     │
     │  - Normalized Users, Resumes, Matches        │   │   - Hybrid TF-IDF Matcher │
     │  - Roadmaps, Sprint Tasks, Interviews        │   │   - SSE Hint Streaming    │
     │  - SM-2 Flashcards & AiTelemetryLog          │   │   - Speech Pacing (WPM)   │
@@ -91,10 +92,11 @@ careerpilot-ai/
 ├── docker-compose.yml             # Multi-service container orchestration
 ├── .env.example                   # Unified environment variable template
 ├── shared/                        # End-to-end TypeScript DTOs, Enums & Zod Schemas
-├── backend/                       # Express.js REST API Gateway & Prisma ORM
-│   ├── src/                       # Controllers, routes, middleware, and services
-│   ├── tests/                     # Backend unit test suite (node:test)
-│   └── Dockerfile                 # Multi-stage production Docker build
+├── backend/                       # Spring Boot 3.3.5 REST API Gateway (Java 21)
+│   ├── src/main/java/             # Spring Security, JPA Repositories, Controllers
+│   ├── src/main/resources/        # application.yml config
+│   ├── pom.xml & mvnw             # Maven build configuration & wrapper
+│   └── Dockerfile                 # Eclipse Temurin 21 production Docker build
 ├── ai-service/                    # Python FastAPI AI / ML Microservice
 │   ├── app/                       # RAG, LLM providers, ChromaDB, audio & NLP
 │   ├── tests/                     # Unit test suites & LLM evaluation harness
@@ -114,6 +116,7 @@ careerpilot-ai/
 ## Quick Start (Local Development)
 
 ### Prerequisites
+- Java JDK >= 21
 - Node.js >= 20.x and npm >= 10.x
 - Python >= 3.11
 - PostgreSQL 16+ or Docker

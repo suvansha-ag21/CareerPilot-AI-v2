@@ -2,13 +2,15 @@ package com.careerpilot.backend.entity;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "\"User\"")
+@Table(name = "\"user\"")
 public class User {
 
     @Id
@@ -21,35 +23,34 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "\"passwordHash\"", nullable = false)
+    @Column(nullable = false)
     private String passwordHash;
 
     @Column(nullable = false)
     private String role = "USER";
 
-    @Column(name = "\"targetRole\"", nullable = false)
+    @Column(nullable = false)
     private String targetRole = "Full Stack Developer";
 
-    @Column(name = "\"yearsExperience\"", nullable = false)
+    @Column(nullable = false)
     private int yearsExperience = 0;
 
     private String location;
 
-    @Column(name = "\"githubUrl\"")
     private String githubUrl;
 
-    @Column(name = "\"linkedinUrl\"")
     private String linkedinUrl;
 
-    @Column(name = "\"careerPreferences\"", columnDefinition = "jsonb")
-    private String careerPreferences;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private String careerPreferences = "{}";
 
     @CreationTimestamp
-    @Column(name = "\"createdAt\"", nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
     @UpdateTimestamp
-    @Column(name = "\"updatedAt\"", nullable = false)
+    @Column(nullable = false)
     private Instant updatedAt;
 
     public User() {}

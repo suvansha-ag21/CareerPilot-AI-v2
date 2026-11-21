@@ -6,12 +6,12 @@ This document is your complete cheat-sheet to present **CareerPilot AI** across 
 
 ## 1. Resume Bullet Points (Copy & Paste for Your Applications)
 
-### Option A: For Full Stack Engineer (SDE) Roles
-> **CareerPilot AI — Full Stack Career & Technical Interview SaaS** *(Next.js 14, Node.js, Express, TypeScript, PostgreSQL, Prisma, Web Workers)*
-> - Engineered an end-to-end, type-safe SaaS platform in a TypeScript monorepo featuring a Next.js 14 App Router frontend and an Express REST API with PostgreSQL and Prisma ORM.
+### Option A: For Full Stack / Java Backend Engineer (SDE) Roles
+> **CareerPilot AI — Full Stack Career & Technical Interview SaaS** *(Next.js 14, Java 21, Spring Boot 3.3.5, Spring Security, Spring Data JPA, PostgreSQL, Docker)*
+> - Engineered an enterprise-grade SaaS platform featuring a Next.js 14 App Router frontend and a Spring Boot 3 (Java 21) REST API gateway backed by PostgreSQL 18.
+> - Implemented Spring Security 6 stateless JWT authentication, reactive WebClient microservice communication, and Hibernate 6 JSONB custom mappings.
 > - Implemented an in-browser isolated code execution sandbox using HTML5 Web Workers for client-side JavaScript execution and an in-browser relational SQL evaluator for live query verification.
 > - Built an interactive System Design DAG canvas allowing candidates to assemble microservice topologies with real-time scaling and caching validation.
-> - Designed a secure authentication architecture using JWTs with rotated `HttpOnly` Refresh token cookies, anti-tamper magic-byte file validation for PDF/DOCX uploads, and client-side ATS-optimized PDF generation.
 
 ### Option B: For AI / Machine Learning Engineer Roles
 > **CareerPilot AI — RAG-Powered Interview & Career Intelligence Microservice** *(FastAPI, Python, ChromaDB, Sentence Transformers, spaCy, Gemini/OpenAI, Scikit-learn)*
@@ -22,9 +22,9 @@ This document is your complete cheat-sheet to present **CareerPilot AI** across 
 
 ### Option C: For DevOps & Cloud Platform Roles
 > **CareerPilot AI — Multi-Service Cloud Architecture & Automated CI/CD Pipeline** *(Docker, Docker Compose, GitHub Actions, PostgreSQL, Linux, Multi-stage Builds)*
-> - Containerized a 4-tier microservice architecture (Next.js frontend, Express API gateway, FastAPI AI service, PostgreSQL 18, and ChromaDB) using optimized multi-stage Dockerfiles that reduced image sizes by over 60%.
+> - Containerized a 4-tier microservice architecture (Next.js frontend, Spring Boot 3 API gateway, FastAPI AI service, PostgreSQL 18, and ChromaDB) using optimized multi-stage Dockerfiles that reduced image sizes by over 60%.
 > - Configured local multi-container service orchestration with `docker-compose.yml`, including dependency checks, persistent volume mounts, and automated database health probes.
-> - Authored an automated GitHub Actions CI/CD quality gate verifying monorepo TypeScript compilation, backend unit testing (`node:test`), Python test suites (`unittest`), and Docker image builds.
+> - Authored an automated GitHub Actions CI/CD quality gate verifying Java 21 Maven compilation (`mvnw package`), Next.js production builds, Python test suites (`unittest`), and Docker image builds.
 > - Engineered database schema migrations, automated canonical skill seeding, and service-level health checks (`/api/health`) across all microservices.
 
 ---
@@ -37,7 +37,7 @@ When an interviewer says: **"Tell me about CareerPilot AI / Walk me through this
 > 
 > *Most interview prep tools either just generate generic ChatGPT answers or only give you static text. I wanted to build something that reflects real engineering interviews:*
 > 1. *It has a **Next.js 14 frontend** with a live in-browser Web Worker code sandbox, interactive system design canvas, and an ATS resume optimizer.*
-> 2. *An **Express + PostgreSQL backend** with strict Prisma schemas, JWT auth with rotated HttpOnly refresh cookies, and comprehensive rate limiting.*
+> 2. *An enterprise **Spring Boot 3 (Java 21) backend** with Spring Security, JJWT authentication, Spring Data JPA with JSONB mappings, and HikariCP connection pooling.*
 > 3. *A dedicated **Python/FastAPI AI microservice** using **ChromaDB RAG** over Computer Science fundamentals, hybrid semantic and TF-IDF job description matching, and Server-Sent Events for live coaching hints.*
 > 4. *A fully containerized **Docker Compose** environment with an automated **GitHub Actions CI/CD** pipeline.*
 > 
@@ -47,12 +47,12 @@ When an interviewer says: **"Tell me about CareerPilot AI / Walk me through this
 
 ## 3. Top 5 Technical Questions & Winning Answers
 
-### Q1: "Why did you separate the backend into Node.js/Express and Python/FastAPI instead of a single monolith?"
+### Q1: "Why did you separate the backend into Spring Boot (Java) and Python/FastAPI instead of a single monolith?"
 > **Winning Answer:**
 > *"Separation of concerns based on runtime strengths:*
-> - *Node.js/Express excels at high-concurrency I/O, user authentication, session management, and relational database queries via Prisma with low latency.*
-> - *Python is the industry standard for AI/ML workloads because of libraries like ChromaDB, PyMuPDF, Sentence Transformers, and spaCy.*
-> - *By decoupling them into microservices communicating over internal HTTP with shared service secrets, each tier can be independently scaled, deployed, and containerized without bloating the main API server."*
+> - *Spring Boot 3 (Java 21) provides enterprise-grade robustness, thread safety, type safety, mature transaction management, and robust security architecture (Spring Security 6) for business logic and database persistence.*
+> - *Python is the undisputed industry standard for AI/ML workloads because of libraries like ChromaDB, PyMuPDF, Sentence Transformers, and spaCy.*
+> - *By decoupling them into microservices communicating over internal HTTP with shared HMAC service secrets, each tier can be independently scaled, deployed, and containerized without bloating the primary API server."*
 
 ### Q2: "How does your RAG (Retrieval-Augmented Generation) pipeline work?"
 > **Winning Answer:**

@@ -26,14 +26,14 @@ public class AiServiceClient {
 
     public Mono<Map> checkHealth() {
         return webClient.get()
-                .uri("/api/v1/health")
+                .uri("/internal/ai/health")
                 .retrieve()
                 .bodyToMono(Map.class);
     }
 
     public Mono<Map> matchJob(Map<String, Object> payload) {
         return webClient.post()
-                .uri("/api/v1/matcher/match")
+                .uri("/internal/ai/matches/evaluate")
                 .bodyValue(payload)
                 .retrieve()
                 .bodyToMono(Map.class);
@@ -41,7 +41,7 @@ public class AiServiceClient {
 
     public Mono<Map> generateInterviewQuestion(Map<String, Object> payload) {
         return webClient.post()
-                .uri("/api/v1/interviews/question")
+                .uri("/internal/ai/interviews/start-question")
                 .bodyValue(payload)
                 .retrieve()
                 .bodyToMono(Map.class);
@@ -49,7 +49,7 @@ public class AiServiceClient {
 
     public Mono<Map> evaluateInterviewAnswer(Map<String, Object> payload) {
         return webClient.post()
-                .uri("/api/v1/interviews/evaluate")
+                .uri("/internal/ai/interviews/evaluate-and-next")
                 .bodyValue(payload)
                 .retrieve()
                 .bodyToMono(Map.class);

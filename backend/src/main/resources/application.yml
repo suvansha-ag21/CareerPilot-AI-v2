@@ -26,5 +26,5 @@ app:
     refresh-expiration-days: 7
   ai-service:
     base-url: "http://127.0.0.1:8000"
-    internal-key: "careerpilot-internal-hmac-key-shared-between-services"
+    internal-key: "${INTERNAL_SERVICE_KEY:cp_int_7a2c9e4b1d6f803e5a7c9b1d4f6e8a2c}"
   frontend-url: "http://localhost:3000"
