@@ -111,6 +111,35 @@ class InterviewSessionServiceTest {
     }
 
     @Test
+    void startFallsBackGracefullyWhenAiServiceFails() {
+        User user = new User();
+        user.setTargetRole("Full Stack Engineer");
+        when(users.findById(userId)).thenReturn(Optional.of(user));
+        when(aiServiceClient.generateInterviewQuestion(anyMap())).thenThrow(new RuntimeException("Connection refused"));
+        UUID sessionId = UUID.randomUUID();
+        when(sessions.save(any(InterviewSession.class))).thenAnswer(invocation -> {
+            InterviewSession entity = invocation.getArgument(0);
+            entity.setId(sessionId);
+            return entity;
+        });
+
+        Map<String, Object> created = service.start(userId, Map.of(
+                "category", "TECHNICAL",
+                "difficulty", "MEDIUM",
+                "mode", "TEXT",
+                "durationMinutes", 30,
+                "questionLimit", 5));
+
+        assertEquals(sessionId.toString(), created.get("id"));
+        assertEquals("IN_PROGRESS", created.get("status"));
+        List<?> questions = (List<?>) created.get("questions");
+        assertEquals(1, questions.size());
+        Map<?, ?> firstQ = (Map<?, ?>) questions.get(0);
+        assertNotNull(firstQ.get("question"));
+        assertNotNull(firstQ.get("topicTag"));
+    }
+
+    @Test
     void getDoesNotExposeAnotherUsersSession() {
         UUID sessionId = UUID.randomUUID();
         when(sessions.findByIdAndUserId(sessionId, userId)).thenReturn(Optional.empty());
