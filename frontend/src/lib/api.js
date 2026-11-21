@@ -1,12 +1,20 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1"
+    ? `${window.location.origin}/api`
+    : "http://localhost:5000/api");
+
 let accessToken = null;
 let inflightRefresh = null;
+
 export function setAccessToken(token) {
     accessToken = token;
 }
+
 export function getAccessToken() {
     return accessToken;
 }
+
 export class ApiClientError extends Error {
     status;
     code;
@@ -18,6 +26,7 @@ export class ApiClientError extends Error {
         this.details = details;
     }
 }
+
 export async function refreshAccessToken() {
     if (!inflightRefresh) {
         inflightRefresh = (async () => {
@@ -62,6 +71,7 @@ export async function refreshAccessToken() {
         return null;
     return { accessToken: token, user: profileJson.data };
 }
+
 export async function apiRequest(path, options = {}) {
     const { skipAuth = false, retryOn401 = true, headers, ...rest } = options;
     const requestHeaders = new Headers(headers);
@@ -89,6 +99,7 @@ export async function apiRequest(path, options = {}) {
     }
     return payload.data;
 }
+
 export async function apiFetchBlob(path, retryOn401 = true) {
     const headers = new Headers();
     if (accessToken) {

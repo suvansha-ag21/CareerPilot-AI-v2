@@ -1,0 +1,12 @@
+.git
+.github
+.vscode
+node_modules
+frontend/.next
+frontend/node_modules
+backend/target
+ai-service/.venv
+ai-service/__pycache__
+ai-service/tests/__pycache__
+database/pgdata
+*.log

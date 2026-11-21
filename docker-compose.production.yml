@@ -1,21 +1,21 @@
 services:
   backend:
     environment:
-      APP_FRONTEND_URL: https://${APP_DOMAIN:?APP_DOMAIN is required}
+      APP_FRONTEND_URL: https://${APP_DOMAIN:-localhost}
 
   frontend:
     build:
       args:
-        NEXT_PUBLIC_API_URL: https://${APP_DOMAIN:?APP_DOMAIN is required}/api
+        NEXT_PUBLIC_API_URL: https://${APP_DOMAIN:-localhost}/api
     environment:
-      NEXT_PUBLIC_API_URL: https://${APP_DOMAIN:?APP_DOMAIN is required}/api
+      NEXT_PUBLIC_API_URL: https://${APP_DOMAIN:-localhost}/api
 
   caddy:
     image: caddy:2-alpine
     container_name: careerpilot_caddy
     restart: unless-stopped
     environment:
-      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN is required}
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
     ports:
       - "80:80"
       - "443:443"

@@ -18,11 +18,14 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
+RUN apk add --no-cache curl wget
+
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/shared/src ./shared/src
 COPY --from=builder /app/shared/package.json ./shared/package.json
 COPY --from=builder /app/frontend/.next ./frontend/.next
 COPY --from=builder /app/frontend/package.json ./frontend/package.json
 
+ENV PORT=3000
 EXPOSE 3000
-CMD ["npm", "--workspace=frontend", "run", "start"]
+CMD ["sh", "-c", "npx --workspace=frontend next start -p ${PORT:-3000}"]

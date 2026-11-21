@@ -5,9 +5,9 @@ spring:
   application:
     name: careerpilot-backend
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL:${DATABASE_URL:jdbc:postgresql://localhost:5432/careerpilot_db}}
+    username: ${SPRING_DATASOURCE_USERNAME:${POSTGRES_USER:postgres}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:careerpilot_dev_pass}}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -20,14 +20,14 @@ spring:
 
 app:
   jwt:
-    access-secret: "${APP_JWT_ACCESS_SECRET:${JWT_ACCESS_SECRET}}"
-    refresh-secret: "${APP_JWT_REFRESH_SECRET:${JWT_REFRESH_SECRET}}"
+    access-secret: "${APP_JWT_ACCESS_SECRET:${JWT_ACCESS_SECRET:careerpilot-super-secret-jwt-access-key-32-chars-min!}}"
+    refresh-secret: "${APP_JWT_REFRESH_SECRET:${JWT_REFRESH_SECRET:careerpilot-super-secret-jwt-refresh-key-32-chars-min!}}"
     access-expiration-ms: 900000
     refresh-expiration-days: 7
   ai-service:
-    base-url: ${APP_AI_SERVICE_BASE_URL:http://127.0.0.1:8000}
-    internal-key: ${INTERNAL_SERVICE_KEY}
-  frontend-url: ${APP_FRONTEND_URL}
+    base-url: ${APP_AI_SERVICE_BASE_URL:${AI_SERVICE_URL:http://127.0.0.1:8000}}
+    internal-key: ${INTERNAL_SERVICE_KEY:cp_int_7a2c9e4b1d6f803e5a7c9b1d4f6e8a2c}
+  frontend-url: ${APP_FRONTEND_URL:${FRONTEND_URL:http://localhost:3000}}
 
 management:
   endpoints:

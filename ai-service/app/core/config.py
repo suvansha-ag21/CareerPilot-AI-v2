@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     AI_PORT: int = 8000
-    INTERNAL_SERVICE_KEY: str
+    INTERNAL_SERVICE_KEY: str = "cp_int_7a2c9e4b1d6f803e5a7c9b1d4f6e8a2c"
     LLM_PROVIDER: str = "gemini"
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-3.1-flash-lite"
