@@ -40,11 +40,11 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                    "/api/health/**",
-                    "/api/auth/**",
-                    "/api/matcher/analyze-public",
-                    "/error"
-                ).permitAll()
+    "/api/health/**",
+    "/api/auth/**",
+    "/api/matcher/analyze-public",
+    "/error"
+).permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
