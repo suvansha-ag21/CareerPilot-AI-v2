@@ -1,3 +1,4 @@
+
 FROM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /app
 
@@ -10,7 +11,9 @@ RUN ./mvnw clean package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
+
 COPY --from=builder /app/target/*.jar app.jar
 
 EXPOSE 5000
-ENTRYPOINT ["java", "-jar", "app.jar"]
+
+ENTRYPOINT ["java", "-Xms64m", "-Xmx256m", "-XX:MaxMetaspaceSize=128m", "-jar", "app.jar"]
