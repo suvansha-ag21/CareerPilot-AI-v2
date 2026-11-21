@@ -32,7 +32,7 @@ const config = {
                 },
             },
             fontFamily: {
-                sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+                sans: ["var(--font-inter, Inter)", "system-ui", "sans-serif"],
             },
             boxShadow: {
                 card: "0 1px 3px 0 rgba(23, 32, 51, 0.05), 0 1px 2px -1px rgba(23, 32, 51, 0.04)",

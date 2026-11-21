@@ -1,5 +1,12 @@
 import { AuthProvider } from "@/store/auth-context";
+import { Inter } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata = {
   title: "CareerPilot AI – Career & Interview Intelligence Platform",
@@ -9,7 +16,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="font-sans antialiased bg-[#F8FAFC] text-[#172033]">
+      <body className={`${inter.variable} font-sans antialiased bg-[#F8FAFC] text-[#172033]`}>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
