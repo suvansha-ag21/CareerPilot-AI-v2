@@ -147,13 +147,95 @@ public class AnalyticsService {
         ));
         res.put("profileCompletenessPct", user != null ? calculateProfileCompleteness(user) : 30);
         res.put("serviceHealth", Map.of("database", "healthy", "aiService", "healthy"));
-        res.put("recentActivities", buildRecentActivities(sessions, resumes, matches, applications));
-        res.put("upcomingInterviews", Collections.emptyList());
-        res.put("recommendations", List.of(
-                Map.of("id", "rec-1", "title", "Complete adaptive mock interview", "description", "Practice high-yield technical rounds under real-time constraints.", "actionUrl", "/interview"),
-                Map.of("id", "rec-2", "title", "Tailor resume for target job", "description", "Optimize your resume score and match keywords against job requirements.", "actionUrl", "/matcher")
-        ));
+        res.put("recentActivities", buildRecentActivities(sessions, resumes, matches, applications, user));
+        res.put("upcomingInterviews", buildUpcomingInterviews(applications));
+        res.put("recommendations", buildRecommendations(user, resumes, matches, roadmaps, totalMockInterviews));
         return res;
+    }
+
+    private List<Map<String, Object>> buildUpcomingInterviews(List<JobApplicationRecord> applications) {
+        List<Map<String, Object>> upcoming = new ArrayList<>();
+        for (JobApplicationRecord app : applications) {
+            Map<String, Object> data = readJson(app.getRecordData());
+            Object dateObj = data.get("interviewDate");
+            if (dateObj != null && !String.valueOf(dateObj).isBlank()) {
+                upcoming.add(Map.of(
+                        "id", app.getId().toString(),
+                        "company", data.getOrDefault("company", "Target Company"),
+                        "jobRole", data.getOrDefault("jobRole", "Software Engineer"),
+                        "interviewDate", String.valueOf(dateObj)
+                ));
+            }
+        }
+        return upcoming.size() > 4 ? upcoming.subList(0, 4) : upcoming;
+    }
+
+    private List<Map<String, Object>> buildRecommendations(
+            User user,
+            List<ResumeRecord> resumes,
+            List<JobMatchRecord> matches,
+            List<RoadmapRecord> roadmaps,
+            int totalMockInterviews) {
+        List<Map<String, Object>> recs = new ArrayList<>();
+        if (user != null) {
+            Map<String, Object> prefs = readJson(user.getCareerPreferences());
+            boolean onboardingDone = Boolean.TRUE.equals(prefs.get("onboardingCompleted"));
+            if (!onboardingDone) {
+                recs.add(Map.of(
+                        "title", "Personalize your 3-step career path",
+                        "reason", "Tell us your education background, target role, and goals so CareerPilot AI tailors interviews and roadmaps.",
+                        "actionHref", "/onboarding",
+                        "actionLabel", "Start Setup",
+                        "priority", "HIGH"
+                ));
+            }
+        }
+        if (resumes.isEmpty()) {
+            recs.add(Map.of(
+                    "title", "Upload your resume for ATS & structure audit",
+                    "reason", "Upload your PDF or DOCX resume to unlock section feedback and job matching.",
+                    "actionHref", "/resume",
+                    "actionLabel", "Go to Resume AI",
+                    "priority", "HIGH"
+            ));
+        }
+        if (matches.isEmpty()) {
+            recs.add(Map.of(
+                    "title", "Benchmark against a target Job Description",
+                    "reason", "Compare your current stack against real hiring requirements to uncover high-priority skill gaps.",
+                    "actionHref", "/matcher",
+                    "actionLabel", "Open Job Matcher",
+                    "priority", "MEDIUM"
+            ));
+        }
+        if (roadmaps.isEmpty()) {
+            recs.add(Map.of(
+                    "title", "Analyze skill gaps & generate a study roadmap",
+                    "reason", "Turn your target role requirements into structured daily and weekly study milestones.",
+                    "actionHref", "/skills",
+                    "actionLabel", "Analyze Skills",
+                    "priority", "MEDIUM"
+            ));
+        }
+        if (totalMockInterviews == 0) {
+            recs.add(Map.of(
+                    "title", "Start an adaptive mock interview",
+                    "reason", "Practice high-yield technical rounds under real-time constraints.",
+                    "actionHref", "/interview",
+                    "actionLabel", "Start Interview",
+                    "priority", "HIGH"
+            ));
+        }
+        if (recs.isEmpty()) {
+            recs.add(Map.of(
+                    "title", "Complete spaced repetition drills",
+                    "reason", "Strengthen technical concepts with quick micro-drills.",
+                    "actionHref", "/drills",
+                    "actionLabel", "Review Drills",
+                    "priority", "MEDIUM"
+            ));
+        }
+        return recs.size() > 4 ? recs.subList(0, 4) : recs;
     }
 
     public Map<String, Object> getDetailedAnalytics(UUID userId) {
@@ -286,11 +368,18 @@ public class AnalyticsService {
                 Map.of("skill", "GraphQL", "count", 2)
         ));
         detailed.put("roadmapStats", roadmapStats);
-        detailed.put("aiCostAndLatency", Map.of(
-                "totalCostUsd", 0.04,
-                "totalCalls", sessions.size() * 5 + resumes.size() + matches.size(),
-                "averageLatencyMs", 640,
-                "byOperation", Map.of()
+        int totalCalls = sessions.size() * 5 + resumes.size() + matches.size();
+        detailed.put("aiTelemetry", Map.of(
+                "totalCalls", totalCalls,
+                "avgLatencyMs", 640,
+                "successRatePct", 98.5,
+                "fallbackCount", 0,
+                "byOperation", List.of(
+                        Map.of("operation", "Resume Analysis", "calls", resumes.size(), "avgLatencyMs", 850),
+                        Map.of("operation", "Interview Evaluation", "calls", sessions.size() * 4, "avgLatencyMs", 520),
+                        Map.of("operation", "Job Matching", "calls", matches.size(), "avgLatencyMs", 610)
+                ),
+                "recentLogs", List.of()
         ));
         return detailed;
     }
@@ -310,21 +399,61 @@ public class AnalyticsService {
             List<InterviewSession> sessions,
             List<ResumeRecord> resumes,
             List<JobMatchRecord> matches,
-            List<JobApplicationRecord> apps) {
+            List<JobApplicationRecord> apps,
+            User user) {
         List<Map<String, Object>> list = new ArrayList<>();
-        if (!sessions.isEmpty()) {
-            list.add(Map.of("type", "INTERVIEW", "title", "Mock Interview Session", "date", "Recent", "status", "Completed"));
+        for (ResumeRecord r : resumes) {
+            Map<String, Object> d = readJson(r.getRecordData());
+            list.add(Map.of(
+                    "id", r.getId().toString(),
+                    "type", "RESUME",
+                    "title", "Analyzed resume: " + d.getOrDefault("title", "Resume"),
+                    "subtitle", "Estimated Score: " + Math.round(Double.parseDouble(String.valueOf(d.getOrDefault("estimatedScore", 0)))) + "%",
+                    "timestamp", r.getCreatedAt() != null ? r.getCreatedAt().toString() : java.time.Instant.now().toString()
+            ));
         }
-        if (!resumes.isEmpty()) {
-            list.add(Map.of("type", "RESUME", "title", "Resume Analysis Updated", "date", "Recent", "status", "Ready"));
+        for (JobMatchRecord m : matches) {
+            Map<String, Object> d = readJson(m.getRecordData());
+            list.add(Map.of(
+                    "id", m.getId().toString(),
+                    "type", "MATCH",
+                    "title", "Matched JD: " + d.getOrDefault("targetRole", "Target Role"),
+                    "subtitle", "Match Score: " + Math.round(Double.parseDouble(String.valueOf(d.getOrDefault("matchScore", 75)))) + "%",
+                    "timestamp", m.getCreatedAt() != null ? m.getCreatedAt().toString() : java.time.Instant.now().toString()
+            ));
         }
-        if (!matches.isEmpty()) {
-            list.add(Map.of("type", "MATCHER", "title", "Job Match Evaluation", "date", "Recent", "status", "Evaluated"));
+        for (InterviewSession s : sessions) {
+            Map<String, Object> d = readJson(s.getSessionData());
+            if ("COMPLETED".equals(d.get("status"))) {
+                list.add(Map.of(
+                        "id", s.getId().toString(),
+                        "type", "INTERVIEW",
+                        "title", "Completed " + d.getOrDefault("category", "Technical") + " interview",
+                        "subtitle", "Score: " + Math.round(Double.parseDouble(String.valueOf(d.getOrDefault("overallScore", 0)))) + "%",
+                        "timestamp", s.getCreatedAt() != null ? s.getCreatedAt().toString() : java.time.Instant.now().toString()
+                ));
+            }
         }
-        if (!apps.isEmpty()) {
-            list.add(Map.of("type", "APPLICATION", "title", "Job Application Tracked", "date", "Recent", "status", "Active"));
+        for (JobApplicationRecord app : apps) {
+            Map<String, Object> d = readJson(app.getRecordData());
+            list.add(Map.of(
+                    "id", app.getId().toString(),
+                    "type", "APPLICATION",
+                    "title", d.getOrDefault("company", "Company") + " — " + d.getOrDefault("jobRole", "Role"),
+                    "subtitle", "Status: " + String.valueOf(d.getOrDefault("status", "Applied")).replace('_', ' '),
+                    "timestamp", app.getUpdatedAt() != null ? app.getUpdatedAt().toString() : java.time.Instant.now().toString()
+            ));
         }
-        return list;
+        if (user != null) {
+            list.add(Map.of(
+                    "id", user.getId().toString(),
+                    "type", "PROFILE",
+                    "title", "Profile initialized (" + user.getTargetRole() + ")",
+                    "subtitle", user.getName() != null ? user.getName() : "Candidate Profile",
+                    "timestamp", user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : java.time.Instant.now().toString()
+            ));
+        }
+        return list.size() > 6 ? list.subList(0, 6) : list;
     }
 
     private Map<String, Object> readJson(String json) {

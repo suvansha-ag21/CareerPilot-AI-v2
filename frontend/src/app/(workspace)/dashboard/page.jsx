@@ -105,9 +105,9 @@ export default function UserDashboardPage() {
                     Set Target Role
                   </Badge>
                 </Link>)}
-              {data && (<Badge tone={data.serviceHealth.aiService === "healthy" ? "success" : "warning"}>
+              {data && (<Badge tone={data?.serviceHealth?.aiService === "healthy" ? "success" : "warning"}>
                   <Cpu className="h-3 w-3"/>
-                  {data.serviceHealth.aiService === "healthy"
+                  {data?.serviceHealth?.aiService === "healthy"
                 ? "AI Coach Ready"
                 : "AI Coach Standby"}
                 </Badge>)}
@@ -360,21 +360,23 @@ export default function UserDashboardPage() {
                 <Skeleton className="h-16 w-full"/>
                 <Skeleton className="h-16 w-full"/>
                 <Skeleton className="h-16 w-full"/>
-              </div>) : (data?.recommendations ?? []).length > 0 ? (data?.recommendations.map((rec) => (<div key={rec.title} className="p-3.5 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]/70 hover:bg-white hover:border-[#6D5DFB]/30 transition-all flex items-start justify-between gap-3">
+              </div>) : (data?.recommendations ?? []).length > 0 ? (data?.recommendations.map((rec) => (<div key={rec.title || rec.id} className="p-3.5 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]/70 hover:bg-white hover:border-[#6D5DFB]/30 transition-all flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <Badge tone={rec.priority === "HIGH" ? "warning" : "brand"}>
-                        {rec.priority}
+                        {rec.priority || "RECOMMENDED"}
                       </Badge>
                       <p className="text-xs font-semibold text-[#172033]">{rec.title}</p>
                     </div>
-                    <p className="text-[11px] text-[#64748B] leading-relaxed">{rec.reason}</p>
+                    <p className="text-[11px] text-[#64748B] leading-relaxed">{rec.reason || rec.description || ""}</p>
                   </div>
-                  <Link href={rec.actionHref} className="shrink-0">
-                    <Button variant="secondary" size="sm">
-                      {rec.actionLabel}
-                    </Button>
-                  </Link>
+                  {(rec.actionHref || rec.actionUrl) && (
+                    <Link href={rec.actionHref || rec.actionUrl} className="shrink-0">
+                      <Button variant="secondary" size="sm">
+                        {rec.actionLabel || "View"}
+                      </Button>
+                    </Link>
+                  )}
                 </div>))) : (<div className="py-8 text-center space-y-2">
                 <CheckCircle2 className="h-6 w-6 text-emerald-500 mx-auto"/>
                 <p className="text-sm font-medium text-[#172033]">All core milestones active</p>
@@ -405,7 +407,7 @@ export default function UserDashboardPage() {
                         </div>
                       </div>
                       <span className="text-xs text-slate-400 tabular-nums shrink-0">
-                        {new Date(item.timestamp).toLocaleDateString()}
+                        {item.timestamp ? new Date(item.timestamp).toLocaleDateString() : (item.date || "Recent")}
                       </span>
                     </div>);
             })}
@@ -445,8 +447,8 @@ export default function UserDashboardPage() {
                   <Database className="h-3.5 w-3.5 text-[#6D5DFB]"/>
                   Data Sync
                 </div>
-                <Badge tone={data?.serviceHealth.database === "healthy" ? "success" : "neutral"}>
-                  {data?.serviceHealth.database === "healthy" ? "Connected" : "Checking"}
+                <Badge tone={data?.serviceHealth?.database === "healthy" ? "success" : "neutral"}>
+                  {data?.serviceHealth?.database === "healthy" ? "Connected" : "Checking"}
                 </Badge>
               </div>
               <div className="p-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]/60 space-y-1.5">
@@ -454,8 +456,8 @@ export default function UserDashboardPage() {
                   <Cpu className="h-3.5 w-3.5 text-[#6D5DFB]"/>
                   AI Engine
                 </div>
-                <Badge tone={data?.serviceHealth.aiService === "healthy" ? "success" : "warning"}>
-                  {data?.serviceHealth.aiService === "healthy" ? "Online" : "Standby"}
+                <Badge tone={data?.serviceHealth?.aiService === "healthy" ? "success" : "warning"}>
+                  {data?.serviceHealth?.aiService === "healthy" ? "Online" : "Standby"}
                 </Badge>
               </div>
             </CardContent>
