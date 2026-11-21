@@ -9,7 +9,7 @@
 
 CareerPilot AI is a career-preparation platform that helps job seekers turn their resume and target roles into a focused interview-preparation plan. It brings resume feedback, job-description matching, skill-gap analysis, personalized roadmaps, mock interviews, and progress tracking into one application.
 
-The project is a full-stack monorepo: a **Next.js and TypeScript** web app, a **Spring Boot and Java** API, and a **FastAPI and Python** service for AI workflows. PostgreSQL stores application data; ChromaDB supports vector search for retrieval-augmented generation (RAG).
+The project is a full-stack monorepo: a **Next.js and JavaScript (JSX)** web app, a **Spring Boot and Java** API, and a **FastAPI and Python** service for AI workflows. PostgreSQL stores application data; ChromaDB supports vector search for retrieval-augmented generation (RAG).
 
 ## What you can do
 
@@ -24,7 +24,7 @@ The project is a full-stack monorepo: a **Next.js and TypeScript** web app, a **
 
 ```mermaid
 flowchart LR
-    Browser["Next.js 14<br/>TypeScript"] -->|"REST / JSON"| API["Spring Boot 3<br/>Java 21 API"]
+    Browser["Next.js 14<br/>JavaScript (JSX)"] -->|"REST / JSON"| API["Spring Boot 3<br/>Java 21 API"]
     API --> DB[("PostgreSQL 16")]
     API -->|"Internal HTTP"| AI["FastAPI<br/>Python 3.11"]
     AI --> Vector[("ChromaDB")]
@@ -40,14 +40,14 @@ The Spring Boot API handles application requests and persistence. It calls the P
 - **RAG for interview assistance:** retrieves context from a computer-science knowledge base stored in ChromaDB.
 - **Streaming coaching hints:** uses Server-Sent Events (SSE) to deliver interview hints as they are generated.
 - **In-browser practice tools:** runs JavaScript in a Web Worker and provides SQL and system-design exercises in the frontend.
-- **Shared TypeScript contracts:** the `shared/` workspace contains types and schemas used by the frontend.
-- **Local orchestration and CI:** Docker Compose starts the services together; GitHub Actions checks backend packaging, frontend types, Python tests, and Docker image builds.
+- **Shared JavaScript contracts:** the `shared/` workspace contains schemas and constants used across the application.
+- **Local orchestration and CI:** Docker Compose starts the services together; GitHub Actions checks backend packaging, frontend builds, Python tests, and Docker image builds.
 
 ## Technology
 
 | Area | Technologies |
 | --- | --- |
-| Frontend | Next.js 14, React 18, TypeScript, Tailwind CSS |
+| Frontend | Next.js 14, React 18, JavaScript (ESNext/JSX), Tailwind CSS |
 | API | Java 21, Spring Boot 3.3, Spring Security, Spring Data JPA |
 | AI service | Python 3.11, FastAPI, Pydantic, scikit-learn, Sentence Transformers |
 | Data | PostgreSQL 16, ChromaDB |
@@ -96,8 +96,7 @@ The repository also includes npm scripts for common build and test tasks:
 
 ```bash
 npm ci
-npm run build
-npm run typecheck
+npm run build:frontend
 npm run test:backend
 npm run test:ai
 npm run test:all
@@ -109,10 +108,10 @@ For these commands, install Node.js 20 or newer, Java 21, and Python 3.11. The t
 
 ```text
 .
-├── frontend/       Next.js application and interview-practice UI
+├── frontend/       Next.js JavaScript application and interview-practice UI
 ├── backend/        Spring Boot API, security, and persistence
 ├── ai-service/     FastAPI endpoints, NLP, RAG, and AI workflows
-├── shared/         Shared TypeScript types and schemas
+├── shared/         Shared JavaScript schemas, enums, and constants
 ├── database/       Database-related schemas, seeds, and vector data
 ├── docs/           API specification
 └── .github/        GitHub Actions workflow

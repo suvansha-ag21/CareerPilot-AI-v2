@@ -10,7 +10,6 @@ RUN npm install
 COPY shared ./shared
 COPY frontend ./frontend
 
-RUN npm run build:shared
 ARG NEXT_PUBLIC_API_URL=http://localhost:5000/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm --workspace=frontend run build
@@ -20,7 +19,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/shared/dist ./shared/dist
+COPY --from=builder /app/shared/src ./shared/src
+COPY --from=builder /app/shared/package.json ./shared/package.json
 COPY --from=builder /app/frontend/.next ./frontend/.next
 COPY --from=builder /app/frontend/package.json ./frontend/package.json
 
