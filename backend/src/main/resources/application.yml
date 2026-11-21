@@ -1,0 +1,30 @@
+server:
+  port: 5000
+
+spring:
+  application:
+    name: careerpilot-backend
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5433/careerpilot_db?currentSchema=public
+    username: postgres
+    password: careerpilot_dev_pass
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+
+app:
+  jwt:
+    access-secret: "careerpilot-super-secret-jwt-access-key-32-chars-min!"
+    refresh-secret: "careerpilot-super-secret-jwt-refresh-key-32-chars-min!"
+    access-expiration-ms: 900000
+    refresh-expiration-days: 7
+  ai-service:
+    base-url: "http://127.0.0.1:8000"
+    internal-key: "careerpilot-internal-hmac-key-shared-between-services"
+  frontend-url: "http://localhost:3000"

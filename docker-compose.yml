@@ -48,8 +48,8 @@ services:
 
   backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: careerpilot_backend
     restart: unless-stopped
     env_file:
