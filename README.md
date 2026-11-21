@@ -73,10 +73,10 @@ flowchart LR
 
 2. **Set up environment configurations:**
    ```powershell
-   Copy-Item .env.example .env
-   Copy-Item .env.example ai-service\.env
+   if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+   if (-not (Test-Path ai-service\.env)) { Copy-Item ai-service\.env.example ai-service\.env }
    ```
-   *Add your `GEMINI_API_KEY` to `ai-service\.env` and ensure `INTERNAL_SERVICE_KEY` matches in both `.env` files.*
+   Add your `GEMINI_API_KEY` to `ai-service\.env` and ensure `INTERNAL_SERVICE_KEY` matches in both `.env` files.
 
 3. **Build and start all services:**
    ```powershell
@@ -94,6 +94,42 @@ flowchart LR
 | **ChromaDB** | <http://localhost:8001> | Vector Store HTTP endpoint |
 
 *To stop all containers: press `Ctrl+C` or execute `docker compose down`.*
+
+## Production Deployment
+
+The production Compose setup uses Caddy for HTTPS and routes the website and API through one domain. Internal services are not published to host ports. Before deploying, create an A record for your domain pointing to the server and allow inbound TCP ports `80` and `443` (UDP `443` is optional for HTTP/3).
+
+On the server, create the environment files:
+
+```bash
+test -f .env || cp .env.example .env
+test -f ai-service/.env || cp ai-service/.env.example ai-service/.env
+```
+
+Edit `.env` and set:
+
+- `APP_DOMAIN` to your domain, without `https://`
+- `FRONTEND_URL` to `https://<your-domain>`
+- A strong, unique `POSTGRES_PASSWORD`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, and `INTERNAL_SERVICE_KEY`
+- The same `INTERNAL_SERVICE_KEY` in `ai-service/.env`
+
+Generate secret values with `openssl rand -hex 32`; generate a different value for each secret. Add your LLM provider key to `ai-service/.env`. Do not commit either `.env` file.
+
+Validate and start the production stack:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.production.yml config
+docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.production.yml ps
+```
+
+Caddy will obtain and renew the HTTPS certificate after DNS points to the server and ports `80` and `443` are reachable. The public app is at `https://<your-domain>` and the API health check is at `https://<your-domain>/api/health`. Review startup output with:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.production.yml logs -f
+```
+
+The production Compose files are [docker-compose.production.yml](docker-compose.production.yml) and [Caddyfile](Caddyfile). Back up the PostgreSQL volume and `database/chroma_data` regularly.
 
 ---
 

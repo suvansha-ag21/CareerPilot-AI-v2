@@ -4,15 +4,13 @@ services:
     container_name: careerpilot_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-careerpilot_dev_pass}
-      POSTGRES_DB: ${POSTGRES_DB:-careerpilot_db}
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-careerpilot_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?POSTGRES_USER is required} -d ${POSTGRES_DB:?POSTGRES_DB is required}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -20,11 +18,9 @@ services:
       - careerpilot_net
 
   chromadb:
-    image: chromadb/chroma:latest
+    image: chromadb/chroma:0.6.3
     container_name: careerpilot_chromadb
     restart: unless-stopped
-    ports:
-      - "8001:8000"
     volumes:
       - ./database/chroma_data:/chroma/chroma
     networks:
@@ -42,8 +38,6 @@ services:
       CHROMA_HOST: chromadb
       CHROMA_PORT: 8000
       CHROMA_PERSIST_DIR: /database/chroma_data
-    ports:
-      - "8000:8000"
     volumes:
       - ./database/chroma_data:/database/chroma_data
     depends_on:
@@ -64,17 +58,15 @@ services:
     container_name: careerpilot_backend
     restart: unless-stopped
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-careerpilot_db}?currentSchema=public
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-careerpilot_dev_pass}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}?currentSchema=public
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:?POSTGRES_USER is required}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       APP_AI_SERVICE_BASE_URL: http://ai-service:8000
       AI_SERVICE_URL: http://ai-service:8000
-      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-cp_int_7a2c9e4b1d6f803e5a7c9b1d4f6e8a2c}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
       APP_FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
-      APP_JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-careerpilot-super-secret-jwt-access-key-32-chars-min!}
-      APP_JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-careerpilot-super-secret-jwt-refresh-key-32-chars-min!}
-    ports:
-      - "5000:5000"
+      APP_JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      APP_JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
     depends_on:
       postgres:
         condition: service_healthy
@@ -94,13 +86,11 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:5000/api
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5000/api}
     container_name: careerpilot_frontend
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:5000/api
-    ports:
-      - "3000:3000"
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5000/api}
     depends_on:
       backend:
         condition: service_healthy
