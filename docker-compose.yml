@@ -38,12 +38,16 @@ services:
       CHROMA_HOST: chromadb
       CHROMA_PORT: 8000
       CHROMA_PERSIST_DIR: /database/chroma_data
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+      LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
       - ./database/chroma_data:/database/chroma_data
     depends_on:
       - chromadb
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/internal/ai/health')\""]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/')\""]
       interval: 10s
       timeout: 5s
       retries: 5

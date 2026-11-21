@@ -1,4 +1,8 @@
 services:
+  backend:
+    environment:
+      APP_FRONTEND_URL: https://${APP_DOMAIN:?APP_DOMAIN is required}
+
   frontend:
     build:
       args:

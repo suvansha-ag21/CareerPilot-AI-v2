@@ -17,6 +17,9 @@ The project is built as a production-grade full-stack monorepo:
 - **API Gateway**: **Java 21 + Spring Boot 3.3** REST API with Spring Security, JWT authentication, and Spring Data JPA.
 - **AI Microservice**: **Python 3.11 + FastAPI** microservice powering RAG vector search with **ChromaDB**, **Sentence Transformers (`BAAI/bge-small-en-v1.5`)**, Scikit-learn TF-IDF, and multi-LLM orchestration (Gemini / OpenAI).
 
+> 🚀 **Production Deployment**: Follow [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) to deploy CareerPilot AI to a Cloud VPS (DigitalOcean / AWS / Hetzner) with Docker Compose and automatic Let's Encrypt HTTPS via Caddy.
+> 📚 **Interview & Portfolio Playbook**: See [PORTFOLIO_PRESENTATION_GUIDE.md](PORTFOLIO_PRESENTATION_GUIDE.md) for ready-to-use resume bullet points, 60-second elevator pitch, and answers to top technical interview questions.
+
 ---
 
 ## What You Can Do
