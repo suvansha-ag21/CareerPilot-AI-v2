@@ -11,7 +11,7 @@ COPY shared ./shared
 COPY frontend ./frontend
 
 RUN npm run build:shared
-ARG NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
+ARG NEXT_PUBLIC_API_URL=http://localhost:5000/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm --workspace=frontend run build
 

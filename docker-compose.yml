@@ -41,8 +41,19 @@ services:
     environment:
       CHROMA_HOST: chromadb
       CHROMA_PORT: 8000
+      CHROMA_PERSIST_DIR: /database/chroma_data
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./database/chroma_data:/database/chroma_data
     depends_on:
       - chromadb
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/internal/ai/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - careerpilot_net
 
@@ -52,17 +63,29 @@ services:
       dockerfile: Dockerfile
     container_name: careerpilot_backend
     restart: unless-stopped
-    env_file:
-      - ./backend/.env
     environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-careerpilot_db}?currentSchema=public
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-careerpilot_dev_pass}
+      APP_AI_SERVICE_BASE_URL: http://ai-service:8000
       AI_SERVICE_URL: http://ai-service:8000
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:-cp_int_7a2c9e4b1d6f803e5a7c9b1d4f6e8a2c}
+      APP_FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      APP_JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-careerpilot-super-secret-jwt-access-key-32-chars-min!}
+      APP_JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-careerpilot-super-secret-jwt-refresh-key-32-chars-min!}
     ports:
       - "5000:5000"
     depends_on:
       postgres:
         condition: service_healthy
       ai-service:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:5000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
     networks:
       - careerpilot_net
 
@@ -70,6 +93,8 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:5000/api
     container_name: careerpilot_frontend
     restart: unless-stopped
     environment:
@@ -77,7 +102,8 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - careerpilot_net
 

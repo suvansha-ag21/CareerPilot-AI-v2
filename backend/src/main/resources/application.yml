@@ -5,9 +5,9 @@ spring:
   application:
     name: careerpilot-backend
   datasource:
-    url: jdbc:postgresql://127.0.0.1:5433/careerpilot_db?currentSchema=public
-    username: postgres
-    password: careerpilot_dev_pass
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5433/careerpilot_db?currentSchema=public}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:careerpilot_dev_pass}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -25,6 +25,6 @@ app:
     access-expiration-ms: 900000
     refresh-expiration-days: 7
   ai-service:
-    base-url: "http://127.0.0.1:8000"
+    base-url: "${APP_AI_SERVICE_BASE_URL:${AI_SERVICE_URL:http://127.0.0.1:8000}}"
     internal-key: "${INTERNAL_SERVICE_KEY:cp_int_7a2c9e4b1d6f803e5a7c9b1d4f6e8a2c}"
   frontend-url: "http://localhost:3000"
