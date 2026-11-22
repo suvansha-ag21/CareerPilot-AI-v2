@@ -29,6 +29,16 @@ export default function ResumeAnalyzerPage() {
     const [tailorJd, setTailorJd] = useState("");
     const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
     const [loadingPreview, setLoadingPreview] = useState(false);
+  const formatDateSafe = (dateString) => {
+    if (!dateString) return "Recently";
+    try {
+      const parsed = new Date(dateString);
+      return isNaN(parsed.getTime()) ? "Recently" : parsed.toLocaleDateString();
+    } catch {
+      return "Recently";
+    }
+  };
+
   const selectedResume = resumes.find((r) => r.id === selectedId) || resumes[0] || null;
   const parsedData = selectedResume?.parsedData || {};
   const contact = parsedData?.contact || {};
@@ -363,7 +373,7 @@ export default function ResumeAnalyzerPage() {
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-[#172033] truncate">{r.title}</p>
                       <p className="text-[11px] text-[#64748B] mt-0.5">
-                        {r.fileType} &bull; Uploaded {new Date(r.createdAt).toLocaleDateString()}
+                        {r.fileType} &bull; Uploaded {formatDateSafe(r.createdAt)}
                       </p>
                     </div>
                     {r.analyzedAt ? (<Badge tone={scoreTone(r.estimatedScore)} className="tabular-nums shrink-0">
@@ -463,11 +473,11 @@ export default function ResumeAnalyzerPage() {
                       </Button>
 
                       {tailoredDraft && (<Button type="button" variant="secondary" onClick={() => downloadTailoredResumePdf({
-                            candidateName: contact.candidateName ||
+                            candidateName: contact?.candidateName ||
                                 user?.name ||
                                 "Candidate",
-                            email: contact.email || user?.email,
-                            location: contact.location || user?.location,
+                            email: contact?.email || user?.email,
+                            location: contact?.location || user?.location,
                             tailored: tailoredDraft,
                         })}>
                           <Download className="h-4 w-4"/>
@@ -481,7 +491,7 @@ export default function ResumeAnalyzerPage() {
                             Tailored Headline
                           </p>
                           <p className="text-sm font-semibold text-[#172033] mt-0.5">
-                            {tailoredDraft.headline}
+                            {tailoredDraft.headline || "Tailored Candidate"}
                           </p>
                         </div>
 
@@ -490,7 +500,7 @@ export default function ResumeAnalyzerPage() {
                             Executive Summary
                           </p>
                           <p className="text-xs text-[#172033] leading-relaxed mt-1">
-                            {tailoredDraft.tailoredSummary}
+                            {tailoredDraft.tailoredSummary || ""}
                           </p>
                         </div>
 
@@ -499,7 +509,7 @@ export default function ResumeAnalyzerPage() {
                             Prioritized Skills
                           </p>
                           <div className="flex flex-wrap gap-1.5">
-                            {tailoredDraft.highlightedSkills.map((sk) => (<Badge key={sk} tone="brand">
+                            {(tailoredDraft.highlightedSkills || []).map((sk) => (<Badge key={sk} tone="brand">
                                 {sk}
                               </Badge>))}
                           </div>
@@ -509,10 +519,10 @@ export default function ResumeAnalyzerPage() {
                           <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D5DFB]">
                             Rewritten Impact Bullets
                           </p>
-                          {tailoredDraft.rewrittenBullets.map((b, i) => (<div key={i} className="p-3 rounded-lg bg-white border border-slate-200 space-y-1 text-xs">
-                              <Badge tone="neutral">{b.section}</Badge>
-                              <p className="text-slate-400 line-through">{b.original}</p>
-                              <p className="text-[#172033] font-medium">{b.tailored}</p>
+                          {(tailoredDraft.rewrittenBullets || []).map((b, i) => (<div key={i} className="p-3 rounded-lg bg-white border border-slate-200 space-y-1 text-xs">
+                              <Badge tone="neutral">{b?.section || "Experience"}</Badge>
+                              <p className="text-slate-400 line-through">{b?.original || ""}</p>
+                              <p className="text-[#172033] font-medium">{b?.tailored || ""}</p>
                             </div>))}
                         </div>
                       </div>)}
@@ -540,23 +550,23 @@ export default function ResumeAnalyzerPage() {
 
                       {/* Section-wise Evaluation Cards */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {sectionScores.map((sec) => (<Card key={sec.section}>
+                        {sectionScores.map((sec, idx) => (<Card key={sec?.section || idx}>
                             <CardContent className="p-4 space-y-2">
                               <div className="flex items-center justify-between">
                                 <span className="text-xs font-semibold text-[#172033]">
-                                  {sec.section}
+                                  {sec?.section || `Section ${idx + 1}`}
                                 </span>
-                                <Badge tone={sec.status === "STRONG"
+                                <Badge tone={sec?.status === "STRONG"
                                 ? "success"
-                                : sec.status === "MISSING"
+                                : sec?.status === "MISSING"
                                     ? "danger"
                                     : "warning"}>
-                                  {Math.round(sec.score || 0)}%
+                                  {Math.round(sec?.score || 0)}%
                                 </Badge>
                               </div>
-                              <p className="text-xs text-[#64748B]">{sec.summary || "Section evaluated."}</p>
-                              {(sec.suggestions || []).length > 0 && (<ul className="space-y-1 pt-1 border-t border-slate-100">
-                                  {sec.suggestions.map((s, idx) => (<li key={idx} className="text-[11px] text-[#172033] flex gap-1.5">
+                              <p className="text-xs text-[#64748B]">{sec?.summary || "Section evaluated."}</p>
+                              {(sec?.suggestions || []).length > 0 && (<ul className="space-y-1 pt-1 border-t border-slate-100">
+                                  {sec.suggestions.map((s, sIdx) => (<li key={sIdx} className="text-[11px] text-[#172033] flex gap-1.5">
                                       <span className="text-[#6D5DFB]">&bull;</span>
                                       <span>{s}</span>
                                     </li>))}
@@ -622,16 +632,16 @@ export default function ResumeAnalyzerPage() {
                             {bulletSuggestions.map((b, idx) => (<div key={idx} className="p-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]/70 space-y-2.5">
                                 <div className="text-xs">
                                   <span className="font-semibold text-[#EF4444]">Original: </span>
-                                  <span className="text-[#64748B]">{b.original}</span>
+                                  <span className="text-[#64748B]">{b?.original || ""}</span>
                                 </div>
                                 <div className="text-xs flex items-start gap-1.5">
                                   <ArrowRight className="h-3.5 w-3.5 text-[#16A34A] mt-0.5 shrink-0"/>
                                   <div>
                                     <span className="font-semibold text-[#16A34A]">Improved: </span>
-                                    <span className="text-[#172033] font-medium">{b.improved}</span>
+                                    <span className="text-[#172033] font-medium">{b?.improved || ""}</span>
                                   </div>
                                 </div>
-                                <p className="text-[11px] text-[#64748B] italic">{b.reason}</p>
+                                <p className="text-[11px] text-[#64748B] italic">{b?.reason || ""}</p>
                               </div>))}
                           </CardContent>
                         </Card>)}
@@ -667,8 +677,8 @@ export default function ResumeAnalyzerPage() {
                         </h4>
                         <div className="space-y-2">
                           {extractedProjects.map((p, i) => (<div key={i} className="p-3 rounded-lg border border-[#E2E8F0] text-xs">
-                              <p className="font-semibold text-[#172033]">{p.title}</p>
-                              {(p.techStack || []).length > 0 && (<p className="text-[11px] text-[#6D5DFB] mt-0.5">
+                              <p className="font-semibold text-[#172033]">{p?.title || "Project"}</p>
+                              {(p?.techStack || []).length > 0 && (<p className="text-[11px] text-[#6D5DFB] mt-0.5">
                                   {p.techStack.join(", ")}
                                 </p>)}
                             </div>))}

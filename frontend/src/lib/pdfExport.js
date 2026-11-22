@@ -28,32 +28,41 @@ function wrapLine(text, maxChars) {
     return lines;
 }
 export function downloadTailoredResumePdf(params) {
+    const tailored = params?.tailored || {};
+    const candidateName = (params?.candidateName || "Candidate").toUpperCase();
+    const headline = tailored.headline || "Professional Profile";
+    const targetRole = tailored.targetRole || "Candidate";
+    const tailoredSummary = tailored.tailoredSummary || "";
+    const highlightedSkills = Array.isArray(tailored.highlightedSkills) ? tailored.highlightedSkills : [];
+    const rewrittenBullets = Array.isArray(tailored.rewrittenBullets) ? tailored.rewrittenBullets : [];
+    const atsKeywordsAdded = Array.isArray(tailored.atsKeywordsAdded) ? tailored.atsKeywordsAdded : [];
+
     const blocks = [
-        { text: params.candidateName.toUpperCase(), bold: true, size: 16 },
+        { text: candidateName, bold: true, size: 16 },
         {
-            text: [params.tailored.headline, params.email, params.location].filter(Boolean).join("  |  "),
+            text: [headline, params?.email, params?.location].filter(Boolean).join("  |  "),
             size: 10,
             gapBefore: 2,
         },
-        { text: `TARGET ROLE: ${params.tailored.targetRole}`, bold: true, size: 10, gapBefore: 10 },
+        { text: `TARGET ROLE: ${targetRole}`, bold: true, size: 10, gapBefore: 10 },
         { text: "PROFESSIONAL SUMMARY", bold: true, size: 11, gapBefore: 12 },
-        ...wrapLine(params.tailored.tailoredSummary, 88).map((line) => ({ text: line, size: 10 })),
+        ...wrapLine(tailoredSummary, 88).map((line) => ({ text: line, size: 10 })),
         { text: "CORE SKILLS", bold: true, size: 11, gapBefore: 12 },
-        ...wrapLine(params.tailored.highlightedSkills.join("  •  "), 88).map((line) => ({
+        ...wrapLine(highlightedSkills.join("  •  "), 88).map((line) => ({
             text: line,
             size: 10,
         })),
         { text: "TAILORED ACHIEVEMENTS & PROJECT BULLETS", bold: true, size: 11, gapBefore: 12 },
     ];
-    for (const item of params.tailored.rewrittenBullets) {
-        blocks.push({ text: `[${item.section}]`, bold: true, size: 9, gapBefore: 6 });
-        for (const line of wrapLine(`- ${item.tailored}`, 86)) {
+    for (const item of rewrittenBullets) {
+        blocks.push({ text: `[${item?.section || "Experience"}]`, bold: true, size: 9, gapBefore: 6 });
+        for (const line of wrapLine(`- ${item?.tailored || item?.original || ""}`, 86)) {
             blocks.push({ text: line, size: 10 });
         }
     }
-    if (params.tailored.atsKeywordsAdded.length > 0) {
+    if (atsKeywordsAdded.length > 0) {
         blocks.push({ text: "ALIGNED ROLE KEYWORDS", bold: true, size: 11, gapBefore: 12 });
-        for (const line of wrapLine(params.tailored.atsKeywordsAdded.join(", "), 88)) {
+        for (const line of wrapLine(atsKeywordsAdded.join(", "), 88)) {
             blocks.push({ text: line, size: 9 });
         }
     }
