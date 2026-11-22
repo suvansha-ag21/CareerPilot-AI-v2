@@ -165,11 +165,12 @@ export default function LearningRoadmapPage() {
         ...(user?.targetRole && user.targetRole !== "Other" ? [user.targetRole] : []),
         "Other",
     ]));
-    const visibleTasks = activeRoadmap?.tasks.filter((t) => {
+    const activeTasks = Array.isArray(activeRoadmap?.tasks) ? activeRoadmap.tasks : [];
+    const visibleTasks = activeTasks.filter((t) => {
         const matchWeek = weekFilter === "ALL" ? true : t.weekNumber === weekFilter;
         const matchStatus = statusFilter === "ALL" ? true : t.status === statusFilter;
         return matchWeek && matchStatus;
-    }) ?? [];
+    });
     const weeksPresent = activeRoadmap
         ? Array.from(new Set(visibleTasks.map((t) => t.weekNumber))).sort((a, b) => a - b)
         : [];
@@ -414,8 +415,8 @@ export default function LearningRoadmapPage() {
                               {task.description}
                             </p>
 
-                            {task.resources.length > 0 && (<div className="flex flex-wrap gap-2 pt-1">
-                                {task.resources.map((res) => (<a key={res.url} href={res.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#F8FAFC] border border-slate-200 hover:border-[#6D5DFB]/40 hover:text-[#6D5DFB] text-[11px] font-medium text-[#172033] transition-colors">
+                            {(task.resources || []).length > 0 && (<div className="flex flex-wrap gap-2 pt-1">
+                                {(task.resources || []).map((res) => (<a key={res.url} href={res.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#F8FAFC] border border-slate-200 hover:border-[#6D5DFB]/40 hover:text-[#6D5DFB] text-[11px] font-medium text-[#172033] transition-colors">
                                     <span className="text-[9px] font-bold uppercase text-[#6D5DFB]">
                                       {res.type}
                                     </span>

@@ -77,6 +77,15 @@ export default function JobMatcherPage() {
     }, [user, targetRole]);
     const analyzedResumes = resumes.filter((r) => Boolean(r.analyzedAt));
     const selectedMatch = matches.find((m) => m.id === selectedMatchId) || matches[0] || null;
+    const recommendations = selectedMatch?.recommendations || {};
+    const recommendationItems = Array.isArray(recommendations.items) ? recommendations.items : [];
+    const matchingSkills = Array.isArray(selectedMatch?.matchingSkills) ? selectedMatch.matchingSkills : [];
+    const partialSkills = Array.isArray(selectedMatch?.partialSkills) ? selectedMatch.partialSkills : [];
+    const missingSkills = Array.isArray(selectedMatch?.missingSkills) ? selectedMatch.missingSkills : [];
+    const relevantProjects = Array.isArray(selectedMatch?.relevantProjects) ? selectedMatch.relevantProjects : [];
+    const matchSummary = recommendations.summary || "Resume evaluated against target role and job responsibilities.";
+    const methodologyNote = recommendations.methodologyNote || "Evaluated using hybrid semantic embeddings and verified skill extraction.";
+    const experienceAssessment = recommendations.experienceAssessment || "Experience alignment evaluated.";
     async function handleRunMatch(e) {
         e.preventDefault();
         setErrorMsg(null);
@@ -319,7 +328,7 @@ export default function JobMatcherPage() {
                         {selectedMatch.targetRole}
                       </h3>
                       <p className="text-xs text-[#64748B] mt-1 leading-relaxed">
-                        {selectedMatch.recommendations.summary}
+                        {matchSummary}
                       </p>
                     </div>
 
@@ -397,7 +406,7 @@ export default function JobMatcherPage() {
 
                   <div className="p-3 rounded-lg bg-[#EEF2FF]/70 border border-[#6D5DFB]/20 flex items-start gap-2 text-[11px] text-[#172033]">
                     <Info className="h-4 w-4 text-[#6D5DFB] shrink-0 mt-0.5"/>
-                    <span>{selectedMatch.recommendations.methodologyNote}</span>
+                    <span>{methodologyNote}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -405,9 +414,9 @@ export default function JobMatcherPage() {
               {/* 3-Bucket Skill Comparison */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Card>
-                  <CardHeader title="Matching Skills" subtitle={`${selectedMatch.matchingSkills.length} found directly in your resume`}/>
+                  <CardHeader title="Matching Skills" subtitle={`${matchingSkills.length} found directly in your resume`}/>
                   <CardContent className="flex flex-wrap gap-1.5">
-                    {selectedMatch.matchingSkills.length > 0 ? (selectedMatch.matchingSkills.map((s) => (<Badge key={s} tone="success">
+                    {matchingSkills.length > 0 ? (matchingSkills.map((s) => (<Badge key={s} tone="success">
                           <CheckCircle2 className="h-3 w-3"/>
                           {s}
                         </Badge>))) : (<span className="text-xs text-[#64748B]">None matched directly</span>)}
@@ -415,18 +424,18 @@ export default function JobMatcherPage() {
                 </Card>
 
                 <Card>
-                  <CardHeader title="Related / Transferable" subtitle={`${selectedMatch.partialSkills.length} close to what the job asks for`}/>
+                  <CardHeader title="Related / Transferable" subtitle={`${partialSkills.length} close to what the job asks for`}/>
                   <CardContent className="flex flex-wrap gap-1.5">
-                    {selectedMatch.partialSkills.length > 0 ? (selectedMatch.partialSkills.map((s) => (<Badge key={s} tone="warning">
+                    {partialSkills.length > 0 ? (partialSkills.map((s) => (<Badge key={s} tone="warning">
                           ~ {s}
                         </Badge>))) : (<span className="text-xs text-[#64748B]">None flagged</span>)}
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardHeader title="Missing Skills" subtitle={`${selectedMatch.missingSkills.length} gaps to highlight or learn`}/>
+                  <CardHeader title="Missing Skills" subtitle={`${missingSkills.length} gaps to highlight or learn`}/>
                   <CardContent className="flex flex-wrap gap-1.5">
-                    {selectedMatch.missingSkills.length > 0 ? (selectedMatch.missingSkills.map((s) => (<Badge key={s} tone="danger">
+                    {missingSkills.length > 0 ? (missingSkills.map((s) => (<Badge key={s} tone="danger">
                           - {s}
                         </Badge>))) : (<span className="text-xs text-[#16A34A] font-medium">
                         No missing JD skills!
@@ -440,16 +449,16 @@ export default function JobMatcherPage() {
                 <Card>
                   <CardHeader title="Relevant Resume Projects" subtitle="Projects aligning closest to this JD"/>
                   <CardContent className="space-y-3">
-                    {selectedMatch.relevantProjects.length > 0 ? (selectedMatch.relevantProjects.map((p, idx) => (<div key={idx} className="p-3 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC]/60 space-y-1.5">
+                    {relevantProjects.length > 0 ? (relevantProjects.map((p, idx) => (<div key={idx} className="p-3 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC]/60 space-y-1.5">
                           <div className="flex items-center gap-1.5 text-xs font-semibold text-[#172033]">
                             <FolderGit2 className="h-3.5 w-3.5 text-[#6D5DFB]"/>
-                            {p.title}
+                            {p.title || "Project"}
                           </div>
                           <p className="text-xs text-[#64748B] leading-relaxed">
-                            {p.relevanceReason}
+                            {p.relevanceReason || "Relevant technical capabilities demonstrated."}
                           </p>
-                          {p.matchedTechnologies.length > 0 && (<div className="flex flex-wrap gap-1 pt-0.5">
-                              {p.matchedTechnologies.map((t) => (<Badge key={t} tone="brand">
+                          {(p.matchedTechnologies || []).length > 0 && (<div className="flex flex-wrap gap-1 pt-0.5">
+                              {(p.matchedTechnologies || []).map((t) => (<Badge key={t} tone="brand">
                                   {t}
                                 </Badge>))}
                             </div>)}
@@ -460,21 +469,21 @@ export default function JobMatcherPage() {
                 </Card>
 
                 <Card>
-                  <CardHeader title="Experience & Tailoring Tips" subtitle={selectedMatch.recommendations.experienceAssessment}/>
+                  <CardHeader title="Experience & Tailoring Tips" subtitle={experienceAssessment}/>
                   <CardContent className="space-y-2.5">
-                    {selectedMatch.recommendations.items.map((rec, i) => (<div key={i} className="p-3 rounded-lg border border-[#E2E8F0] space-y-1">
+                    {recommendationItems.length > 0 ? (recommendationItems.map((rec, i) => (<div key={i} className="p-3 rounded-lg border border-[#E2E8F0] space-y-1">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-semibold text-[#172033]">{rec.area}</span>
+                          <span className="text-xs font-semibold text-[#172033]">{rec.area || "Recommendation"}</span>
                           <Badge tone={rec.priority === "HIGH"
                         ? "danger"
                         : rec.priority === "MEDIUM"
                             ? "warning"
                             : "neutral"}>
-                            {rec.priority}
+                            {rec.priority || "MEDIUM"}
                           </Badge>
                         </div>
-                        <p className="text-xs text-[#64748B] leading-relaxed">{rec.suggestion}</p>
-                      </div>))}
+                        <p className="text-xs text-[#64748B] leading-relaxed">{rec.suggestion || ""}</p>
+                      </div>))) : (<p className="text-xs text-[#64748B]">Tailoring recommendations generated.</p>)}
                   </CardContent>
                 </Card>
               </div>

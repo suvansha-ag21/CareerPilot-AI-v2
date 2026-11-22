@@ -672,16 +672,20 @@ export default function MockInterviewPage() {
     }
     // 2. COMPLETED INTERVIEW REPORT VIEW
     if (activeSession && activeSession.status === InterviewStatus.COMPLETED) {
-        const summary = activeSession.feedbackSummary;
+        const summary = activeSession?.feedbackSummary;
+        const rubricAverages = summary?.rubricAverages || {};
         const radarData = summary
             ? [
-                { metric: "Accuracy", score: summary.rubricAverages.technicalAccuracy },
-                { metric: "Depth", score: summary.rubricAverages.depthOfUnderstanding },
-                { metric: "Completeness", score: summary.rubricAverages.completeness },
-                { metric: "Clarity", score: summary.rubricAverages.clarityAndStructure },
-                { metric: "Examples", score: summary.rubricAverages.practicalExamples },
+                { metric: "Accuracy", score: rubricAverages.technicalAccuracy ?? 70 },
+                { metric: "Depth", score: rubricAverages.depthOfUnderstanding ?? 70 },
+                { metric: "Completeness", score: rubricAverages.completeness ?? 70 },
+                { metric: "Clarity", score: rubricAverages.clarityAndStructure ?? 70 },
+                { metric: "Examples", score: rubricAverages.practicalExamples ?? 70 },
             ]
             : [];
+        const weakTopics = Array.isArray(summary?.weakTopics) ? summary.weakTopics : [];
+        const strengths = Array.isArray(summary?.strengths) ? summary.strengths : [];
+        const areasToImprove = Array.isArray(summary?.areasToImprove) ? summary.areasToImprove : [];
         return (<div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Button variant="outline" size="sm" onClick={() => setActiveSession(null)}>
@@ -689,10 +693,10 @@ export default function MockInterviewPage() {
             All Sessions &amp; Setup
           </Button>
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge tone="brand">{activeSession.category.replace(/_/g, " ")}</Badge>
-            {activeSession.targetRole && (<Badge tone="neutral">{activeSession.targetRole}</Badge>)}
-            <Badge tone="neutral">{activeSession.difficulty}</Badge>
-            {activeSession.subcategories?.map((sub) => (<Badge key={sub} tone="neutral">
+            <Badge tone="brand">{(activeSession?.category || "INTERVIEW").replace(/_/g, " ")}</Badge>
+            {activeSession?.targetRole && (<Badge tone="neutral">{activeSession.targetRole}</Badge>)}
+            <Badge tone="neutral">{activeSession?.difficulty || "MEDIUM"}</Badge>
+            {(activeSession?.subcategories || []).map((sub) => (<Badge key={sub} tone="neutral">
                 {sub}
               </Badge>))}
             <Badge tone="success">Completed Report</Badge>
@@ -702,21 +706,21 @@ export default function MockInterviewPage() {
         {/* Hero Summary + Rubric Radar */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <Card className="lg:col-span-7">
-            <CardHeader icon={<Award className="h-4 w-4"/>} title="Interview Performance Dossier" subtitle={`Evaluated ${activeSession.answeredCount} question(s) using role-calibrated CS benchmarks`}/>
+            <CardHeader icon={<Award className="h-4 w-4"/>} title="Interview Performance Dossier" subtitle={`Evaluated ${activeSession?.answeredCount ?? 0} question(s) using role-calibrated CS benchmarks`}/>
             <CardContent className="space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-                <ProgressRing value={activeSession.overallScore ?? 0} size={96} strokeWidth={8} color={(activeSession.overallScore ?? 0) >= 75
+                <ProgressRing value={activeSession?.overallScore ?? 0} size={96} strokeWidth={8} color={(activeSession?.overallScore ?? 0) >= 75
                 ? "#16A34A"
-                : (activeSession.overallScore ?? 0) >= 55
+                : (activeSession?.overallScore ?? 0) >= 55
                     ? "#6D5DFB"
                     : "#EF4444"} label="Overall"/>
                 <div className="space-y-2 flex-1">
                   <p className="text-sm text-[#172033] leading-relaxed">
                     {summary?.executiveSummary || "Interview completed."}
                   </p>
-                  {summary && summary.weakTopics.length > 0 && (<div className="flex flex-wrap items-center gap-1.5">
+                  {weakTopics.length > 0 && (<div className="flex flex-wrap items-center gap-1.5">
                       <span className="text-[11px] font-semibold text-rose-700">Weak Topics:</span>
-                      {summary.weakTopics.map((wt) => (<Badge key={wt} tone="danger">
+                      {weakTopics.map((wt) => (<Badge key={wt} tone="danger">
                           {wt}
                         </Badge>))}
                     </div>)}
@@ -727,7 +731,7 @@ export default function MockInterviewPage() {
                   <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 space-y-2">
                     <p className="text-xs font-semibold text-emerald-800">Observed Strengths</p>
                     <ul className="space-y-1.5">
-                      {summary.strengths.map((s, i) => (<li key={i} className="text-xs text-emerald-900 flex items-start gap-1.5">
+                      {strengths.map((s, i) => (<li key={i} className="text-xs text-emerald-900 flex items-start gap-1.5">
                           <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5 text-emerald-600"/>
                           <span>{s}</span>
                         </li>))}
@@ -737,7 +741,7 @@ export default function MockInterviewPage() {
                   <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/80 space-y-2">
                     <p className="text-xs font-semibold text-amber-800">Areas to Improve</p>
                     <ul className="space-y-1.5">
-                      {summary.areasToImprove.map((a, i) => (<li key={i} className="text-xs text-amber-900 flex items-start gap-1.5">
+                      {areasToImprove.map((a, i) => (<li key={i} className="text-xs text-amber-900 flex items-start gap-1.5">
                           <Target className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-600"/>
                           <span>{a}</span>
                         </li>))}

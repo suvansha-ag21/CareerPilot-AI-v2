@@ -196,7 +196,25 @@ export default function SkillGapAnalyzerPage() {
             setGeneratingPlan(false);
         }
     }
-    const filteredBenchmarks = report?.benchmarks.filter((b) => statusFilter === "ALL" ? true : b.status === statusFilter) ?? [];
+    const reportBenchmarks = Array.isArray(report?.benchmarks)
+        ? report.benchmarks
+        : (Array.isArray(report?.skillsBreakdown) ? report.skillsBreakdown : []);
+    const filteredBenchmarks = reportBenchmarks.filter((b) => statusFilter === "ALL" ? true : b.status === statusFilter);
+    const quickWins = Array.isArray(report?.quickWins)
+        ? report.quickWins
+        : (Array.isArray(report?.quick_wins) ? report.quick_wins : []);
+    const learningOrder = Array.isArray(report?.learningOrder)
+        ? report.learningOrder
+        : (Array.isArray(report?.learning_order) ? report.learning_order : []);
+    const categoryBreakdown = Array.isArray(report?.categoryBreakdown)
+        ? report.categoryBreakdown
+        : (Array.isArray(report?.category_breakdown) ? report.category_breakdown : []);
+    const readinessPct = report?.readinessPct ?? report?.readiness_pct ?? report?.readinessScore ?? 0;
+    const masteredCount = report?.masteredCount ?? report?.mastered_count ?? report?.coveredCount ?? 0;
+    const needsLevelUpCount = report?.needsLevelUpCount ?? report?.needs_level_up_count ?? 0;
+    const missingCount = report?.missingCount ?? report?.missing_count ?? 0;
+    const reportTargetRole = report?.targetRole || report?.target_role || targetRole || "Full Stack Developer";
+    const aiSummary = report?.aiSummary || report?.ai_summary || "Role readiness diagnostic evaluated.";
     const ROLE_OPTIONS = Array.from(new Set([
         ...SKILL_GAP_ROLE_OPTIONS,
         ...(user?.targetRole && user.targetRole !== "Other" ? [user.targetRole] : []),
@@ -327,30 +345,30 @@ export default function SkillGapAnalyzerPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Readiness Summary & Quick Wins */}
             <Card className="lg:col-span-5">
-              <CardHeader icon={<TrendingUp className="h-4 w-4"/>} title={`Readiness: ${report.targetRole}`} subtitle={`${report.masteredCount} mastered · ${report.needsLevelUpCount} level-up · ${report.missingCount} missing`}/>
+              <CardHeader icon={<TrendingUp className="h-4 w-4"/>} title={`Readiness: ${reportTargetRole}`} subtitle={`${masteredCount} mastered · ${needsLevelUpCount} level-up · ${missingCount} missing`}/>
               <CardContent className="space-y-5">
                 <div className="flex items-center gap-5">
-                  <ProgressRing value={report.readinessPct} size={96} strokeWidth={8} color={report.readinessPct >= 75
+                  <ProgressRing value={readinessPct} size={96} strokeWidth={8} color={readinessPct >= 75
                 ? "#16A34A"
-                : report.readinessPct >= 45
+                : readinessPct >= 45
                     ? "#6D5DFB"
                     : "#F59E0B"} label="Role Fit"/>
                   <div className="grid grid-cols-3 gap-2 flex-1 text-center">
                     <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200/70">
                       <p className="text-lg font-bold text-emerald-700 tabular-nums">
-                        {report.masteredCount}
+                        {masteredCount}
                       </p>
                       <p className="text-[10px] font-medium text-emerald-700">Mastered</p>
                     </div>
                     <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200/70">
                       <p className="text-lg font-bold text-amber-700 tabular-nums">
-                        {report.needsLevelUpCount}
+                        {needsLevelUpCount}
                       </p>
                       <p className="text-[10px] font-medium text-amber-700">Level Up</p>
                     </div>
                     <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200/70">
                       <p className="text-lg font-bold text-rose-700 tabular-nums">
-                        {report.missingCount}
+                        {missingCount}
                       </p>
                       <p className="text-[10px] font-medium text-rose-700">Missing</p>
                     </div>
@@ -361,13 +379,13 @@ export default function SkillGapAnalyzerPage() {
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D5DFB]">
                     AI Diagnostic Summary
                   </p>
-                  <p className="text-xs text-[#172033] leading-relaxed">{report.aiSummary}</p>
+                  <p className="text-xs text-[#172033] leading-relaxed">{aiSummary}</p>
                 </div>
 
-                {report.quickWins.length > 0 && (<div className="space-y-2">
+                {quickWins.length > 0 && (<div className="space-y-2">
                     <p className="text-xs font-semibold text-[#172033]">7-Day Quick Wins</p>
                     <ul className="space-y-1.5">
-                      {report.quickWins.map((win, idx) => (<li key={idx} className="flex items-start gap-2 text-xs text-[#64748B] leading-relaxed">
+                      {quickWins.map((win, idx) => (<li key={idx} className="flex items-start gap-2 text-xs text-[#64748B] leading-relaxed">
                           <CheckCircle2 className="h-3.5 w-3.5 text-[#6D5DFB] shrink-0 mt-0.5"/>
                           <span>{win}</span>
                         </li>))}
@@ -382,7 +400,7 @@ export default function SkillGapAnalyzerPage() {
               <CardContent>
                 <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={report.categoryBreakdown} margin={{ top: 10, right: 16, left: -12, bottom: 0 }}>
+                    <BarChart data={categoryBreakdown} margin={{ top: 10, right: 16, left: -12, bottom: 0 }}>
                       <defs>
                         <linearGradient id="skillCatGrad" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#6D5DFB"/>
@@ -399,7 +417,7 @@ export default function SkillGapAnalyzerPage() {
                 </div>
 
                 {/* Dependency-Ordered Study Sequence */}
-                {report.learningOrder.length > 0 && (<div className="mt-5 pt-4 border-t border-slate-100 space-y-2.5">
+                {learningOrder.length > 0 && (<div className="mt-5 pt-4 border-t border-slate-100 space-y-2.5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-xs font-semibold text-[#172033]">
                         Recommended Prerequisite Learning Sequence
@@ -410,14 +428,14 @@ export default function SkillGapAnalyzerPage() {
                       </Button>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      {report.learningOrder.map((skill, idx) => (<React.Fragment key={skill}>
+                      {learningOrder.map((skill, idx) => (<React.Fragment key={skill}>
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#EEF2FF] border border-[#6D5DFB]/20 text-xs font-medium text-[#6D5DFB]">
                             <span className="h-4 w-4 rounded-full bg-[#6D5DFB] text-white text-[10px] font-bold flex items-center justify-center">
                               {idx + 1}
                             </span>
                             {skill}
                           </span>
-                          {idx < report.learningOrder.length - 1 && (<ArrowRight className="h-3 w-3 text-slate-400"/>)}
+                          {idx < learningOrder.length - 1 && (<ArrowRight className="h-3 w-3 text-slate-400"/>)}
                         </React.Fragment>))}
                     </div>
                   </div>)}
@@ -429,13 +447,13 @@ export default function SkillGapAnalyzerPage() {
           <Card>
             <CardHeader icon={<BookOpen className="h-4 w-4"/>} title="Detailed Skill Benchmarks & Resources" subtitle="Adjust proficiency directly to reflect new practice—readiness updates automatically" action={<div className="flex flex-wrap gap-1.5">
                   {[
-                    { key: "ALL", label: `All (${report.benchmarks.length})` },
-                    { key: "MISSING", label: `Missing (${report.missingCount})` },
+                    { key: "ALL", label: `All (${reportBenchmarks.length})` },
+                    { key: "MISSING", label: `Missing (${missingCount})` },
                     {
                         key: "NEEDS_LEVEL_UP",
-                        label: `Level Up (${report.needsLevelUpCount})`,
+                        label: `Level Up (${needsLevelUpCount})`,
                     },
-                    { key: "MASTERED", label: `Mastered (${report.masteredCount})` },
+                    { key: "MASTERED", label: `Mastered (${masteredCount})` },
                 ].map((tab) => (<button key={tab.key} type="button" onClick={() => setStatusFilter(tab.key)} className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${statusFilter === tab.key
                         ? "bg-[#6D5DFB] text-white"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>

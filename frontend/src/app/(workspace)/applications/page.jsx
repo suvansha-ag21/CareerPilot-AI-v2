@@ -337,7 +337,7 @@ export default function ApplicationsTrackerPage() {
                       </select>
                     </td>
                     <td className="py-3.5 px-4 text-[#64748B] tabular-nums">
-                      {new Date(app.applicationDate).toLocaleDateString()}
+                      {app.applicationDate ? new Date(app.applicationDate).toLocaleDateString() : "—"}
                     </td>
                     <td className="py-3.5 px-4 tabular-nums">
                       {app.interviewDate ? (<Badge tone="brand">
@@ -380,7 +380,7 @@ export default function ApplicationsTrackerPage() {
                         </div>
 
                         {app.interviewDate && (<p className="text-[11px] text-[#6D5DFB] font-medium tabular-nums">
-                            Interview: {new Date(app.interviewDate).toLocaleDateString()}
+                            Interview: {app.interviewDate ? new Date(app.interviewDate).toLocaleDateString() : ""}
                           </p>)}
 
                         <select value={app.status} onChange={(e) => void handleStatusChange(app.id, e.target.value)} className="w-full h-8 px-2 rounded-md border border-slate-200 bg-white text-[11px] font-medium text-[#172033]">

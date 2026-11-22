@@ -1,8 +1,33 @@
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1"
-    ? "https://careerpilot-ai-v2-zkuo.onrender.com/api"
-    : "http://localhost:5000/api");
+function resolveApiBaseUrl() {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (envUrl) {
+    const clean = envUrl.replace(/\/+$/, "");
+    return clean.endsWith("/api") ? clean : `${clean}/api`;
+  }
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1"
+  ) {
+    return "https://careerpilot-ai-v2-zkuo.onrender.com/api";
+  }
+  return "http://localhost:5000/api";
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
+
+export function buildUrl(path) {
+  let cleanPath = (path || "").trim();
+  if (cleanPath.startsWith("/api/")) {
+    cleanPath = cleanPath.slice(4);
+  } else if (cleanPath === "/api") {
+    cleanPath = "";
+  }
+  if (!cleanPath.startsWith("/")) {
+    cleanPath = `/${cleanPath}`;
+  }
+  return `${API_BASE_URL}${cleanPath}`;
+}
 
 let accessToken = null;
 let inflightRefresh = null;
@@ -31,7 +56,7 @@ export async function refreshAccessToken() {
     if (!inflightRefresh) {
         inflightRefresh = (async () => {
             try {
-                const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+                const res = await fetch(buildUrl("/auth/refresh"), {
                     method: "POST",
                     credentials: "include",
                 });
@@ -39,8 +64,9 @@ export async function refreshAccessToken() {
                     accessToken = null;
                     return null;
                 }
-                const json = (await res.json());
-                if (!json.success) {
+                const text = await res.text();
+                const json = text ? JSON.parse(text) : {};
+                if (!json.success || !json.data?.accessToken) {
                     accessToken = null;
                     return null;
                 }
@@ -59,17 +85,23 @@ export async function refreshAccessToken() {
     const token = await inflightRefresh;
     if (!token)
         return null;
-    const profileRes = await fetch(`${API_BASE_URL}/auth/me`, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-        credentials: "include",
-    });
-    if (!profileRes.ok)
+    try {
+        const profileRes = await fetch(buildUrl("/auth/me"), {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
+            credentials: "include",
+        });
+        if (!profileRes.ok)
+            return null;
+        const profileText = await profileRes.text();
+        const profileJson = profileText ? JSON.parse(profileText) : {};
+        if (!profileJson.success)
+            return null;
+        return { accessToken: token, user: profileJson.data };
+    }
+    catch {
         return null;
-    const profileJson = (await profileRes.json());
-    if (!profileJson.success)
-        return null;
-    return { accessToken: token, user: profileJson.data };
+    }
 }
 
 export async function apiRequest(path, options = {}) {
@@ -81,7 +113,8 @@ export async function apiRequest(path, options = {}) {
     if (!skipAuth && accessToken) {
         requestHeaders.set("Authorization", `Bearer ${accessToken}`);
     }
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const url = buildUrl(path);
+    const response = await fetch(url, {
         ...rest,
         headers: requestHeaders,
         credentials: "include",
@@ -92,7 +125,21 @@ export async function apiRequest(path, options = {}) {
             return apiRequest(path, { ...options, retryOn401: false });
         }
     }
-    const payload = (await response.json());
+    let payload = null;
+    const text = await response.text();
+    try {
+        payload = text ? JSON.parse(text) : {};
+    }
+    catch {
+        if (!response.ok) {
+            throw new ApiClientError(
+                response.status,
+                `HTTP_ERROR_${response.status}`,
+                response.statusText || `Request failed with status ${response.status}`
+            );
+        }
+        payload = {};
+    }
     if (!response.ok || !payload.success) {
         const err = !payload.success ? payload.error : undefined;
         const message = typeof err === "string"
@@ -108,7 +155,8 @@ export async function apiFetchBlob(path, retryOn401 = true) {
     if (accessToken) {
         headers.set("Authorization", `Bearer ${accessToken}`);
     }
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const url = buildUrl(path);
+    const response = await fetch(url, {
         method: "GET",
         headers,
         credentials: "include",

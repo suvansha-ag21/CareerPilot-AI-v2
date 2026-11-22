@@ -429,7 +429,7 @@ export default function UserDashboardPage() {
                       </div>
                       <Badge tone="brand" className="tabular-nums">
                         <Calendar className="h-3 w-3"/>
-                        {new Date(item.interviewDate).toLocaleDateString()}
+                        {item.interviewDate ? new Date(item.interviewDate).toLocaleDateString() : "Scheduled"}
                       </Badge>
                     </div>))}
                 </div>) : (<p className="text-xs text-[#64748B] py-2">

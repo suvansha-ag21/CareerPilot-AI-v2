@@ -200,7 +200,7 @@ export default function DeepAnalyticsPage() {
         <Card className="lg:col-span-5">
           <CardHeader icon={<Layers className="h-4 w-4"/>} title="Verified Skill Portfolio by Domain" subtitle="Average confidence across UserSkill categories"/>
           <CardContent className="space-y-3">
-            {data.skillCategoryStats.length > 0 ? (data.skillCategoryStats.map((cat) => (<div key={cat.category} className="space-y-1.5">
+            {(data.skillCategoryStats || []).length > 0 ? ((data.skillCategoryStats || []).map((cat) => (<div key={cat.category} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-[#172033]">
                       {cat.label} ({cat.count})
@@ -225,8 +225,8 @@ export default function DeepAnalyticsPage() {
               <p className="text-[11px] font-semibold uppercase text-[#64748B]">
                 Recurring Interview Weak Topics
               </p>
-              {data.recurringWeakTopics.length > 0 ? (<div className="flex flex-wrap gap-2">
-                  {data.recurringWeakTopics.map((wt) => (<Badge key={wt.topic} tone="danger">
+              {(data.recurringWeakTopics || []).length > 0 ? (<div className="flex flex-wrap gap-2">
+                  {(data.recurringWeakTopics || []).map((wt) => (<Badge key={wt.topic} tone="danger">
                       {wt.topic} ({wt.count}x)
                     </Badge>))}
                 </div>) : (<p className="text-xs text-[#64748B]">No recurring weak topics flagged yet.</p>)}
@@ -236,8 +236,8 @@ export default function DeepAnalyticsPage() {
               <p className="text-[11px] font-semibold uppercase text-[#64748B]">
                 Frequent Missing JD Skills
               </p>
-              {data.missingSkillHotspots.length > 0 ? (<div className="flex flex-wrap gap-2">
-                  {data.missingSkillHotspots.map((sk) => (<Badge key={sk} tone="warning">
+              {(data.missingSkillHotspots || []).length > 0 ? (<div className="flex flex-wrap gap-2">
+                  {(data.missingSkillHotspots || []).map((sk) => (<Badge key={sk} tone="warning">
                       {sk}
                     </Badge>))}
                 </div>) : (<p className="text-xs text-[#64748B]">Run JD Matcher to surface missing skills.</p>)}
@@ -246,9 +246,9 @@ export default function DeepAnalyticsPage() {
         </Card>
 
         <Card className="lg:col-span-3">
-          <CardHeader icon={<Map className="h-4 w-4"/>} title="Active Roadmap Velocity" subtitle={data.roadmapStats.activeTitle || "No active sprint"}/>
+          <CardHeader icon={<Map className="h-4 w-4"/>} title="Active Roadmap Velocity" subtitle={data?.roadmapStats?.activeTitle || "No active sprint"}/>
           <CardContent className="space-y-4">
-            {data.roadmapStats.activeProgressPct !== null ? (<>
+            {data?.roadmapStats?.activeProgressPct !== null && data?.roadmapStats?.activeProgressPct !== undefined ? (<>
                 <div className="flex justify-center">
                   <ProgressRing value={data.roadmapStats.activeProgressPct} size={90} strokeWidth={8} color="#16A34A" label="Sprint"/>
                 </div>
@@ -340,7 +340,7 @@ export default function DeepAnalyticsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {data.aiTelemetry.recentLogs.map((log) => (<tr key={log.id}>
+                    {(data?.aiTelemetry?.recentLogs || []).map((log) => (<tr key={log.id}>
                         <td className="py-2 px-4 font-medium text-[#172033]">{log.operation}</td>
                         <td className="py-2 px-3 text-[#64748B]">
                           {log.provider} / {log.model}

@@ -438,17 +438,17 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="flex flex-wrap gap-1.5">
-                    {repo.detectedStack.map((tech) => (<Badge key={tech} tone="neutral">
+                    {(repo.detectedStack || []).map((tech) => (<Badge key={tech} tone="neutral">
                         {tech}
                       </Badge>))}
                   </div>
 
-                  {repo.interviewHooks.length > 0 && (<div className="pt-2 border-t border-slate-200/70 space-y-1">
+                  {(repo.interviewHooks || []).length > 0 && (<div className="pt-2 border-t border-slate-200/70 space-y-1">
                       <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D5DFB]">
                         Code-Grounded Interview Probes
                       </p>
                       <ul className="space-y-1 text-xs text-[#172033]">
-                        {repo.interviewHooks.slice(0, 3).map((hook, i) => (<li key={i}>&bull; {hook}</li>))}
+                        {(repo.interviewHooks || []).slice(0, 3).map((hook, i) => (<li key={i}>&bull; {hook}</li>))}
                       </ul>
                     </div>)}
                 </div>))}
