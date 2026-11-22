@@ -7,10 +7,12 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Flux;
 
+import java.time.Duration;
 import java.util.Map;
 
 @Component
@@ -21,8 +23,22 @@ public class AiServiceClient {
     public AiServiceClient(
             @Value("${app.ai-service.base-url}") String baseUrl,
             @Value("${app.ai-service.internal-key}") String internalKey) {
+        String normalizedUrl = baseUrl == null || baseUrl.isBlank() ? "http://127.0.0.1:8000" : baseUrl.trim();
+        if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
+            normalizedUrl = "https://" + normalizedUrl;
+        }
+        normalizedUrl = normalizedUrl.replaceAll("/+$", "");
+        if (normalizedUrl.endsWith("/internal/ai")) {
+            normalizedUrl = normalizedUrl.substring(0, normalizedUrl.length() - "/internal/ai".length());
+        }
+
+        ExchangeStrategies strategies = ExchangeStrategies.builder()
+                .codecs(codecs -> codecs.defaultCodecs().maxInMemorySize(16 * 1024 * 1024))
+                .build();
+
         this.webClient = WebClient.builder()
-                .baseUrl(baseUrl)
+                .baseUrl(normalizedUrl)
+                .exchangeStrategies(strategies)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader("X-Internal-Service-Key", internalKey)
                 .build();
@@ -32,7 +48,8 @@ public class AiServiceClient {
         return webClient.get()
                 .uri("/internal/ai/health")
                 .retrieve()
-                .bodyToMono(Map.class);
+                .bodyToMono(Map.class)
+                .timeout(Duration.ofSeconds(10));
     }
 
     public Mono<Map> matchJob(Map<String, Object> payload) {

@@ -8,6 +8,7 @@ router = APIRouter(tags=["Health"])
 
 class HealthResponse(BaseModel):
     status: str
+    healthy: bool = True
     service: str
     llm_provider: str
     llm_configured: bool
@@ -22,6 +23,7 @@ async def get_health() -> HealthResponse:
     )
     return HealthResponse(
         status="ok",
+        healthy=True,
         service="careerpilot-ai-service",
         llm_provider=settings.LLM_PROVIDER,
         llm_configured=llm_ready,

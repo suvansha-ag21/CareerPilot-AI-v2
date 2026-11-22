@@ -64,3 +64,12 @@ app.include_router(drills_router, prefix="/internal/ai")
 @app.get("/")
 async def root() -> dict[str, str]:
     return {"service": "careerpilot-ai-service", "status": "running"}
+
+
+@app.get("/health")
+async def health() -> dict[str, object]:
+    return {
+        "status": "ok",
+        "healthy": True,
+        "service": "careerpilot-ai-service",
+    }
