@@ -29,8 +29,21 @@ export default function ResumeAnalyzerPage() {
     const [tailorJd, setTailorJd] = useState("");
     const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
     const [loadingPreview, setLoadingPreview] = useState(false);
-    const selectedResume = resumes.find((r) => r.id === selectedId) || resumes[0] || null;
-    const effectiveTargetRole = selectedRoleOption === "Other"
+  const selectedResume = resumes.find((r) => r.id === selectedId) || resumes[0] || null;
+  const parsedData = selectedResume?.parsedData || {};
+  const contact = parsedData?.contact || {};
+  const feedback = selectedResume?.feedback || {};
+  const sectionScores = Array.isArray(selectedResume?.sectionScores) ? selectedResume.sectionScores : [];
+  const resumeSkills = Array.isArray(selectedResume?.skills) ? selectedResume.skills : [];
+  const feedbackStrengths = Array.isArray(feedback?.strengths) ? feedback.strengths : [];
+  const feedbackWeaknesses = Array.isArray(feedback?.weaknesses)
+    ? feedback.weaknesses
+    : (Array.isArray(feedback?.improvements) ? feedback.improvements : []);
+  const missingKeywords = Array.isArray(feedback?.missingKeywords) ? feedback.missingKeywords : [];
+  const bulletSuggestions = Array.isArray(feedback?.bulletSuggestions) ? feedback.bulletSuggestions : [];
+  const extractedProjects = Array.isArray(parsedData?.projects) ? parsedData.projects : [];
+
+  const effectiveTargetRole = selectedRoleOption === "Other"
         ? customRole.trim() || user?.targetRole || "Full Stack Developer"
         : selectedRoleOption;
     useEffect(() => {
@@ -401,8 +414,8 @@ export default function ResumeAnalyzerPage() {
                         {selectedResume.title}
                       </h3>
                       <p className="text-xs text-[#64748B]">
-                        {selectedResume.skills.length} detected skills &bull;{" "}
-                        {selectedResume.parsedData.wordCount || 0} words extracted
+                        {resumeSkills.length} detected skills &bull;{" "}
+                        {parsedData.wordCount || 0} words extracted
                       </p>
                     </div>
                   </div>
@@ -412,7 +425,7 @@ export default function ResumeAnalyzerPage() {
                       <RefreshCw className="h-3.5 w-3.5"/>
                       {selectedResume.analyzedAt ? "Re-Analyze" : "Run Analysis"}
                     </Button>
-                    {selectedResume.skills.length > 0 && (<Button variant="secondary" size="sm" title="Add skills found in this resume to your profile so Skill Gap & Interviews stay up to date" onClick={() => void handleSyncSkills(selectedResume.id)}>
+                    {resumeSkills.length > 0 && (<Button variant="secondary" size="sm" title="Add skills found in this resume to your profile so Skill Gap & Interviews stay up to date" onClick={() => void handleSyncSkills(selectedResume.id)}>
                         <Wrench className="h-3.5 w-3.5"/>
                         Save Skills to Profile
                       </Button>)}
@@ -450,11 +463,11 @@ export default function ResumeAnalyzerPage() {
                       </Button>
 
                       {tailoredDraft && (<Button type="button" variant="secondary" onClick={() => downloadTailoredResumePdf({
-                            candidateName: selectedResume.parsedData.contact.candidateName ||
+                            candidateName: contact.candidateName ||
                                 user?.name ||
                                 "Candidate",
-                            email: selectedResume.parsedData.contact.email || user?.email,
-                            location: selectedResume.parsedData.contact.location || user?.location,
+                            email: contact.email || user?.email,
+                            location: contact.location || user?.location,
                             tailored: tailoredDraft,
                         })}>
                           <Download className="h-4 w-4"/>
@@ -522,12 +535,12 @@ export default function ResumeAnalyzerPage() {
                       {/* Honest Methodology Disclaimer */}
                       <div className="p-3.5 rounded-xl bg-[#EEF2FF]/70 border border-[#6D5DFB]/20 flex items-start gap-2.5 text-xs text-[#172033]">
                         <Info className="h-4 w-4 text-[#6D5DFB] shrink-0 mt-0.5"/>
-                        <span>{selectedResume.feedback.scoringMethodologyNote}</span>
+                        <span>{feedback.scoringMethodologyNote || "Evaluated against industry ATS benchmarks."}</span>
                       </div>
 
                       {/* Section-wise Evaluation Cards */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {selectedResume.sectionScores.map((sec) => (<Card key={sec.section}>
+                        {sectionScores.map((sec) => (<Card key={sec.section}>
                             <CardContent className="p-4 space-y-2">
                               <div className="flex items-center justify-between">
                                 <span className="text-xs font-semibold text-[#172033]">
@@ -538,11 +551,11 @@ export default function ResumeAnalyzerPage() {
                                 : sec.status === "MISSING"
                                     ? "danger"
                                     : "warning"}>
-                                  {Math.round(sec.score)}%
+                                  {Math.round(sec.score || 0)}%
                                 </Badge>
                               </div>
-                              <p className="text-xs text-[#64748B]">{sec.summary}</p>
-                              {sec.suggestions.length > 0 && (<ul className="space-y-1 pt-1 border-t border-slate-100">
+                              <p className="text-xs text-[#64748B]">{sec.summary || "Section evaluated."}</p>
+                              {(sec.suggestions || []).length > 0 && (<ul className="space-y-1 pt-1 border-t border-slate-100">
                                   {sec.suggestions.map((s, idx) => (<li key={idx} className="text-[11px] text-[#172033] flex gap-1.5">
                                       <span className="text-[#6D5DFB]">&bull;</span>
                                       <span>{s}</span>
@@ -555,9 +568,9 @@ export default function ResumeAnalyzerPage() {
                       {/* Skills & Missing Keywords */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Card>
-                          <CardHeader title="Skills Detected" subtitle={`${selectedResume.skills.length} extracted from resume`}/>
+                          <CardHeader title="Skills Detected" subtitle={`${resumeSkills.length} extracted from resume`}/>
                           <CardContent className="flex flex-wrap gap-1.5">
-                            {selectedResume.skills.map((s) => (<Badge key={s} tone="brand">
+                            {resumeSkills.map((s) => (<Badge key={s} tone="brand">
                                 {s}
                               </Badge>))}
                           </CardContent>
@@ -566,7 +579,7 @@ export default function ResumeAnalyzerPage() {
                         <Card>
                           <CardHeader title="Missing Keywords" subtitle={`Recommended for ${user?.targetRole || "your role"}`}/>
                           <CardContent className="flex flex-wrap gap-1.5">
-                            {selectedResume.feedback.missingKeywords.length > 0 ? (selectedResume.feedback.missingKeywords.map((kw) => (<Badge key={kw} tone="warning">
+                            {missingKeywords.length > 0 ? (missingKeywords.map((kw) => (<Badge key={kw} tone="warning">
                                   + {kw}
                                 </Badge>))) : (<span className="text-xs text-[#16A34A] font-medium">
                                 Strong keyword alignment detected.
@@ -581,7 +594,7 @@ export default function ResumeAnalyzerPage() {
                           <CardHeader title="Strengths"/>
                           <CardContent>
                             <ul className="space-y-2">
-                              {selectedResume.feedback.strengths.map((str, i) => (<li key={i} className="text-xs text-[#172033] flex items-start gap-2">
+                              {feedbackStrengths.map((str, i) => (<li key={i} className="text-xs text-[#172033] flex items-start gap-2">
                                   <CheckCircle2 className="h-3.5 w-3.5 text-[#16A34A] mt-0.5 shrink-0"/>
                                   <span>{str}</span>
                                 </li>))}
@@ -593,7 +606,7 @@ export default function ResumeAnalyzerPage() {
                           <CardHeader title="Areas to Strengthen"/>
                           <CardContent>
                             <ul className="space-y-2">
-                              {selectedResume.feedback.weaknesses.map((w, i) => (<li key={i} className="text-xs text-[#172033] flex items-start gap-2">
+                              {feedbackWeaknesses.map((w, i) => (<li key={i} className="text-xs text-[#172033] flex items-start gap-2">
                                   <AlertCircle className="h-3.5 w-3.5 text-[#F59E0B] mt-0.5 shrink-0"/>
                                   <span>{w}</span>
                                 </li>))}
@@ -603,10 +616,10 @@ export default function ResumeAnalyzerPage() {
                       </div>
 
                       {/* AI Bullet Point Rewrites */}
-                      {selectedResume.feedback.bulletSuggestions.length > 0 && (<Card>
+                      {bulletSuggestions.length > 0 && (<Card>
                           <CardHeader title="AI Bullet Point Upgrades" subtitle="Quantified impact rewrites based on your actual bullet lines"/>
                           <CardContent className="space-y-4">
-                            {selectedResume.feedback.bulletSuggestions.map((b, idx) => (<div key={idx} className="p-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]/70 space-y-2.5">
+                            {bulletSuggestions.map((b, idx) => (<div key={idx} className="p-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]/70 space-y-2.5">
                                 <div className="text-xs">
                                   <span className="font-semibold text-[#EF4444]">Original: </span>
                                   <span className="text-[#64748B]">{b.original}</span>
@@ -632,30 +645,30 @@ export default function ResumeAnalyzerPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                       <div className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
                         <span className="text-[#64748B]">Name:</span>{" "}
-                        <strong>{selectedResume.parsedData.contact.candidateName || "—"}</strong>
+                        <strong>{contact.candidateName || "—"}</strong>
                       </div>
                       <div className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
                         <span className="text-[#64748B]">Email:</span>{" "}
-                        <strong>{selectedResume.parsedData.contact.email || "—"}</strong>
+                        <strong>{contact.email || "—"}</strong>
                       </div>
                       <div className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
                         <span className="text-[#64748B]">GitHub:</span>{" "}
-                        <strong>{selectedResume.parsedData.contact.githubUrl || "—"}</strong>
+                        <strong>{contact.githubUrl || "—"}</strong>
                       </div>
                       <div className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
                         <span className="text-[#64748B]">LinkedIn:</span>{" "}
-                        <strong>{selectedResume.parsedData.contact.linkedinUrl || "—"}</strong>
+                        <strong>{contact.linkedinUrl || "—"}</strong>
                       </div>
                     </div>
 
-                    {selectedResume.parsedData.projects.length > 0 && (<div>
+                    {extractedProjects.length > 0 && (<div>
                         <h4 className="text-xs font-semibold text-[#172033] mb-2">
-                          Extracted Projects ({selectedResume.parsedData.projects.length})
+                          Extracted Projects ({extractedProjects.length})
                         </h4>
                         <div className="space-y-2">
-                          {selectedResume.parsedData.projects.map((p, i) => (<div key={i} className="p-3 rounded-lg border border-[#E2E8F0] text-xs">
+                          {extractedProjects.map((p, i) => (<div key={i} className="p-3 rounded-lg border border-[#E2E8F0] text-xs">
                               <p className="font-semibold text-[#172033]">{p.title}</p>
-                              {p.techStack.length > 0 && (<p className="text-[11px] text-[#6D5DFB] mt-0.5">
+                              {(p.techStack || []).length > 0 && (<p className="text-[11px] text-[#6D5DFB] mt-0.5">
                                   {p.techStack.join(", ")}
                                 </p>)}
                             </div>))}
